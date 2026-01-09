@@ -2,61 +2,74 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>SVG Plotter v2 - Research Grade</title>
+    <title>SVG Plotter v3 - Statistics Ready</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; background: #f8f9fa; display: flex; flex-direction: column; align-items: center; }
-        .container { display: flex; gap: 20px; max-width: 1200px; width: 100%; }
+        .container { display: flex; gap: 20px; max-width: 1250px; width: 100%; }
         .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .input-area { flex: 1; }
-        .control-area { flex: 0 0 250px; font-size: 0.9em; }
-        .preview-area { flex: 2; background: white; display: flex; justify-content: center; align-items: center; min-height: 500px; border-radius: 8px; border: 1px dashed #ccc; position: relative; }
+        .input-area { flex: 1; min-width: 300px; }
+        .preview-area { flex: 2; background: white; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 550px; border-radius: 8px; border: 1px dashed #ccc; }
 
-        textarea { width: 100%; height: 150px; font-family: monospace; box-sizing: border-box; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
-        .control-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="range"] { width: 100%; }
-        button { width: 100%; padding: 10px; margin-top: 10px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; }
+        textarea { width: 100%; height: 180px; font-family: monospace; box-sizing: border-box; padding: 10px; border: 1px solid #ddd; border-radius: 4px; line-height: 1.4; }
+        .control-group { margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.85em; color: #555; }
+        select, input[type="range"] { width: 100%; }
+        button { width: 100%; padding: 12px; margin-top: 10px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; }
         .btn-gen { background: #007bff; color: white; }
-        .btn-dl { background: #28a745; color: white; }
+        .btn-dl { background: #28a745; color: white; margin-top: 5px; }
+        .val-display { font-weight: normal; float: right; color: #007bff; }
 
-        svg { background: white; border: 1px solid #eee; }
+        #svg-container { overflow: auto; width: 100%; display: flex; justify-content: center; }
     </style>
 </head>
 <body>
 
-<h2 style="align-self: flex-start;">Figure Creator for Illustrator</h2>
+<h2 style="align-self: flex-start; margin-left: 5%;">Research Figure Generator</h2>
 
 <div class="container">
     <div class="panel input-area">
-        <label>1. Excel Data (TSV)</label>
-        <textarea id="dataInput" placeholder="Control\tTreat&#10;10.2\t14.5&#10;9.8\t15.2&#10;11.5\t13.8">Control	Treat
-10.2	14.5
-9.8	15.2
-11.5	13.8
-10.8	16.1</textarea>
+        <div class="control-group">
+            <label>1. Data (Excel Paste)</label>
+            <textarea id="dataInput" placeholder="Day0	Day1	Day3">Day0	Day1	Day3	Day8	Day10	Day15
+20	150	700	450	550	280
+15	110	650	480	600	310
+25	180	1400	950	900	650
+10	80	350	250	320	150
+30	220	850	520	720	420</textarea>
+        </div>
 
-        <div class="control-group" style="margin-top:20px;">
-            <label>2. Appearance Settings</label>
-            <div class="control-group">
-                <span>Font Size: <span id="val-fontSize">14</span>px</span>
+        <div class="control-group">
+            <label>2. Statistics Error Bar</label>
+            <select id="errorType" onchange="updatePlot()">
+                <option value="se">Mean ± SE (Standard Error)</option>
+                <option value="sd">Mean ± SD (Standard Deviation)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>3. Layout & Style</label>
+            <div style="margin-bottom:8px;">
+                <span>Font Size <span id="val-fontSize" class="val-display">14</span></span>
                 <input type="range" id="fontSize" min="8" max="24" value="14" oninput="updatePlot()">
             </div>
-            <div class="control-group">
-                <span>Line Weight: <span id="val-strokeWidth">1.5</span>pt</span>
+            <div style="margin-bottom:8px;">
+                <span>Stroke Weight <span id="val-strokeWidth" class="val-display">1.5</span></span>
                 <input type="range" id="strokeWidth" min="0.5" max="4" step="0.5" value="1.5" oninput="updatePlot()">
             </div>
-            <div class="control-group">
-                <span>Dot Size: <span id="val-dotSize">4</span>px</span>
-                <input type="range" id="dotSize" min="1" max="10" value="4" oninput="updatePlot()">
+            <div style="margin-bottom:8px;">
+                <span>Dot Jitter <span id="val-jitter" class="val-display">20</span></span>
+                <input type="range" id="jitter" min="0" max="50" value="20" oninput="updatePlot()">
             </div>
         </div>
 
-        <button class="btn-gen" onclick="updatePlot()">グラフを更新</button>
-        <button class="btn-dl" onclick="downloadSVG()">SVGをダウンロード</button>
+        <button class="btn-gen" onclick="updatePlot()">Update Plot</button>
+        <button class="btn-dl" onclick="downloadSVG()">Download SVG</button>
     </div>
 
-    <div class="panel preview-area" id="svg-container">
-        </div>
+    <div class="panel preview-area">
+        <div id="svg-container"></div>
+        <p style="font-size: 0.8em; color: #999; margin-top: 10px;">Drag into Adobe Illustrator to edit paths</p>
+    </div>
 </div>
 
 <script>
@@ -67,7 +80,9 @@ function parseTSV(text) {
     for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split('\t');
         values.forEach((val, idx) => {
-            if (val !== "" && !isNaN(val)) data[idx].push(parseFloat(val));
+            if (val !== undefined && val.trim() !== "" && !isNaN(val)) {
+                data[idx].push(parseFloat(val));
+            }
         });
     }
     return { headers, data };
@@ -75,81 +90,92 @@ function parseTSV(text) {
 
 function calcStats(arr) {
     const n = arr.length;
-    if (n === 0) return { mean: 0, se: 0 };
+    if (n < 1) return { mean: 0, sd: 0, se: 0, n: 0 };
     const mean = arr.reduce((a, b) => a + b, 0) / n;
-    const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n === 1 ? 1 : n - 1);
-    const se = Math.sqrt(variance) / Math.sqrt(n);
-    return { mean, se, n };
+    const variance = n > 1 ? arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1) : 0;
+    const sd = Math.sqrt(variance);
+    const se = sd / Math.sqrt(n);
+    return { mean, sd, se, n };
 }
 
 function updatePlot() {
-    // UI値の取得
+    const errorType = document.getElementById('errorType').value;
     const fontSize = document.getElementById('fontSize').value;
     const strokeWidth = document.getElementById('strokeWidth').value;
-    const dotSize = document.getElementById('dotSize').value;
+    const jitterAmount = document.getElementById('jitter').value;
 
     document.getElementById('val-fontSize').innerText = fontSize;
     document.getElementById('val-strokeWidth').innerText = strokeWidth;
-    document.getElementById('val-dotSize').innerText = dotSize;
+    document.getElementById('val-jitter').innerText = jitterAmount;
 
     const input = document.getElementById('dataInput').value;
     const { headers, data } = parseTSV(input);
     const stats = data.map(calcStats);
 
-    const width = 450;
-    const height = 400;
-    const padding = 60;
+    const width = 600;
+    const height = 450;
+    const paddingLeft = 80;
+    const paddingBottom = 60;
+    const paddingTop = 40;
+    const paddingRight = 40;
 
     const allValues = data.flat();
-    const maxDataVal = Math.max(...allValues, ...stats.map(s => s.mean + s.se));
-    // 目盛りをきりの良い数字にする（簡易版）
-    const yMax = Math.ceil(maxDataVal / 5) * 5 || 5;
-    const yScale = (val) => height - padding - (val / yMax * (height - 2 * padding));
+    const maxValInStats = Math.max(...stats.map(s => s.mean + (errorType === 'sd' ? s.sd : s.se)));
+    const maxDataVal = Math.max(...allValues, maxValInStats);
+    const yMax = Math.ceil(maxDataVal / 100) * 100 || 100;
+
+    const yScale = (val) => height - paddingBottom - (val / yMax * (height - paddingBottom - paddingTop));
+    const xScale = (i) => paddingLeft + (i + 0.5) * (width - paddingLeft - paddingRight) / headers.length;
 
     let svgItems = [];
 
-    // --- Y軸と目盛り ---
-    svgItems.push(`<line x1="${padding}" y1="${height-padding}" x2="${padding}" y2="${padding}" stroke="black" stroke-width="${strokeWidth}"/>`);
+    // --- 軸線の描画 ---
+    // Y軸
+    svgItems.push(`<line x1="${paddingLeft}" y1="${height-paddingBottom}" x2="${paddingLeft}" y2="${paddingTop}" stroke="black" stroke-width="${strokeWidth}" stroke-linecap="square"/>`);
+    // X軸（追加分）
+    svgItems.push(`<line x1="${paddingLeft}" y1="${height-paddingBottom}" x2="${width-paddingRight}" y2="${height-paddingBottom}" stroke="black" stroke-width="${strokeWidth}" stroke-linecap="square"/>`);
 
-    const tickCount = 5;
-    for (let i = 0; i <= tickCount; i++) {
-        const val = (yMax / tickCount) * i;
+    // --- Y軸目盛り ---
+    for (let i = 0; i <= 4; i++) {
+        const val = Math.round((yMax / 4) * i);
         const y = yScale(val);
         svgItems.push(`
-            <g id="y-tick-${i}">
-                <line x1="${padding}" y1="${y}" x2="${padding-5}" y2="${y}" stroke="black" stroke-width="${strokeWidth}"/>
-                <text x="${padding-10}" y="${y}" text-anchor="end" dominant-baseline="central" font-size="${fontSize}" font-family="Arial">${val}</text>
+            <g class="y-tick">
+                <line x1="${paddingLeft}" y1="${y}" x2="${paddingLeft-5}" y2="${y}" stroke="black" stroke-width="${strokeWidth}"/>
+                <text x="${paddingLeft-10}" y="${y}" text-anchor="end" dominant-baseline="central" font-size="${fontSize}" font-family="Arial">${val}</text>
             </g>`);
     }
 
-    // --- データプロット ---
+    // --- データ描画 ---
     headers.forEach((name, i) => {
-        const x = padding + (i + 1) * (width - 2 * padding) / (headers.length + 1);
+        const x = xScale(i);
         const groupData = data[i];
-        const groupStats = stats[i];
+        const s = stats[i];
+        const errorVal = errorType === 'sd' ? s.sd : s.se;
 
-        // エラーバー
-        svgItems.push(`
-            <g id="error-bar-${name}">
-                <line x1="${x}" y1="${yScale(groupStats.mean - groupStats.se)}" x2="${x}" y2="${yScale(groupStats.mean + groupStats.se)}" stroke="black" stroke-width="${strokeWidth}"/>
-                <line x1="${x-10}" y1="${yScale(groupStats.mean)}" x2="${x+10}" y2="${yScale(groupStats.mean)}" stroke="black" stroke-width="${parseFloat(strokeWidth)+1}"/>
-            </g>`);
+        // 1. エラーバー (Mean ± SD/SE)
+        if (s.n > 0) {
+            svgItems.push(`
+                <g id="error-bar-${name}">
+                    <line x1="${x}" y1="${yScale(s.mean - errorVal)}" x2="${x}" y2="${yScale(s.mean + errorVal)}" stroke="black" stroke-width="${strokeWidth}"/>
+                    <line x1="${x-12}" y1="${yScale(s.mean)}" x2="${x+12}" y2="${yScale(s.mean)}" stroke="black" stroke-width="${parseFloat(strokeWidth)*1.5}"/>
+                </g>`);
+        }
 
-        // 個別データ（ドット）
+        // 2. 個別ドット (Jitter付)
         let dots = `<g id="dots-${name}">`;
         groupData.forEach(val => {
-            const jitter = (Math.random() - 0.5) * 20;
-            dots += `<circle cx="${x + jitter}" cy="${yScale(val)}" r="${dotSize}" fill="white" stroke="black" stroke-width="${strokeWidth * 0.7}"/>`;
+            const jitter = (Math.random() - 0.5) * jitterAmount;
+            dots += `<circle cx="${x + jitter}" cy="${yScale(val)}" r="4" fill="white" stroke="black" stroke-width="${strokeWidth * 0.6}" opacity="0.8"/>`;
         });
         dots += `</g>`;
         svgItems.push(dots);
 
-        // X軸ラベル
-        svgItems.push(`<text x="${x}" y="${height-padding+25}" text-anchor="middle" font-size="${fontSize}" font-family="Arial" font-weight="bold">${name}</text>`);
+        // 3. X軸ラベル
+        svgItems.push(`<text x="${x}" y="${height-paddingBottom+25}" text-anchor="middle" font-size="${fontSize}" font-family="Arial" font-weight="bold">${name}</text>`);
     });
 
-    const svgContent = `<svg id="research-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100%" height="100%" fill="white"/>
+    const svgContent = `<svg id="main-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="background:white;">
         ${svgItems.join('')}
     </svg>`;
 
@@ -162,15 +188,14 @@ function downloadSVG() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "figure_plot.svg";
+    link.download = `plot_${new Date().getTime()}.svg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 }
 
-// 初回起動
+// 初期描画
 updatePlot();
 </script>
-
 </body>
 </html>
