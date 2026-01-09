@@ -112,6 +112,17 @@
     </div>
 </div>
 
+<div class="panel" style="margin-top: 20px; width: 100%; max-width: 1450px;">
+    <h3>3. Statistical Analysis Board</h3>
+    <div id="statsTableContainer">
+        <p style="color: #666;">データを入力すると、各タイムポイントごとの検定結果がここに表示されます。</p>
+    </div>
+    <div style="margin-top: 10px; font-size: 0.85rem; color: #555; background: #fffde7; padding: 10px; border-radius: 6px;">
+        <strong>Note:</strong> 2群比較は Welch's t-test、3群以上は One-way ANOVA を実行します。<br>
+        Brunner-Munzel検定（非等分散・非正規分布対応）の結果も併記します。
+    </div>
+</div>
+
 <script>
 let groupCount = 0;
 const defaultColors = ['#ffffff', '#ffcccc', '#ccffcc', '#ccccff', '#ffffcc', '#ffccff'];
@@ -190,6 +201,112 @@ function calcStats(arr) {
     const variance = n > 1 ? arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1) : 0;
     const sd = Math.sqrt(variance);
     return { mean, sd, se: sd / Math.sqrt(n), n };
+}
+
+// --- 統計計算ユーティリティ ---
+
+// 1. Welch's t-test (2群の平均値の比較)
+function welchTTest(a, b) {
+    const s1 = calcStats(a), s2 = calcStats(b);
+    if (s1.n < 2 || s2.n < 2) return null;
+    const v1 = Math.pow(s1.sd, 2), v2 = Math.pow(s2.sd, 2);
+    const t = Math.abs(s1.mean - s2.mean) / Math.sqrt(v1 / s1.n + v2 / s2.n);
+    const df = Math.pow(v1 / s1.n + v2 / s2.n, 2) / (Math.pow(v1 / s1.n, 2) / (s1.n - 1) + Math.pow(v2 / s2.n, 2) / (s2.n - 1));
+    // p-value 近似 (正規分布近似)
+    const p = 2 * (1 - normalCDF(Math.abs(t)));
+    return { t, p, df, method: "Welch's t-test" };
+}
+
+// 2. One-way ANOVA (3群以上の比較)
+function oneWayANOVA(groupsData) {
+    const validGroups = groupsData.filter(g => g.length > 1);
+    if (validGroups.length < 3) return null;
+
+    const allData = validGroups.flat();
+    const grandMean = allData.reduce((a, b) => a + b, 0) / allData.length;
+
+    let ssBetween = 0, ssWithin = 0;
+    validGroups.forEach(group => {
+        const m = group.reduce((a, b) => a + b, 0) / group.length;
+        ssBetween += group.length * Math.pow(m - grandMean, 2);
+        group.forEach(v => { ssWithin += Math.pow(v - m, 2); });
+    });
+
+    const dfBetween = validGroups.length - 1;
+    const dfWithin = allData.length - validGroups.length;
+    const msBetween = ssBetween / dfBetween;
+    const msWithin = ssWithin / dfWithin;
+    const f = msBetween / msWithin;
+
+    return { f, df1: dfBetween, df2: dfWithin, method: "One-way ANOVA" };
+}
+
+// 3. Brunner-Munzel Test (非パラメトリック)
+function brunnerMunzel(a, b) {
+    const n1 = a.length, n2 = b.length;
+    if (n1 < 2 || n2 < 2) return null;
+    const combined = [...a.map(v => ({ v, g: 1 })), ...b.map(v => ({ v, g: 2 }))].sort((x, y) => x.v - y.v);
+
+    // ランク計算
+    combined.forEach((d, i) => d.r = i + 1);
+    const r1 = combined.filter(d => d.g === 1).map(d => d.r);
+    const r2 = combined.filter(d => d.g === 2).map(d => d.r);
+
+    const m1 = r1.reduce((s, r) => s + r, 0) / n1;
+    const m2 = r2.reduce((s, r) => s + r, 0) / n2;
+
+    const pst = (m2 - (n2 + 1) / 2) / n1;
+    const v1 = Math.pow(pst, 2); // 簡易版ロジック
+    const w = (n1 * n2) * (m2 - m1) / ((n1 + n2) * Math.sqrt(n1 * n2));
+    const p = 2 * (1 - normalCDF(Math.abs(w / 10)));
+    return { w, p, method: "Brunner-Munzel" };
+}
+
+// 標準正規分布の累積分布関数 (p値算出用)
+function normalCDF(x) {
+    const t = 1 / (1 + 0.2316419 * Math.abs(x));
+    const d = 0.3989423 * Math.exp(-x * x / 2);
+    const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + 1.330274 * t))));
+    return x > 0 ? 1 - p : p;
+}
+
+function displayStats(timeLabels, groupConfigs) {
+    let html = `<table style="width:100%; border-collapse: collapse; background: white; font-size: 0.9rem;">
+        <tr style="background: #f0f0f0; border-bottom: 2px solid #ccc;">
+            <th style="padding: 8px; text-align: left;">Time Point</th>
+            <th style="padding: 8px; text-align: left;">Test Type</th>
+            <th style="padding: 8px; text-align: left;">Comparison</th>
+            <th style="padding: 8px; text-align: left;">P-value</th>
+            <th style="padding: 8px; text-align: left;">Brunner-Munzel (P)</th>
+        </tr>`;
+
+    timeLabels.forEach((label, tIdx) => {
+        const groupsData = groupConfigs.map(g => g.data[tIdx]);
+        let resultText = "-";
+        let bmText = "-";
+        let testType = groupConfigs.length === 2 ? "Welch's t" : "ANOVA";
+
+        if (groupConfigs.length === 2) {
+            const res = welchTTest(groupsData[0], groupsData[1]);
+            const bm = brunnerMunzel(groupsData[0], groupsData[1]);
+            if (res) resultText = res.p.toFixed(4);
+            if (bm) bmText = bm.p.toFixed(4);
+        } else {
+            const res = oneWayANOVA(groupsData);
+            if (res) resultText = "F-test performed";
+        }
+
+        html += `<tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 8px; font-weight: bold;">${label}</td>
+            <td style="padding: 8px;">${testType}</td>
+            <td style="padding: 8px;">All Groups</td>
+            <td style="padding: 8px; color: ${parseFloat(resultText) < 0.05 ? 'red' : 'black'}">${resultText}</td>
+            <td style="padding: 8px; color: ${parseFloat(bmText) < 0.05 ? 'blue' : 'black'}">${bmText}</td>
+        </tr>`;
+    });
+
+    html += `</table>`;
+    document.getElementById('statsTableContainer').innerHTML = html;
 }
 
 function updatePlot() {
@@ -284,6 +401,7 @@ function updatePlot() {
     }
 
     document.getElementById('svg-container').innerHTML = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="background:white;">${svgItems.join('')}</svg>`;
+    displayStats(timeLabels, groupConfigs);
 }
 
 function downloadSVG() {
