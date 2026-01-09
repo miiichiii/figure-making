@@ -41,29 +41,17 @@
 <div class="container">
     <div class="panel input-area">
         <div class="control-group">
-            <label>1. Group 1</label>
-            <input type="text" id="group1Name" value="Group 1" oninput="debounceUpdate()" style="width: 100%; margin-bottom: 8px; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
-            <input type="color" id="group1Color" value="#4c78a8" oninput="updatePlot()" style="width: 100%; height: 38px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #ccc;">
-            <textarea id="group1Data" oninput="debounceUpdate()">20
-15
-25
-10
-30</textarea>
+            <label>1. Data (Excel TSV Paste)</label>
+            <textarea id="dataInput" oninput="debounceUpdate()">Day0	Day1	Day3	Day8	Day10	Day15
+20	150	700	450	550	280
+15	110	650	480	600	310
+25	180	1400	950	900	650
+10	80	350	250	320	150
+30	220	850	520	720	420</textarea>
         </div>
 
         <div class="control-group">
-            <label>2. Group 2</label>
-            <input type="text" id="group2Name" value="Group 2" oninput="debounceUpdate()" style="width: 100%; margin-bottom: 8px; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
-            <input type="color" id="group2Color" value="#f58518" oninput="updatePlot()" style="width: 100%; height: 38px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #ccc;">
-            <textarea id="group2Data" oninput="debounceUpdate()">150
-110
-180
-80
-220</textarea>
-        </div>
-
-        <div class="control-group">
-            <label>3. Y-Axis Scale</label>
+            <label>2. Y-Axis Scale</label>
             <div class="sub-label"><span>Y-Max Adjust</span><span id="val-yMax" class="val-display">Auto</span></div>
             <input type="range" id="yMaxManual" min="0" max="2500" step="50" value="0" oninput="updatePlot()">
             <input type="number" id="yMaxManualInput" min="0" step="1" value="0" oninput="updatePlot()" style="margin-top: 8px;">
@@ -71,7 +59,7 @@
         </div>
 
         <div class="control-group">
-             <label>4. Statistics & Style</label>
+             <label>3. Statistics & Style</label>
             <select id="errorType" onchange="updatePlot()" style="margin-bottom: 12px;">
                 <option value="se">Mean ± SE (Standard Error)</option>
                 <option value="sd">Mean ± SD (Standard Deviation)</option>
@@ -126,15 +114,19 @@ function getNiceMax(val) {
     return step * magnitude;
 }
 
-// Core: Parse single-column data
-function parseColumn(text) {
+// Core: Parse TSV data
+function parseTSV(text) {
     const lines = text.trim().split('\n');
-    const data = [];
-    for (let i = 0; i < lines.length; i++) {
-        const val = lines[i].trim();
-        if (val !== "" && !isNaN(val)) data.push(parseFloat(val));
+    if (lines.length < 2) return { headers: [], data: [] };
+    const headers = lines[0].split('\t');
+    const data = headers.map(() => []);
+    for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split('\t');
+        values.forEach((val, idx) => {
+            if (val !== undefined && val.trim() !== "" && !isNaN(val)) data[idx].push(parseFloat(val));
+        });
     }
-    return data;
+    return { headers, data };
 }
 
 // Core: Calculate Statistics
@@ -166,15 +158,9 @@ function updatePlot() {
     document.getElementById('val-aspect').innerText = aspectRatio.toFixed(2) + "x";
 
     // Process Data
-    const group1Name = document.getElementById('group1Name').value.trim() || "Group 1";
-    const group2Name = document.getElementById('group2Name').value.trim() || "Group 2";
-    const group1Color = document.getElementById('group1Color').value;
-    const group2Color = document.getElementById('group2Color').value;
-    const group1Data = parseColumn(document.getElementById('group1Data').value);
-    const group2Data = parseColumn(document.getElementById('group2Data').value);
-    const headers = [group1Name, group2Name];
-    const data = [group1Data, group2Data];
-    if (group1Data.length === 0 && group2Data.length === 0) { document.getElementById('svg-container').innerHTML = ""; return; }
+    const input = document.getElementById('dataInput').value;
+    const { headers, data } = parseTSV(input);
+    if (headers.length === 0) { document.getElementById('svg-container').innerHTML = ""; return; }
     const stats = data.map(calcStats);
 
     // Determine Y-Max
@@ -233,7 +219,6 @@ function updatePlot() {
     }
 
     // --- Data Plotting ---
-    const groupColors = [group1Color, group2Color];
     headers.forEach((name, i) => {
         const x = xScale(i);
         const groupData = data[i];
@@ -260,7 +245,7 @@ function updatePlot() {
         let dots = `<g id="dots-${name}">`;
         groupData.forEach(val => {
             const jitter = (Math.random() - 0.5) * jitterAmount;
-            dots += `<circle cx="${x + jitter}" cy="${yScale(val)}" r="4.5" class="dot" fill="${groupColors[i]}"/>`;
+            dots += `<circle cx="${x + jitter}" cy="${yScale(val)}" r="4.5" class="dot"/>`;
         });
         dots += `</g>`;
         svgItems.push(dots);
