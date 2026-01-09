@@ -110,6 +110,13 @@
                 <input type="number" id="legendY" value="10" oninput="updatePlot()">
             </div>
         </div>
+        <div style="margin-top: 10px; padding: 10px; background: #f0f4f8; border-radius: 6px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: bold;">
+                <input type="checkbox" id="showPostHoc" onchange="updatePlot()">
+                Show Post-hoc Analysis (Dunnett)
+            </label>
+            <small style="color: #666; display: block; margin-top: 4px;">※ 第1グループをControlとして各群と比較します</small>
+        </div>
 
         <button class="btn-gen" onclick="updatePlot()">Refresh Preview</button>
         <button class="btn-dl" onclick="downloadSVG()">Download SVG</button>
@@ -253,7 +260,7 @@ function oneWayANOVA(groupsData) {
     const msWithin = ssWithin / dfWithin;
     const f = msBetween / msWithin;
 
-    return { f, df1: dfBetween, df2: dfWithin, method: "One-way ANOVA" };
+    return { f, df1: dfBetween, df2: dfWithin, msWithin, method: "One-way ANOVA" };
 }
 
 // 3. Brunner-Munzel Test (非パラメトリック)
@@ -298,6 +305,39 @@ function normalCDF(x) {
     return x > 0 ? 1 - p : p;
 }
 
+// 正則不完全ベータ関数の近似ロジック（統計関数で共通利用）
+function ibeta(x, a, b) {
+    let bt = (x > 0 && x < 1) ? Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1 - x)) : 0;
+    if (x < (a + 1) / (a + b + 2)) return bt * betacf(x, a, b) / a;
+    return 1 - bt * betacf(1 - x, b, a) / b;
+}
+function logGamma(z) {
+    const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+    let x = y = z, tmp = x + 5.5;
+    tmp -= (x + 0.5) * Math.log(tmp);
+    let ser = 1.000000000190015;
+    for (let i = 0; i < 6; i++) ser += c[i] / ++y;
+    return -tmp + Math.log(2.5066282746310005 * ser / x);
+}
+function betacf(x, a, b) {
+    let qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < 1e-10) d = 1e-10;
+    d = 1 / d;
+    let h = d;
+    for (let m = 1; m <= 100; m++) {
+        let m2 = 2 * m, aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+        d = 1 + aa * d; if (Math.abs(d) < 1e-10) d = 1e-10;
+        c = 1 + aa / c; if (Math.abs(c) < 1e-10) c = 1e-10;
+        d = 1 / d; h *= d * c;
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+        d = 1 + aa * d; if (Math.abs(d) < 1e-10) d = 1e-10;
+        c = 1 + aa / c; if (Math.abs(c) < 1e-10) c = 1e-10;
+        d = 1 / d; h *= d * c;
+        if (Math.abs(h - 1) < 1e-7) break;
+    }
+    return h;
+}
+
 // --- 追加：F分布からP値を算出する関数（ANOVA用） ---
 function fDistributionP(F, df1, df2) {
     if (F <= 0) return 1.0;
@@ -306,39 +346,43 @@ function fDistributionP(F, df1, df2) {
     const a = df2 / 2;
     const b = df1 / 2;
 
-    // 正則不完全ベータ関数の近似ロジック
-    function ibeta(x, a, b) {
-        let bt = (x > 0 && x < 1) ? Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1 - x)) : 0;
-        if (x < (a + 1) / (a + b + 2)) return bt * betacf(x, a, b) / a;
-        return 1 - bt * betacf(1 - x, b, a) / b;
-    }
-    function logGamma(z) {
-        const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
-        let x = y = z, tmp = x + 5.5;
-        tmp -= (x + 0.5) * Math.log(tmp);
-        let ser = 1.000000000190015;
-        for (let i = 0; i < 6; i++) ser += c[i] / ++y;
-        return -tmp + Math.log(2.5066282746310005 * ser / x);
-    }
-    function betacf(x, a, b) {
-        let qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap;
-        if (Math.abs(d) < 1e-10) d = 1e-10;
-        d = 1 / d;
-        let h = d;
-        for (let m = 1; m <= 100; m++) {
-            let m2 = 2 * m, aa = m * (b - m) * x / ((qam + m2) * (a + m2));
-            d = 1 + aa * d; if (Math.abs(d) < 1e-10) d = 1e-10;
-            c = 1 + aa / c; if (Math.abs(c) < 1e-10) c = 1e-10;
-            d = 1 / d; h *= d * c;
-            aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
-            d = 1 + aa * d; if (Math.abs(d) < 1e-10) d = 1e-10;
-            c = 1 + aa / c; if (Math.abs(c) < 1e-10) c = 1e-10;
-            d = 1 / d; h *= d * c;
-            if (Math.abs(h - 1) < 1e-7) break;
-        }
-        return h;
-    }
     return ibeta(x, a, b);
+}
+
+// --- Dunnett's Test 簡易実装 (Control vs Others) ---
+function runDunnett(groupsData, msWithin, dfWithin) {
+    const control = groupsData[0];
+    const results = [];
+    const n1 = control.length;
+    const mean1 = control.reduce((a, b) => a + b, 0) / n1;
+
+    for (let i = 1; i < groupsData.length; i++) {
+        const treat = groupsData[i];
+        const n2 = treat.length;
+        const mean2 = treat.reduce((a, b) => a + b, 0) / n2;
+
+        // 標準誤差 (ANOVAのMSwithinを使用)
+        const se = Math.sqrt(msWithin * (1 / n1 + 1 / n2));
+        const tVal = Math.abs(mean1 - mean2) / se;
+
+        // P値の近似 (Bonferroni調整を加えたt分布近似)
+        const k = groupsData.length - 1;
+        const rawP = 2 * (1 - studentTCDF(tVal, dfWithin));
+        const adjustedP = Math.min(1.0, rawP * k);
+
+        results.push({
+            targetName: `Group ${i + 1}`,
+            p: adjustedP,
+            isSig: adjustedP < 0.05
+        });
+    }
+    return results;
+}
+
+// 自由度dfのt分布累積分布関数 (簡易近似)
+function studentTCDF(t, df) {
+    const x = df / (df + t * t);
+    return 1 - 0.5 * ibeta(x, df / 2, 0.5);
 }
 
 function updateCodeDisplay() {
@@ -354,50 +398,51 @@ ${welchTTest.toString()}`;
 
 function displayStats(timeLabels, groupConfigs) {
     const nGroups = groupConfigs.length;
+    const showPostHoc = document.getElementById('showPostHoc').checked;
+
     let html = `<table style="width:100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
         <thead>
             <tr style="background:#f1f3f5; border-bottom:2px solid #dee2e6;">
                 <th style="padding:10px;">Time Point</th>
-                <th style="padding:10px;">Method</th>
-                <th style="padding:10px;">Main Test (p)</th>
-                ${nGroups === 2 ? '<th style="padding:10px;">Brunner-Munzel (p)</th>' : '<th style="padding:10px;">F-Value</th>'}
-                <th style="padding:10px;">Result</th>
+                <th style="padding:10px;">Global Test (p)</th>
+                ${showPostHoc && nGroups >= 3 ? '<th style="padding:10px;">Post-hoc (Dunnett vs Ctrl)</th>' : ''}
+                <th style="padding:10px;">Status</th>
             </tr>
         </thead>
         <tbody>`;
 
     timeLabels.forEach((label, tIdx) => {
-        const groupsData = groupConfigs.map(g => g.data[tIdx]).filter(d => d.length > 0);
+        const filteredGroups = groupConfigs.filter(g => (g.data[tIdx] || []).length > 1);
+        const groupsData = filteredGroups.map(g => g.data[tIdx]);
         if (groupsData.length < 2) return;
 
-        let pMain, pAlt, fVal, method, resultNote;
+        let pMain = 1;
+        let postHocHtml = "";
+        let status = "NS";
 
         if (nGroups === 2) {
-            // 2群検定: Welch's t
-            method = "Welch's t-test";
-            const tRes = welchTTest(groupsData[0], groupsData[1]);
-            const bmRes = brunnerMunzel(groupsData[0], groupsData[1]);
-            pMain = tRes ? tRes.p : 1;
-            pAlt = bmRes ? bmRes.p : 1;
-            resultNote = pMain < 0.05 ? "Significant" : "NS";
+            const res = welchTTest(groupsData[0], groupsData[1]);
+            pMain = res ? res.p : 1;
+            status = pMain < 0.05 ? "Significant" : "NS";
         } else {
-            // 3群以上検定: ANOVA
-            method = "One-way ANOVA";
             const aRes = oneWayANOVA(groupsData);
             if (aRes) {
-                fVal = aRes.f.toFixed(3);
                 pMain = fDistributionP(aRes.f, aRes.df1, aRes.df2);
-                pAlt = "-";
-                resultNote = pMain < 0.05 ? "⚠️ Significant (Need Post-hoc)" : "NS";
+                if (showPostHoc) {
+                    const dunnettRes = runDunnett(groupsData, aRes.msWithin, aRes.df2);
+                    postHocHtml = dunnettRes.map((r, idx) =>
+                        `<div style="color:${r.isSig ? 'red' : '#666'}">${filteredGroups[idx + 1].name}: p=${r.p.toFixed(4)}</div>`
+                    ).join("");
+                }
+                status = pMain < 0.05 ? "Significant" : "NS";
             }
         }
 
         html += `<tr style="border-bottom:1px solid #eee;">
             <td style="padding:8px; font-weight:bold;">${label}</td>
-            <td style="padding:8px; color:#666;">${method}</td>
             <td style="padding:8px; color:${pMain < 0.05 ? 'red' : 'black'}">${pMain.toFixed(4)}</td>
-            <td style="padding:8px;">${nGroups === 2 ? pAlt.toFixed(4) : fVal}</td>
-            <td style="padding:8px;"><span style="font-weight:bold; color:${pMain < 0.05 ? 'red' : '#999'}">${resultNote}</span></td>
+            ${showPostHoc && nGroups >= 3 ? `<td style="padding:8px; font-size:0.75rem;">${postHocHtml}</td>` : ''}
+            <td style="padding:8px;"><strong>${status}</strong></td>
         </tr>`;
     });
 
