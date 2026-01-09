@@ -497,6 +497,7 @@ function updatePlot() {
         color: card.querySelector('.group-color-input').value,
         data: parseData(card.querySelector('.group-data-input').value, timeLabels.length)
     }));
+    const nGroups = groupConfigs.length;
 
     const allValues = groupConfigs.flatMap(g => g.data.flat());
     const statsAll = groupConfigs.flatMap(g => g.data.map(calcStats));
