@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>SVG Plotter for Illustrator</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; color: #333; background: #f4f4f4; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        textarea { width: 100%; height: 150px; font-family: monospace; margin-top: 10px; }
+        .controls { margin-top: 15px; display: flex; gap: 10px; }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        #svg-container { margin-top: 30px; border: 1px solid #ccc; background: white; display: flex; justify-content: center; }
+        .hint { font-size: 0.85em; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Research Plot Prototype (SVG)</h2>
+    <p class="hint">Excelの2列（1行目は群名）をコピーして、下の枠に貼り付けてください。</p>
+    <textarea id="dataInput" placeholder="GroupA\tGroupB&#10;10.5\t12.2&#10;11.2\t13.5&#10;9.8\t11.8"></textarea>
+
+    <div class="controls">
+        <button onclick="generatePlot()">グラフ生成</button>
+        <button onclick="downloadSVG()" style="background: #28a745;">SVG保存 (.svg)</button>
+    </div>
+
+    <div id="svg-container">
+        </div>
+</div>
+
+<script>
+function parseTSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split('\t');
+    const data = headers.map(() => []);
+
+    for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split('\t');
+        values.forEach((val, idx) => {
+            if (val !== "" && !isNaN(val)) data[idx].push(parseFloat(val));
+        });
+    }
+    return { headers, data };
+}
+
+function calcStats(arr) {
+    const n = arr.length;
+    const mean = arr.reduce((a, b) => a + b, 0) / n;
+    const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1);
+    const se = Math.sqrt(variance) / Math.sqrt(n);
+    return { mean, se, n };
+}
+
+function generatePlot() {
+    const input = document.getElementById('dataInput').value;
+    const { headers, data } = parseTSV(input);
+    const stats = data.map(calcStats);
+
+    const width = 400;
+    const height = 400;
+    const padding = 60;
+
+    // スケール計算（簡易版）
+    const allValues = data.flat();
+    const maxVal = Math.max(...allValues) * 1.2;
+    const yScale = (val) => height - padding - (val / maxVal * (height - 2 * padding));
+
+    let svgItems = [];
+
+    // Y軸（Illustratorで編集しやすいよう単純な線で構成）
+    svgItems.push(`<line x1="${padding}" y1="${height-padding}" x2="${padding}" y2="${padding}" stroke="black" stroke-width="1.5"/>`);
+
+    headers.forEach((name, i) => {
+        const x = padding + (i + 1) * (width - 2 * padding) / (headers.length + 1);
+        const groupData = data[i];
+        const groupStats = stats[i];
+
+        // 1. エラーバー (Mean ± SE)
+        svgItems.push(`
+            <g id="error-bar-${name}">
+                <line x1="${x}" y1="${yScale(groupStats.mean - groupStats.se)}" x2="${x}" y2="${yScale(groupStats.mean + groupStats.se)}" stroke="black" stroke-width="1.5"/>
+                <line x1="${x-10}" y1="${yScale(groupStats.mean)}" x2="${x+10}" y2="${yScale(groupStats.mean)}" stroke="black" stroke-width="2"/>
+            </g>`);
+
+        // 2. 個別データポイント (Dot Plot)
+        // Illustratorで選択しやすいよう、グループ化しておく
+        let dots = `<g id="dots-${name}">`;
+        groupData.forEach(val => {
+            const jitter = (Math.random() - 0.5) * 20; // 見やすくするため少し散らす
+            dots += `<circle cx="${x + jitter}" cy="${yScale(val)}" r="4" fill="white" stroke="black" stroke-width="1"/>`;
+        });
+        dots += `</g>`;
+        svgItems.push(dots);
+
+        // 3. X軸ラベル
+        svgItems.push(`<text x="${x}" y="${height-padding+20}" text-anchor="middle" font-size="14" font-family="Arial">${name}</text>`);
+    });
+
+    const svgContent = `
+        <svg id="research-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="white"/>
+            ${svgItems.join('')}
+        </svg>`;
+
+    document.getElementById('svg-container').innerHTML = svgContent;
+}
+
+function downloadSVG() {
+    const svgData = document.getElementById('svg-container').innerHTML;
+    const blob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "plot.svg";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+
+</body>
+</html>
