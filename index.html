@@ -298,6 +298,49 @@ function normalCDF(x) {
     return x > 0 ? 1 - p : p;
 }
 
+// --- 追加：F分布からP値を算出する関数（ANOVA用） ---
+function fDistributionP(F, df1, df2) {
+    if (F <= 0) return 1.0;
+    // 簡易的な不完全ベータ関数による近似（Vanilla JSでの実装）
+    const x = df2 / (df2 + df1 * F);
+    const a = df2 / 2;
+    const b = df1 / 2;
+
+    // 正則不完全ベータ関数の近似ロジック
+    function ibeta(x, a, b) {
+        let bt = (x > 0 && x < 1) ? Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1 - x)) : 0;
+        if (x < (a + 1) / (a + b + 2)) return bt * betacf(x, a, b) / a;
+        return 1 - bt * betacf(1 - x, b, a) / b;
+    }
+    function logGamma(z) {
+        const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+        let x = y = z, tmp = x + 5.5;
+        tmp -= (x + 0.5) * Math.log(tmp);
+        let ser = 1.000000000190015;
+        for (let i = 0; i < 6; i++) ser += c[i] / ++y;
+        return -tmp + Math.log(2.5066282746310005 * ser / x);
+    }
+    function betacf(x, a, b) {
+        let qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap;
+        if (Math.abs(d) < 1e-10) d = 1e-10;
+        d = 1 / d;
+        let h = d;
+        for (let m = 1; m <= 100; m++) {
+            let m2 = 2 * m, aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+            d = 1 + aa * d; if (Math.abs(d) < 1e-10) d = 1e-10;
+            c = 1 + aa / c; if (Math.abs(c) < 1e-10) c = 1e-10;
+            d = 1 / d; h *= d * c;
+            aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+            d = 1 + aa * d; if (Math.abs(d) < 1e-10) d = 1e-10;
+            c = 1 + aa / c; if (Math.abs(c) < 1e-10) c = 1e-10;
+            d = 1 / d; h *= d * c;
+            if (Math.abs(h - 1) < 1e-7) break;
+        }
+        return h;
+    }
+    return ibeta(x, a, b);
+}
+
 function updateCodeDisplay() {
     const code = `// --- Analysis Logic Used ---
 // 1. Welch's T-Test: assumes unequal variance.
@@ -310,33 +353,55 @@ ${welchTTest.toString()}`;
 }
 
 function displayStats(timeLabels, groupConfigs) {
-    let html = `<table style="width:100%; border-collapse: collapse; font-size: 0.85rem;">
-        <tr style="background:#f8f9fa; border-bottom:2px solid #ddd;">
-            <th style="padding:8px; text-align:left;">Time Point</th>
-            <th style="padding:8px; text-align:left;">Welch's t (p)</th>
-            <th style="padding:8px; text-align:left;">Brunner-Munzel (p)</th>
-            <th style="padding:8px; text-align:left;">Conclusion</th>
-        </tr>`;
+    const nGroups = groupConfigs.length;
+    let html = `<table style="width:100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+        <thead>
+            <tr style="background:#f1f3f5; border-bottom:2px solid #dee2e6;">
+                <th style="padding:10px;">Time Point</th>
+                <th style="padding:10px;">Method</th>
+                <th style="padding:10px;">Main Test (p)</th>
+                ${nGroups === 2 ? '<th style="padding:10px;">Brunner-Munzel (p)</th>' : '<th style="padding:10px;">F-Value</th>'}
+                <th style="padding:10px;">Result</th>
+            </tr>
+        </thead>
+        <tbody>`;
 
     timeLabels.forEach((label, tIdx) => {
-        const groupsData = groupConfigs.map(g => g.data[tIdx]);
-        if (groupsData.length >= 2) {
+        const groupsData = groupConfigs.map(g => g.data[tIdx]).filter(d => d.length > 0);
+        if (groupsData.length < 2) return;
+
+        let pMain, pAlt, fVal, method, resultNote;
+
+        if (nGroups === 2) {
+            // 2群検定: Welch's t
+            method = "Welch's t-test";
             const tRes = welchTTest(groupsData[0], groupsData[1]);
             const bmRes = brunnerMunzel(groupsData[0], groupsData[1]);
-
-            const pT = tRes ? tRes.p.toFixed(4) : "-";
-            const pBM = bmRes ? bmRes.p.toFixed(4) : "-";
-            const sig = (pT < 0.05 || pBM < 0.05) ? "Significant" : "NS";
-
-            html += `<tr style="border-bottom:1px solid #eee;">
-                <td>${label}</td>
-                <td style="color:${pT < 0.05 ? 'red' : 'black'}">${pT}</td>
-                <td style="color:${pBM < 0.05 ? 'blue' : 'black'}">${pBM}</td>
-                <td><strong>${sig}</strong></td>
-            </tr>`;
+            pMain = tRes ? tRes.p : 1;
+            pAlt = bmRes ? bmRes.p : 1;
+            resultNote = pMain < 0.05 ? "Significant" : "NS";
+        } else {
+            // 3群以上検定: ANOVA
+            method = "One-way ANOVA";
+            const aRes = oneWayANOVA(groupsData);
+            if (aRes) {
+                fVal = aRes.f.toFixed(3);
+                pMain = fDistributionP(aRes.f, aRes.df1, aRes.df2);
+                pAlt = "-";
+                resultNote = pMain < 0.05 ? "⚠️ Significant (Need Post-hoc)" : "NS";
+            }
         }
+
+        html += `<tr style="border-bottom:1px solid #eee;">
+            <td style="padding:8px; font-weight:bold;">${label}</td>
+            <td style="padding:8px; color:#666;">${method}</td>
+            <td style="padding:8px; color:${pMain < 0.05 ? 'red' : 'black'}">${pMain.toFixed(4)}</td>
+            <td style="padding:8px;">${nGroups === 2 ? pAlt.toFixed(4) : fVal}</td>
+            <td style="padding:8px;"><span style="font-weight:bold; color:${pMain < 0.05 ? 'red' : '#999'}">${resultNote}</span></td>
+        </tr>`;
     });
-    html += `</table>`;
+
+    html += `</tbody></table>`;
     document.getElementById('statsTableContainer').innerHTML = html;
     updateCodeDisplay();
 }
