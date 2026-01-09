@@ -25,14 +25,26 @@
         }
 
         .preview-wrapper {
-            flex: 1; display: grid; grid-template-columns: 50px 1fr; grid-template-rows: 1fr 50px;
-            gap: 10px; background: #fafafa; padding: 40px; border: 2px dashed #ddd; border-radius: 12px;
+            display: grid; grid-template-columns: 50px 1fr; grid-template-rows: 1fr 50px;
+            gap: 10px; background: #fafafa; padding: 30px; border: 2px dashed #ddd; border-radius: 12px;
             align-items: center; justify-items: center;
         }
         .slider-v { grid-column: 1; grid-row: 1; appearance: slider-vertical; width: 12px; height: 400px; }
         .slider-h { grid-column: 2; grid-row: 2; width: 500px; height: 12px; }
         #svg-wrapper { grid-column: 2; grid-row: 1; background: white; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         .preview-wrapper { flex: 1; }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .stats-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .code-board { background: #282c34; color: #abb2bf; padding: 15px; border-radius: 8px; font-family: "SF Mono", monospace; font-size: 11px; overflow-x: auto; white-space: pre; }
 
         .resizer {
             width: 8px;
@@ -105,21 +117,24 @@
 
     <div class="resizer" id="resizerHandle"></div>
 
-    <div class="preview-wrapper">
-        <input type="range" class="slider-v" id="chartHeight" min="200" max="800" value="400" oninput="updatePlot()">
-        <div id="svg-wrapper"><div id="svg-container"></div></div>
-        <input type="range" class="slider-h" id="chartWidth" min="300" max="1000" value="600" oninput="updatePlot()">
-    </div>
-</div>
+    <div class="main-content">
+        <div class="preview-wrapper">
+            <input type="range" class="slider-v" id="chartHeight" min="200" max="800" value="400" oninput="updatePlot()">
+            <div id="svg-wrapper"><div id="svg-container"></div></div>
+            <input type="range" class="slider-h" id="chartWidth" min="300" max="1000" value="600" oninput="updatePlot()">
+        </div>
 
-<div class="panel" style="margin-top: 20px; width: 100%; max-width: 1450px;">
-    <h3>3. Statistical Analysis Board</h3>
-    <div id="statsTableContainer">
-        <p style="color: #666;">データを入力すると、各タイムポイントごとの検定結果がここに表示されます。</p>
-    </div>
-    <div style="margin-top: 10px; font-size: 0.85rem; color: #555; background: #fffde7; padding: 10px; border-radius: 6px;">
-        <strong>Note:</strong> 2群比較は Welch's t-test、3群以上は One-way ANOVA を実行します。<br>
-        Brunner-Munzel検定（非等分散・非正規分布対応）の結果も併記します。
+        <div class="stats-panel">
+            <h3>3. Statistical Analysis Board</h3>
+            <div id="statsTableContainer">
+                <p style="color: #666;">データを入力すると、各タイムポイントごとの検定結果がここに表示されます。</p>
+            </div>
+        </div>
+
+        <div class="stats-panel">
+            <h3>4. Statistical Methods & Source Code</h3>
+            <div class="code-board" id="codeDisplay">// 統計アルゴリズムを表示中...</div>
+        </div>
     </div>
 </div>
 
@@ -242,24 +257,37 @@ function oneWayANOVA(groupsData) {
 }
 
 // 3. Brunner-Munzel Test (非パラメトリック)
-function brunnerMunzel(a, b) {
-    const n1 = a.length, n2 = b.length;
-    if (n1 < 2 || n2 < 2) return null;
-    const combined = [...a.map(v => ({ v, g: 1 })), ...b.map(v => ({ v, g: 2 }))].sort((x, y) => x.v - y.v);
+function brunnerMunzel(x, y) {
+    const n1 = x.length, n2 = y.length;
+    if (n1 < 2 || n2 < 2) return { p: 1.0, w: 0 };
 
-    // ランク計算
-    combined.forEach((d, i) => d.r = i + 1);
+    // 1. 共通ランク R の計算
+    const combined = [...x.map(v => ({ v, g: 1 })), ...y.map(v => ({ v, g: 2 }))].sort((a, b) => a.v - b.v);
+    combined.forEach((d, i) => d.r = i + 1); // 簡易ランク（タイ調整なし）
+
     const r1 = combined.filter(d => d.g === 1).map(d => d.r);
     const r2 = combined.filter(d => d.g === 2).map(d => d.r);
 
-    const m1 = r1.reduce((s, r) => s + r, 0) / n1;
-    const m2 = r2.reduce((s, r) => s + r, 0) / n2;
+    // 2. 内部ランク S の計算
+    const s1 = x.slice().sort((a, b) => a - b).map((v, i) => i + 1);
+    const s2 = y.slice().sort((a, b) => a - b).map((v, i) => i + 1);
 
-    const pst = (m2 - (n2 + 1) / 2) / n1;
-    const v1 = Math.pow(pst, 2); // 簡易版ロジック
-    const w = (n1 * n2) * (m2 - m1) / ((n1 + n2) * Math.sqrt(n1 * n2));
-    const p = 2 * (1 - normalCDF(Math.abs(w / 10)));
-    return { w, p, method: "Brunner-Munzel" };
+    const m1 = r1.reduce((a, b) => a + b, 0) / n1;
+    const m2 = r2.reduce((a, b) => a + b, 0) / n2;
+
+    // 3. 不偏分散の推定
+    const v1 = r1.reduce((sum, ri, i) => sum + Math.pow(ri - s1[i] - m1 + (n1 + 1) / 2, 2), 0) / (n1 - 1);
+    const v2 = r2.reduce((sum, rj, i) => sum + Math.pow(rj - s2[i] - m2 + (n2 + 1) / 2, 2), 0) / (n2 - 1);
+
+    // 4. 統計量 W の算出
+    const w = (n1 * n2 * (m2 - m1)) / ((n1 + n2) * Math.sqrt(n1 * v1 + n2 * v2));
+
+    // 5. 自由度 df の推定
+    const df = Math.pow(n1 * v1 + n2 * v2, 2) / (Math.pow(n1 * v1, 2) / (n1 - 1) + Math.pow(n2 * v2, 2) / (n2 - 1));
+
+    // 6. P値の算出 (正規分布近似 - サンプルサイズが小さくない前提)
+    const p = 2 * (1 - normalCDF(Math.abs(w)));
+    return { p, w, df };
 }
 
 // 標準正規分布の累積分布関数 (p値算出用)
@@ -270,43 +298,47 @@ function normalCDF(x) {
     return x > 0 ? 1 - p : p;
 }
 
+function updateCodeDisplay() {
+    const code = `// --- Analysis Logic Used ---
+// 1. Welch's T-Test: assumes unequal variance.
+// 2. Brunner-Munzel: robust non-parametric test.
+
+${brunnerMunzel.toString()}
+
+${welchTTest.toString()}`;
+    document.getElementById('codeDisplay').textContent = code;
+}
+
 function displayStats(timeLabels, groupConfigs) {
-    let html = `<table style="width:100%; border-collapse: collapse; background: white; font-size: 0.9rem;">
-        <tr style="background: #f0f0f0; border-bottom: 2px solid #ccc;">
-            <th style="padding: 8px; text-align: left;">Time Point</th>
-            <th style="padding: 8px; text-align: left;">Test Type</th>
-            <th style="padding: 8px; text-align: left;">Comparison</th>
-            <th style="padding: 8px; text-align: left;">P-value</th>
-            <th style="padding: 8px; text-align: left;">Brunner-Munzel (P)</th>
+    let html = `<table style="width:100%; border-collapse: collapse; font-size: 0.85rem;">
+        <tr style="background:#f8f9fa; border-bottom:2px solid #ddd;">
+            <th style="padding:8px; text-align:left;">Time Point</th>
+            <th style="padding:8px; text-align:left;">Welch's t (p)</th>
+            <th style="padding:8px; text-align:left;">Brunner-Munzel (p)</th>
+            <th style="padding:8px; text-align:left;">Conclusion</th>
         </tr>`;
 
     timeLabels.forEach((label, tIdx) => {
         const groupsData = groupConfigs.map(g => g.data[tIdx]);
-        let resultText = "-";
-        let bmText = "-";
-        let testType = groupConfigs.length === 2 ? "Welch's t" : "ANOVA";
+        if (groupsData.length >= 2) {
+            const tRes = welchTTest(groupsData[0], groupsData[1]);
+            const bmRes = brunnerMunzel(groupsData[0], groupsData[1]);
 
-        if (groupConfigs.length === 2) {
-            const res = welchTTest(groupsData[0], groupsData[1]);
-            const bm = brunnerMunzel(groupsData[0], groupsData[1]);
-            if (res) resultText = res.p.toFixed(4);
-            if (bm) bmText = bm.p.toFixed(4);
-        } else {
-            const res = oneWayANOVA(groupsData);
-            if (res) resultText = "F-test performed";
+            const pT = tRes ? tRes.p.toFixed(4) : "-";
+            const pBM = bmRes ? bmRes.p.toFixed(4) : "-";
+            const sig = (pT < 0.05 || pBM < 0.05) ? "Significant" : "NS";
+
+            html += `<tr style="border-bottom:1px solid #eee;">
+                <td>${label}</td>
+                <td style="color:${pT < 0.05 ? 'red' : 'black'}">${pT}</td>
+                <td style="color:${pBM < 0.05 ? 'blue' : 'black'}">${pBM}</td>
+                <td><strong>${sig}</strong></td>
+            </tr>`;
         }
-
-        html += `<tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 8px; font-weight: bold;">${label}</td>
-            <td style="padding: 8px;">${testType}</td>
-            <td style="padding: 8px;">All Groups</td>
-            <td style="padding: 8px; color: ${parseFloat(resultText) < 0.05 ? 'red' : 'black'}">${resultText}</td>
-            <td style="padding: 8px; color: ${parseFloat(bmText) < 0.05 ? 'blue' : 'black'}">${bmText}</td>
-        </tr>`;
     });
-
     html += `</table>`;
     document.getElementById('statsTableContainer').innerHTML = html;
+    updateCodeDisplay();
 }
 
 function updatePlot() {
