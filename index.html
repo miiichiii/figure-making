@@ -424,15 +424,15 @@ ${welchTTest.toString()}`;
 
 function displayStats(timeLabels, groupConfigs) {
     const nGroups = groupConfigs.length;
-    const showPostHoc = document.getElementById('showPostHoc').checked;
+    const mainHeader = nGroups === 2 ? "Welch's t (p)" : "ANOVA (p)";
 
-    let html = `<table style="width:100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+    let html = `<table style="width:100%; border-collapse: collapse; font-size: 0.85rem;">
         <thead>
             <tr style="background:#f1f3f5; border-bottom:2px solid #dee2e6;">
                 <th style="padding:10px;">Time Point</th>
-                <th style="padding:10px;">Global Test (p)</th>
-                ${showPostHoc && nGroups >= 3 ? '<th style="padding:10px;">Post-hoc (Dunnett vs Ctrl)</th>' : ''}
-                <th style="padding:10px;">Status</th>
+                <th style="padding:10px;">${mainHeader}</th>
+                <th style="padding:10px;">${nGroups === 2 ? 'Brunner-Munzel (p)' : 'Dunnett (Post-hoc)'}</th>
+                <th style="padding:10px;">Significance</th>
             </tr>
         </thead>
         <tbody>`;
@@ -443,23 +443,23 @@ function displayStats(timeLabels, groupConfigs) {
         if (groupsData.length < 2) return;
 
         let pMain = 1;
-        let postHocHtml = "";
+        let postHocHtml = "-";
         let status = "NS";
 
         if (nGroups === 2) {
             const res = welchTTest(groupsData[0], groupsData[1]);
+            const bm = brunnerMunzel(groupsData[0], groupsData[1]);
             pMain = res ? res.p : 1;
+            postHocHtml = bm ? bm.p.toFixed(4) : "-";
             status = pMain < 0.05 ? "Significant" : "NS";
         } else {
             const aRes = oneWayANOVA(groupsData);
             if (aRes) {
                 pMain = fDistributionP(aRes.f, aRes.df1, aRes.df2);
-                if (showPostHoc) {
-                    const dunnettRes = runDunnett(groupsData, aRes.msWithin, aRes.df2);
-                    postHocHtml = dunnettRes.map((r, idx) =>
-                        `<div style="color:${r.isSig ? 'red' : '#666'}">${filteredGroups[idx + 1].name}: p=${r.p.toFixed(4)}</div>`
-                    ).join("");
-                }
+                const dunnettRes = runDunnett(groupsData, aRes.msWithin, aRes.df2);
+                postHocHtml = dunnettRes.map((r, idx) =>
+                    `<div style="color:${r.isSig ? 'red' : '#666'}">${filteredGroups[idx + 1].name}: p=${r.p.toFixed(4)}</div>`
+                ).join("");
                 status = pMain < 0.05 ? "Significant" : "NS";
             }
         }
@@ -467,7 +467,7 @@ function displayStats(timeLabels, groupConfigs) {
         html += `<tr style="border-bottom:1px solid #eee;">
             <td style="padding:8px; font-weight:bold;">${label}</td>
             <td style="padding:8px; color:${pMain < 0.05 ? 'red' : 'black'}">${pMain.toFixed(4)}</td>
-            ${showPostHoc && nGroups >= 3 ? `<td style="padding:8px; font-size:0.75rem;">${postHocHtml}</td>` : ''}
+            <td style="padding:8px; font-size:0.75rem;">${postHocHtml}</td>
             <td style="padding:8px;"><strong>${status}</strong></td>
         </tr>`;
     });
@@ -489,6 +489,7 @@ function updatePlot() {
     const height = parseInt(document.getElementById('chartHeight').value);
     const yMaxManual = parseFloat(document.getElementById('yMaxInput').value);
     const jitterAmount = parseFloat(document.getElementById('jitter').value);
+    const autoBrackets = document.getElementById('autoBrackets').checked;
 
     // 全グループデータの取得
     const groupCards = document.querySelectorAll('.group-card');
@@ -499,10 +500,34 @@ function updatePlot() {
     }));
     const nGroups = groupConfigs.length;
 
+    // 1. まず統計計算を行い、ブラケットが必要な「階層数」を把握する
+    let maxBracketLayers = 0;
+    timeLabels.forEach((_, tIdx) => {
+        const d = groupConfigs.map(g => g.data[tIdx]).filter(x => x.length > 1);
+        if (d.length === 2) {
+            const res = welchTTest(d[0], d[1]);
+            if (res && res.p < 0.05) maxBracketLayers = Math.max(maxBracketLayers, 1);
+        } else if (d.length >= 3) {
+            const a = oneWayANOVA(d);
+            if (a && fDistributionP(a.f, a.df1, a.df2) < 0.05) {
+                const sigCount = runDunnett(d, a.msWithin, a.df2).filter(r => r.isSig).length;
+                maxBracketLayers = Math.max(maxBracketLayers, sigCount);
+            }
+        }
+    });
+
+    // 2. Y軸の最大値を決定 (ブラケットがある場合は20-30%の余白を追加)
     const allValues = groupConfigs.flatMap(g => g.data.flat());
     const statsAll = groupConfigs.flatMap(g => g.data.map(calcStats));
-    const maxVal = Math.max(...allValues, ...statsAll.map(s => s.mean + s.se), 1);
-    const yMax = yMaxManual > 0 ? yMaxManual : Math.ceil(maxVal / 10) * 10;
+    const rawMax = Math.max(...allValues, ...statsAll.map(s => s.mean + s.se), 1);
+
+    let yMax = yMaxManual > 0 ? yMaxManual : Math.ceil(rawMax * 1.1 / 10) * 10;
+
+    // 有意差マークがある場合、強制的に上限を押し上げる
+    if (autoBrackets && maxBracketLayers > 0) {
+        const extraSpace = 1.1 + (maxBracketLayers * 0.15);
+        if (yMaxManual === 0) yMax = Math.ceil((rawMax * extraSpace) / 10) * 10;
+    }
 
     const pL = fsY * 4, pB = fsX * 3, pT = 30, pR = 30;
     const graphW = width - pL - pR, graphH = height - pB - pT;
@@ -552,37 +577,38 @@ function updatePlot() {
         svgItems.push(`<text x="${xCenter}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" font-weight="bold">${label}</text>`);
     });
 
-    // --- 有意差ブラケットの自動描画ロジック ---
-    if (document.getElementById('autoBrackets').checked && nGroups >= 3) {
+    // --- 有意差ブラケットの描画 ---
+    if (autoBrackets) {
         timeLabels.forEach((label, tIdx) => {
             const groupsData = groupConfigs.map(g => g.data[tIdx]).filter(d => d.length > 1);
-            if (groupsData.length < 3) return;
+            if (groupsData.length < 2) return;
 
-            const aRes = oneWayANOVA(groupsData);
-            if (aRes && fDistributionP(aRes.f, aRes.df1, aRes.df2) < 0.05) {
-                const dunnettRes = runDunnett(groupsData, aRes.msWithin, aRes.df2);
+            const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
+            const groupSpace = (graphW / timeLabels.length) * 0.85;
+            const ctrlX = xCenter + (0 - (nGroups - 1) / 2) * (groupSpace / nGroups);
 
-                // 各群の最大Y座標を取得（配置の基準にする）
-                const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
-                const groupSpace = (graphW / timeLabels.length) * 0.85;
-                const ctrlX = xCenter + (0 - (nGroups - 1) / 2) * (groupSpace / nGroups);
+            const statsAtTime = groupsData.map(calcStats);
+            const errorMaxY = Math.min(...statsAtTime.map(s => yScale(s.mean + s.se)));
+            let bracketY = errorMaxY - 15;
 
-                // タイムポイント内の全データの最大高さを取得
-                const statsAtTime = groupsData.map(calcStats);
-                const errorMax = Math.min(...statsAtTime.map(s => yScale(s.mean + s.se)));
-
-                let bracketY = errorMax - 15; // 最初のブラケットの高さ
-
-                dunnettRes.forEach((res, i) => {
-                    if (res.isSig) {
-                        const targetIdx = i + 1; // Controlが0番目なので
-                        const targetX = xCenter + (targetIdx - (nGroups - 1) / 2) * (groupSpace / nGroups);
-                        const stars = getStars(res.p);
-
-                        svgItems.push(drawBracket(ctrlX, targetX, bracketY, stars, fsX));
-                        bracketY -= 20; // 次のブラケットを上にずらす
-                    }
-                });
+            if (nGroups === 2) {
+                const res = welchTTest(groupsData[0], groupsData[1]);
+                if (res && res.p < 0.05) {
+                    const targetX = xCenter + (1 - (nGroups - 1) / 2) * (groupSpace / nGroups);
+                    svgItems.push(drawBracket(ctrlX, targetX, bracketY, getStars(res.p), fsX));
+                }
+            } else {
+                const a = oneWayANOVA(groupsData);
+                if (a && fDistributionP(a.f, a.df1, a.df2) < 0.05) {
+                    const dunnettRes = runDunnett(groupsData, a.msWithin, a.df2);
+                    dunnettRes.forEach((res, i) => {
+                        if (res.isSig) {
+                            const targetX = xCenter + ((i + 1) - (nGroups - 1) / 2) * (groupSpace / nGroups);
+                            svgItems.push(drawBracket(ctrlX, targetX, bracketY, getStars(res.p), fsX));
+                            bracketY -= 22;
+                        }
+                    });
+                }
             }
         });
     }
