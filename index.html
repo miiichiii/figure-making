@@ -54,6 +54,7 @@
             <label>2. Y-Axis Scale</label>
             <div class="sub-label"><span>Y-Max Adjust</span><span id="val-yMax" class="val-display">Auto</span></div>
             <input type="range" id="yMaxManual" min="0" max="2500" step="50" value="0" oninput="updatePlot()">
+            <input type="number" id="yMaxManualInput" min="0" step="1" value="0" oninput="updatePlot()" style="margin-top: 8px;">
             <div style="text-align: right; font-size: 0.75rem; color: #999;">(Set to 0 for Auto-scale)</div>
         </div>
 
@@ -141,7 +142,9 @@ function calcStats(arr) {
 // Main Plotting Function
 function updatePlot() {
     // Read UI Controls
-    const manualY = parseFloat(document.getElementById('yMaxManual').value);
+    const manualYRange = parseFloat(document.getElementById('yMaxManual').value);
+    const manualYInput = parseFloat(document.getElementById('yMaxManualInput').value);
+    const manualY = manualYInput > 0 ? manualYInput : manualYRange;
     const errorType = document.getElementById('errorType').value;
     const fontSize = parseFloat(document.getElementById('fontSize').value);
     const strokeWidth = parseFloat(document.getElementById('strokeWidth').value);
@@ -175,7 +178,9 @@ function updatePlot() {
         if (parseFloat(document.getElementById('yMaxManual').max) !== newSliderMax) {
              document.getElementById('yMaxManual').max = newSliderMax;
         }
+        document.getElementById('yMaxManualInput').max = newSliderMax;
     }
+    document.getElementById('yMaxManualInput').value = manualY > 0 ? manualY : 0;
 
     // Dimensions & Scaling
     const baseWidth = 600;
