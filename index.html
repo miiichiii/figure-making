@@ -117,6 +117,13 @@
             </label>
             <small style="color: #666; display: block; margin-top: 4px;">※ 第1グループをControlとして各群と比較します</small>
         </div>
+        <div style="margin-top: 10px; padding: 10px; background: #fff0f6; border-radius: 6px; border: 1px solid #ffdeeb;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: bold; color: #d6336c;">
+                <input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked>
+                Auto Plot Significance (*)
+            </label>
+            <small style="color: #666; display: block; margin-top: 4px;">※ Dunnett検定で有意な箇所に自動描画します</small>
+        </div>
 
         <button class="btn-gen" onclick="updatePlot()">Refresh Preview</button>
         <button class="btn-dl" onclick="downloadSVG()">Download SVG</button>
@@ -385,6 +392,25 @@ function studentTCDF(t, df) {
     return 1 - 0.5 * ibeta(x, df / 2, 0.5);
 }
 
+// P値に応じたアスタリスクを返す
+function getStars(p) {
+    if (p < 0.001) return "***";
+    if (p < 0.01) return "**";
+    if (p < 0.05) return "*";
+    return "";
+}
+
+// ブラケット描画用の関数
+function drawBracket(x1, x2, y, stars, fontSize) {
+    const tickH = 6; // カギ線の端の長さ
+    return `
+    <g class="sig-bracket" stroke="black" fill="none" stroke-width="1.2">
+        <path d="M ${x1} ${y} L ${x1} ${y - tickH} L ${x2} ${y - tickH} L ${x2} ${y}" />
+        <text x="${(x1 + x2) / 2}" y="${y - tickH - 2}" fill="black" stroke="none"
+              text-anchor="middle" font-size="${fontSize * 1.2}" font-family="Arial" font-weight="bold">${stars}</text>
+    </g>`;
+}
+
 function updateCodeDisplay() {
     const code = `// --- Analysis Logic Used ---
 // 1. Welch's T-Test: assumes unequal variance.
@@ -524,6 +550,41 @@ function updatePlot() {
         });
         svgItems.push(`<text x="${xCenter}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" font-weight="bold">${label}</text>`);
     });
+
+    // --- 有意差ブラケットの自動描画ロジック ---
+    if (document.getElementById('autoBrackets').checked && nGroups >= 3) {
+        timeLabels.forEach((label, tIdx) => {
+            const groupsData = groupConfigs.map(g => g.data[tIdx]).filter(d => d.length > 1);
+            if (groupsData.length < 3) return;
+
+            const aRes = oneWayANOVA(groupsData);
+            if (aRes && fDistributionP(aRes.f, aRes.df1, aRes.df2) < 0.05) {
+                const dunnettRes = runDunnett(groupsData, aRes.msWithin, aRes.df2);
+
+                // 各群の最大Y座標を取得（配置の基準にする）
+                const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
+                const groupSpace = (graphW / timeLabels.length) * 0.85;
+                const ctrlX = xCenter + (0 - (nGroups - 1) / 2) * (groupSpace / nGroups);
+
+                // タイムポイント内の全データの最大高さを取得
+                const statsAtTime = groupsData.map(calcStats);
+                const errorMax = Math.min(...statsAtTime.map(s => yScale(s.mean + s.se)));
+
+                let bracketY = errorMax - 15; // 最初のブラケットの高さ
+
+                dunnettRes.forEach((res, i) => {
+                    if (res.isSig) {
+                        const targetIdx = i + 1; // Controlが0番目なので
+                        const targetX = xCenter + (targetIdx - (nGroups - 1) / 2) * (groupSpace / nGroups);
+                        const stars = getStars(res.p);
+
+                        svgItems.push(drawBracket(ctrlX, targetX, bracketY, stars, fsX));
+                        bracketY -= 20; // 次のブラケットを上にずらす
+                    }
+                });
+            }
+        });
+    }
 
     // --- Legend Generation ---
     if (document.getElementById('showLegend').checked) {
