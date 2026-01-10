@@ -25,13 +25,13 @@
         }
 
         .preview-wrapper {
-            display: grid; grid-template-columns: 50px 1fr; grid-template-rows: 1fr 50px;
+            display: grid; grid-template-columns: 50px 120px 1fr; grid-template-rows: 1fr 50px;
             gap: 10px; background: #fafafa; padding: 30px; border: 2px dashed #ddd; border-radius: 12px;
             align-items: center; justify-items: center;
         }
         .slider-v { grid-column: 1; grid-row: 1; appearance: slider-vertical; width: 12px; height: 400px; }
-        .slider-h { grid-column: 2; grid-row: 2; width: 500px; height: 12px; }
-        #svg-wrapper { grid-column: 2; grid-row: 1; background: white; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .slider-h { grid-column: 3; grid-row: 2; width: 500px; height: 12px; }
+        #svg-wrapper { grid-column: 3; grid-row: 1; background: white; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         .preview-row { display: flex; gap: 12px; align-items: flex-start; }
         .preview-wrapper { flex: 1; }
         .side-panels { display: flex; flex-direction: column; gap: 12px; width: 220px; }
@@ -48,7 +48,7 @@
         }
         .stats-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
         .code-board { background: #282c34; color: #abb2bf; padding: 15px; border-radius: 8px; font-family: "SF Mono", monospace; font-size: 11px; overflow-x: auto; white-space: pre; }
-        .visual-controls { display: grid; grid-template-columns: repeat(5, minmax(160px, 1fr)); gap: 10px; }
+        .visual-controls { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 10px; }
         .control-card { background: #f8f9fb; border: 1px solid #e6e9ef; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
         .control-card h4 { margin: 0; font-size: 0.85rem; color: #555; }
         .control-item { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; min-width: 0; }
@@ -59,8 +59,19 @@
         .legend-row input[type="number"] { width: 70px; }
         .option-list { display: grid; gap: 6px; font-size: 0.75rem; }
         .compact-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-        .legend-move { display: grid; gap: 4px; justify-items: center; }
-        .legend-move-row { display: flex; gap: 6px; }
+        .ymax-card { grid-column: 2; grid-row: 1; justify-self: start; align-self: start; }
+        .ymax-input { width: 44px; height: 44px; text-align: center; padding: 0; }
+        .ymax-card { grid-column: 2; grid-row: 1; justify-self: start; align-self: start; }
+        .ymax-input { width: 44px; height: 44px; text-align: center; padding: 0; }
+        .card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .legend-move {
+            display: grid;
+            grid-template-columns: repeat(3, 28px);
+            grid-auto-rows: 28px;
+            gap: 4px;
+            justify-items: center;
+            align-items: center;
+        }
         .legend-btn {
             width: 28px;
             height: 28px;
@@ -71,6 +82,9 @@
             font-size: 12px;
             line-height: 1;
         }
+        .ymax-card { grid-column: 2; grid-row: 1; justify-self: start; align-self: start; }
+        .ymax-input { width: 44px; height: 44px; text-align: center; padding: 0; }
+        .card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .panel-tight { padding: 14px; }
         .panel-tight h3 { margin-bottom: 10px; }
 
@@ -104,8 +118,9 @@
         .panel-compact { padding: 10px; }
         .toast {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             background: rgba(0, 0, 0, 0.85);
             color: white;
             padding: 10px 14px;
@@ -151,30 +166,37 @@
         <div class="preview-row">
             <div class="preview-wrapper">
                 <input type="range" class="slider-v" id="chartHeight" min="200" max="800" value="400" oninput="updatePlot()">
+                <div class="panel legend-panel ymax-card">
+                    <div class="control-item">
+                        <label>Y-Max</label>
+                        <input type="number" id="yMaxInput" value="0" oninput="this.dataset.auto='false'; updatePlot()" class="ymax-input">
+                    </div>
+                    <div class="control-item">
+                        <label>Ticks</label>
+                        <input type="number" id="numTicks" value="5" oninput="updatePlot()" class="ymax-input">
+                    </div>
+                </div>
                 <div id="svg-wrapper"><div id="svg-container"></div></div>
                 <input type="range" class="slider-h" id="chartWidth" min="50" max="1000" value="600" oninput="updatePlot()">
-                <div style="grid-column: 2; grid-row: 3; width: 100%; display: flex; gap: 8px; justify-content: flex-start;">
+                <div style="grid-column: 3; grid-row: 3; width: 100%; display: flex; gap: 8px; justify-content: flex-start;">
                     <button class="btn-dl btn-small" onclick="downloadSVG()">Download SVG</button>
                     <button class="btn-dl btn-small" onclick="copySvgToClipboard()" style="background:#007bff;">Copy Image</button>
                 </div>
             </div>
             <div class="side-panels">
-            <div class="panel legend-panel">
-                <div class="control-item">
-                    <label style="font-weight: normal;"><input type="checkbox" id="showLegend" checked onchange="updatePlot()"> Show Legend</label>
-                </div>
-                <input type="hidden" id="legendState" value="85,10">
-                <div class="control-item">
-                    <label>Legend Move</label>
-                    <div class="legend-move">
-                            <button type="button" class="legend-btn" onclick="nudgeLegend(0, -2)">▲</button>
-                            <div class="legend-move-row">
-                                <button type="button" class="legend-btn" onclick="nudgeLegend(-2, 0)">◀</button>
-                                <button type="button" class="legend-btn" onclick="nudgeLegend(2, 0)">▶</button>
+                <div class="panel legend-panel">
+                    <div class="control-item">
+                        <div style="display:flex; align-items:center; gap: 10px; justify-content: space-between;">
+                            <div class="legend-move">
+                                <button type="button" class="legend-btn" onclick="nudgeLegend(0, -2)" style="grid-column: 2;">▲</button>
+                                <button type="button" class="legend-btn" onclick="nudgeLegend(-2, 0)" style="grid-column: 1; grid-row: 2;">◀</button>
+                                <button type="button" class="legend-btn" onclick="nudgeLegend(0, 2)" style="grid-column: 2; grid-row: 2;">▼</button>
+                                <button type="button" class="legend-btn" onclick="nudgeLegend(2, 0)" style="grid-column: 3; grid-row: 2;">▶</button>
                             </div>
-                            <button type="button" class="legend-btn" onclick="nudgeLegend(0, 2)">▼</button>
+                            <label style="font-weight: normal; margin: 0;"><input type="checkbox" id="showLegend" checked onchange="updatePlot()"> Show Legend</label>
                         </div>
                     </div>
+                    <input type="hidden" id="legendState" value="85,10">
                     <div class="legend-row">
                         <label for="legendFontSize">Font</label>
                         <input type="number" id="legendFontSize" value="14" oninput="updatePlot()">
@@ -190,47 +212,32 @@
                         <input type="range" id="bracketOffset" min="-60" max="120" value="0" oninput="updatePlot()">
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="panel panel-tight panel-compact">
-            <div class="visual-controls">
-            <div class="control-card">
-                <div class="control-item">
-                    <label>Font (X)</label>
-                    <input type="number" id="fontSizeX" value="14" oninput="updatePlot()">
-                </div>
-                <div class="control-item">
-                    <label>Font (Y)</label>
-                    <input type="number" id="fontSizeY" value="14" oninput="updatePlot()">
-                </div>
-            </div>
-            <div class="control-card">
-                <div class="control-item">
-                    <label>Dot Size</label>
-                    <div class="compact-row">
-                        <input type="number" id="dotSize" min="1" max="15" value="4" oninput="updatePlot()">
-                    </div>
-                </div>
-                <div class="control-item">
-                    <label>Dot Jitter</label>
-                    <div class="compact-row">
-                        <input type="number" id="jitter" min="0" max="40" value="15" oninput="updatePlot()">
+                <div class="panel legend-panel">
+                    <div class="card-grid-2">
+                        <div class="control-item">
+                            <label>Font (X)</label>
+                            <input type="number" id="fontSizeX" value="14" oninput="updatePlot()">
+                        </div>
+                        <div class="control-item">
+                            <label>Dot Size</label>
+                            <div class="compact-row">
+                                <input type="number" id="dotSize" min="1" max="15" value="4" oninput="updatePlot()">
+                            </div>
+                        </div>
+                        <div class="control-item">
+                            <label>Font (Y)</label>
+                            <input type="number" id="fontSizeY" value="14" oninput="updatePlot()">
+                        </div>
+                        <div class="control-item">
+                            <label>Dot Jitter</label>
+                            <div class="compact-row">
+                                <input type="number" id="jitter" min="0" max="40" value="15" oninput="updatePlot()">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="control-card">
-                <div class="control-item">
-                    <label>Y-Max (0=Auto)</label>
-                    <input type="number" id="yMaxInput" value="0" oninput="updatePlot()">
-                </div>
-                <div class="control-item">
-                    <label>Ticks</label>
-                    <input type="number" id="numTicks" value="5" oninput="updatePlot()">
-                </div>
-            </div>
         </div>
-    </div>
 
         <div class="stats-panel">
             <h3>3. Statistical Analysis Board</h3>
@@ -589,7 +596,10 @@ function updatePlot() {
     const numTicks = parseInt(document.getElementById('numTicks').value);
     const width = parseInt(document.getElementById('chartWidth').value);
     const height = parseInt(document.getElementById('chartHeight').value);
-    const yMaxManual = parseFloat(document.getElementById('yMaxInput').value);
+    const yMaxInputEl = document.getElementById('yMaxInput');
+    let yMaxManual = parseFloat(yMaxInputEl.value);
+    const isAutoFlag = yMaxInputEl.dataset.auto !== 'false';
+    const isAutoY = isAutoFlag && (!yMaxManual || yMaxManual <= 0 || yMaxInputEl.dataset.auto === 'true');
     const jitterAmount = parseFloat(document.getElementById('jitter').value);
     const autoBrackets = document.getElementById('autoBrackets').checked;
     const bracketOffset = parseFloat(document.getElementById('bracketOffset').value);
@@ -627,9 +637,13 @@ function updatePlot() {
     let yMax = yMaxManual > 0 ? yMaxManual : Math.ceil(rawMax * 1.1 / 10) * 10;
 
     // 有意差マークがある場合、強制的に上限を押し上げる
-    if (autoBrackets && maxBracketLayers > 0) {
+    if (autoBrackets && maxBracketLayers > 0 && isAutoY) {
         const extraSpace = 1.1 + (maxBracketLayers * 0.15);
-        if (yMaxManual === 0) yMax = Math.ceil((rawMax * extraSpace) / 10) * 10;
+        yMax = Math.ceil((rawMax * extraSpace) / 10) * 10;
+    }
+    if (isAutoY) {
+        yMaxInputEl.dataset.auto = 'true';
+        yMaxInputEl.value = yMax;
     }
 
     const pL = fsY * 4, pB = fsX * 3, pT = 30, pR = 30;
