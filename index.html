@@ -66,22 +66,47 @@
         .card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .legend-move {
             display: grid;
-            grid-template-columns: repeat(3, 28px);
-            grid-auto-rows: 28px;
+            grid-template-columns: repeat(3, 22px);
+            grid-auto-rows: 22px;
             gap: 4px;
             justify-items: center;
             align-items: center;
+            margin-top: -6px;
+            margin-bottom: 6px;
         }
         .legend-btn {
-            width: 28px;
-            height: 28px;
+            width: 22px;
+            height: 22px;
             border: 1px solid #ccc;
             background: #fff;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 10px;
             line-height: 1;
         }
+        .auto-btn {
+            width: 36px;
+            height: 22px;
+            padding: 0;
+            margin: 0;
+            font-size: 0.7rem;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .legend-input { width: 50%; }
+        .legend-stack { gap: 6px; }
+        .error-toggle { display: flex; gap: 6px; }
+        .btn-mini {
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-mini.active { background: #007bff; color: white; border-color: #007bff; }
         .ymax-card { grid-column: 2; grid-row: 1; justify-self: start; align-self: start; }
         .ymax-input { width: 44px; height: 44px; text-align: center; padding: 0; }
         .card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -169,11 +194,22 @@
                 <div class="panel legend-panel ymax-card">
                     <div class="control-item">
                         <label>Y-Max</label>
-                        <input type="number" id="yMaxInput" value="0" oninput="this.dataset.auto='false'; updatePlot()" class="ymax-input">
+                        <div class="compact-row">
+                            <input type="number" id="yMaxInput" value="0" oninput="this.dataset.auto='false'; updatePlot()" class="ymax-input">
+                            <button type="button" class="auto-btn" onclick="setAutoYMax()">Auto</button>
+                        </div>
                     </div>
                     <div class="control-item">
                         <label>Ticks</label>
                         <input type="number" id="numTicks" value="5" oninput="updatePlot()" class="ymax-input">
+                    </div>
+                    <div class="control-item">
+                        <label>Error Bar</label>
+                        <div class="error-toggle">
+                            <button type="button" id="err-sem" class="btn-mini active" onclick="setErrorType('se')">SEM</button>
+                            <button type="button" id="err-sd" class="btn-mini" onclick="setErrorType('sd')">SD</button>
+                        </div>
+                        <input type="hidden" id="errorType" value="se">
                     </div>
                 </div>
                 <div id="svg-wrapper"><div id="svg-container"></div></div>
@@ -199,7 +235,7 @@
                     <input type="hidden" id="legendState" value="85,10">
                     <div class="legend-row">
                         <label for="legendFontSize">Font</label>
-                        <input type="number" id="legendFontSize" value="14" oninput="updatePlot()">
+                        <input type="number" id="legendFontSize" value="14" oninput="updatePlot()" class="legend-input">
                     </div>
                 </div>
                 <div class="panel legend-panel">
@@ -602,6 +638,7 @@ function updatePlot() {
     const isAutoY = isAutoFlag && (!yMaxManual || yMaxManual <= 0 || yMaxInputEl.dataset.auto === 'true');
     const jitterAmount = parseFloat(document.getElementById('jitter').value);
     const autoBrackets = document.getElementById('autoBrackets').checked;
+    const errorType = document.getElementById('errorType')?.value || 'se';
     const bracketOffset = parseFloat(document.getElementById('bracketOffset').value);
 
     // 全グループデータの取得
@@ -632,7 +669,7 @@ function updatePlot() {
     // 2. Y軸の最大値を決定 (ブラケットがある場合は20-30%の余白を追加)
     const allValues = groupConfigs.flatMap(g => g.data.flat());
     const statsAll = groupConfigs.flatMap(g => g.data.map(calcStats));
-    const rawMax = Math.max(...allValues, ...statsAll.map(s => s.mean + s.se), 1);
+    const rawMax = Math.max(...allValues, ...statsAll.map(s => s.mean + (errorType === 'sd' ? s.sd : s.se)), 1);
 
     let yMax = yMaxManual > 0 ? yMaxManual : Math.ceil(rawMax * 1.1 / 10) * 10;
 
@@ -654,7 +691,8 @@ function updatePlot() {
     const strokeW = 1.2;
 
     function drawGroupContent(x, data, s, group) {
-        const yM = yScale(s.mean), yT = yScale(s.mean + s.se), yB = yScale(s.mean - s.se);
+        const errVal = errorType === 'sd' ? s.sd : s.se;
+        const yM = yScale(s.mean), yT = yScale(s.mean + errVal), yB = yScale(s.mean - errVal);
         const dotR = parseFloat(document.getElementById('dotSize').value);
         const jitter = parseFloat(document.getElementById('jitter').value);
 
@@ -727,7 +765,7 @@ function updatePlot() {
                 : xCenter + (0 - (nGroups - 1) / 2) * (groupSpace / nGroups);
 
             const statsAtTime = groupsData.map(calcStats);
-            const errorMaxY = Math.min(...statsAtTime.map(s => yScale(s.mean + s.se)));
+            const errorMaxY = Math.min(...statsAtTime.map(s => yScale(s.mean + (errorType === 'sd' ? s.sd : s.se))));
             let bracketY = errorMaxY - 15 - bracketOffset;
 
             if (nGroups === 2) {
@@ -807,6 +845,23 @@ function nudgeLegend(dx, dy) {
     xVal = Math.max(0, Math.min(100, xVal + dx));
     yVal = Math.max(0, Math.min(100, yVal + dy));
     legendState.value = `${xVal},${yVal}`;
+    updatePlot();
+}
+
+function setAutoYMax() {
+    const yMaxInputEl = document.getElementById('yMaxInput');
+    yMaxInputEl.dataset.auto = 'true';
+    yMaxInputEl.value = '0';
+    updatePlot();
+}
+
+function setErrorType(type) {
+    const input = document.getElementById('errorType');
+    input.value = type;
+    const semBtn = document.getElementById('err-sem');
+    const sdBtn = document.getElementById('err-sd');
+    semBtn.classList.toggle('active', type === 'se');
+    sdBtn.classList.toggle('active', type === 'sd');
     updatePlot();
 }
 
