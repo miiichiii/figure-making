@@ -79,6 +79,15 @@
 <div class="container">
     <div class="panel input-area" id="leftPanel">
         <h3 style="margin-top:0;">1. Time Points / Labels</h3>
+        <div class="master-label-card" style="background: #fff4e6; border-color: #ffd8a8; margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: bold; color: #d9480f;">
+                <input type="checkbox" id="comparisonMode" onchange="toggleMode()">
+                Comparison Mode (群名で比較)
+            </label>
+            <small style="color: #868e96; display: block; margin-top: 4px;">
+                ※ ONにすると、Day表示ではなく「WT」「KO」が横に並びます。
+            </small>
+        </div>
         <div class="master-label-card">
             <label>Shared X-Labels (Space separated)</label>
             <input type="text" id="timePointsInput" class="text-input" value="Day1 Day3 Day7" oninput="updatePlot()">
@@ -422,6 +431,12 @@ ${welchTTest.toString()}`;
     document.getElementById('codeDisplay').textContent = code;
 }
 
+function toggleMode() {
+    const isComp = document.getElementById('comparisonMode').checked;
+    document.getElementById('timePointsInput').disabled = isComp;
+    updatePlot();
+}
+
 function displayStats(timeLabels, groupConfigs) {
     const nGroups = groupConfigs.length;
     const mainHeader = nGroups === 2 ? "Welch's t (p)" : "ANOVA (p)";
@@ -478,7 +493,8 @@ function displayStats(timeLabels, groupConfigs) {
 }
 
 function updatePlot() {
-    const timeLabels = document.getElementById('timePointsInput').value.trim().split(/[\t\s]+/).filter(s => s !== "");
+    const isCompMode = document.getElementById('comparisonMode').checked;
+    const timeLabels = isCompMode ? ["Data"] : document.getElementById('timePointsInput').value.trim().split(/[\t\s]+/).filter(s => s !== "");
     if (timeLabels.length === 0) return;
 
     const fsX = parseInt(document.getElementById('fontSizeX').value);
@@ -536,6 +552,24 @@ function updatePlot() {
     let svgItems = [];
     const strokeW = 1.2;
 
+    function drawGroupContent(x, data, s, group) {
+        const yM = yScale(s.mean), yT = yScale(s.mean + s.se), yB = yScale(s.mean - s.se);
+        const dotR = parseFloat(document.getElementById('dotSize').value);
+        const jitter = parseFloat(document.getElementById('jitter').value);
+
+        svgItems.push(`
+    <g stroke="black" stroke-width="1.2">
+        <line x1="${x}" y1="${yB}" x2="${x}" y2="${yT}" />
+        <line x1="${x-5}" y1="${yT}" x2="${x+5}" y2="${yT}" />
+        <line x1="${x-5}" y1="${yB}" x2="${x+5}" y2="${yB}" />
+        <line x1="${x-12}" y1="${yM}" x2="${x+12}" y2="${yM}" stroke-width="3" />
+    </g>`);
+        data.forEach(v => {
+            const j = (Math.random() - 0.5) * jitter;
+            svgItems.push(`<circle cx="${x + j}" cy="${yScale(v)}" r="${dotR}" fill="${group.color}" stroke="black" stroke-width="0.8" />`);
+        });
+    }
+
     // 軸
     svgItems.push(`<line x1="${pL}" y1="${height-pB}" x2="${pL}" y2="${pT}" stroke="black" stroke-width="${strokeW}"/>`);
     svgItems.push(`<line x1="${pL}" y1="${height-pB}" x2="${width-pR}" y2="${height-pB}" stroke="black" stroke-width="${strokeW}"/>`);
@@ -549,33 +583,35 @@ function updatePlot() {
     }
 
     // 各タイムポイントの描画
-    timeLabels.forEach((label, tIdx) => {
-        const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
-        const groupSpace = (graphW / timeLabels.length) * 0.85;
-
+    if (isCompMode) {
         groupConfigs.forEach((group, gIdx) => {
-            const xOffset = (gIdx - (groupConfigs.length - 1) / 2) * (groupSpace / groupConfigs.length);
-            const x = xCenter + xOffset;
-            const data = group.data[tIdx] || [];
+            const x = pL + (gIdx + 0.5) * (graphW / groupConfigs.length);
+            const data = group.data[0] || [];
             const s = calcStats(data);
 
             if (s.n > 0) {
-                const yM = yScale(s.mean), yT = yScale(s.mean+s.se), yB = yScale(s.mean-s.se);
-                svgItems.push(`
-                <g id="${group.name}_${label}" stroke="black" stroke-width="${strokeW}">
-                    <line x1="${x}" y1="${yB}" x2="${x}" y2="${yT}" />
-                    <line x1="${x-4}" y1="${yT}" x2="${x+4}" y2="${yT}" />
-                    <line x1="${x-4}" y1="${yB}" x2="${x+4}" y2="${yB}" />
-                    <line x1="${x-8}" y1="${yM}" x2="${x+8}" y2="${yM}" stroke-width="${strokeW*2.5}" />
-                </g>`);
-                data.forEach(v => {
-                    const jitter = (Math.random()-0.5) * jitterAmount;
-                    svgItems.push(`<circle cx="${x+jitter}" cy="${yScale(v)}" r="${dotR}" fill="${group.color}" stroke="black" stroke-width="${strokeW*0.8}" />`);
-                });
+                drawGroupContent(x, data, s, group);
             }
+            svgItems.push(`<text x="${x}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" font-weight="bold">${group.name}</text>`);
         });
-        svgItems.push(`<text x="${xCenter}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" font-weight="bold">${label}</text>`);
-    });
+    } else {
+        timeLabels.forEach((label, tIdx) => {
+            const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
+            const groupSpace = (graphW / timeLabels.length) * 0.85;
+
+            groupConfigs.forEach((group, gIdx) => {
+                const xOffset = (gIdx - (groupConfigs.length - 1) / 2) * (groupSpace / groupConfigs.length);
+                const x = xCenter + xOffset;
+                const data = group.data[tIdx] || [];
+                const s = calcStats(data);
+
+                if (s.n > 0) {
+                    drawGroupContent(x, data, s, group);
+                }
+            });
+            svgItems.push(`<text x="${xCenter}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" font-weight="bold">${label}</text>`);
+        });
+    }
 
     // --- 有意差ブラケットの描画 ---
     if (autoBrackets) {
@@ -585,7 +621,9 @@ function updatePlot() {
 
             const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
             const groupSpace = (graphW / timeLabels.length) * 0.85;
-            const ctrlX = xCenter + (0 - (nGroups - 1) / 2) * (groupSpace / nGroups);
+            const ctrlX = isCompMode
+                ? pL + (0.5) * (graphW / nGroups)
+                : xCenter + (0 - (nGroups - 1) / 2) * (groupSpace / nGroups);
 
             const statsAtTime = groupsData.map(calcStats);
             const errorMaxY = Math.min(...statsAtTime.map(s => yScale(s.mean + s.se)));
@@ -594,7 +632,9 @@ function updatePlot() {
             if (nGroups === 2) {
                 const res = welchTTest(groupsData[0], groupsData[1]);
                 if (res && res.p < 0.05) {
-                    const targetX = xCenter + (1 - (nGroups - 1) / 2) * (groupSpace / nGroups);
+                    const targetX = isCompMode
+                        ? pL + (1.5) * (graphW / nGroups)
+                        : xCenter + (1 - (nGroups - 1) / 2) * (groupSpace / nGroups);
                     svgItems.push(drawBracket(ctrlX, targetX, bracketY, getStars(res.p), fsX));
                 }
             } else {
@@ -603,7 +643,9 @@ function updatePlot() {
                     const dunnettRes = runDunnett(groupsData, a.msWithin, a.df2);
                     dunnettRes.forEach((res, i) => {
                         if (res.isSig) {
-                            const targetX = xCenter + ((i + 1) - (nGroups - 1) / 2) * (groupSpace / nGroups);
+                            const targetX = isCompMode
+                                ? pL + ((i + 1) + 0.5) * (graphW / nGroups)
+                                : xCenter + ((i + 1) - (nGroups - 1) / 2) * (groupSpace / nGroups);
                             svgItems.push(drawBracket(ctrlX, targetX, bracketY, getStars(res.p), fsX));
                             bracketY -= 22;
                         }
