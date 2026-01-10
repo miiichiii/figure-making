@@ -32,7 +32,10 @@
         .slider-v { grid-column: 1; grid-row: 1; appearance: slider-vertical; width: 12px; height: 400px; }
         .slider-h { grid-column: 2; grid-row: 2; width: 500px; height: 12px; }
         #svg-wrapper { grid-column: 2; grid-row: 1; background: white; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .preview-row { display: flex; gap: 12px; align-items: flex-start; }
         .preview-wrapper { flex: 1; }
+        .side-panels { display: flex; flex-direction: column; gap: 12px; width: 220px; }
+        .legend-panel { width: 100%; align-self: flex-start; }
 
         .main-content {
             flex: 1;
@@ -56,6 +59,18 @@
         .legend-row input[type="number"] { width: 70px; }
         .option-list { display: grid; gap: 6px; font-size: 0.75rem; }
         .compact-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .legend-move { display: grid; gap: 4px; justify-items: center; }
+        .legend-move-row { display: flex; gap: 6px; }
+        .legend-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+        }
         .panel-tight { padding: 14px; }
         .panel-tight h3 { margin-bottom: 10px; }
 
@@ -85,6 +100,23 @@
         .btn-add { background: #6c757d; color: white; margin-bottom: 20px; }
         .btn-gen { background: #007bff; color: white; }
         .btn-dl { background: #28a745; color: white; }
+        .btn-small { width: 30%; margin-top: 0; padding: 8px 10px; font-size: 0.85rem; }
+        .panel-compact { padding: 10px; }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 999;
+        }
+        .toast.show { opacity: 1; }
     </style>
 </head>
 <body>
@@ -116,17 +148,54 @@
     <div class="resizer" id="resizerHandle"></div>
 
     <div class="main-content">
-        <div class="preview-wrapper">
-            <input type="range" class="slider-v" id="chartHeight" min="200" max="800" value="400" oninput="updatePlot()">
-            <div id="svg-wrapper"><div id="svg-container"></div></div>
-            <input type="range" class="slider-h" id="chartWidth" min="50" max="1000" value="600" oninput="updatePlot()">
+        <div class="preview-row">
+            <div class="preview-wrapper">
+                <input type="range" class="slider-v" id="chartHeight" min="200" max="800" value="400" oninput="updatePlot()">
+                <div id="svg-wrapper"><div id="svg-container"></div></div>
+                <input type="range" class="slider-h" id="chartWidth" min="50" max="1000" value="600" oninput="updatePlot()">
+                <div style="grid-column: 2; grid-row: 3; width: 100%; display: flex; gap: 8px; justify-content: flex-start;">
+                    <button class="btn-dl btn-small" onclick="downloadSVG()">Download SVG</button>
+                    <button class="btn-dl btn-small" onclick="copySvgToClipboard()" style="background:#007bff;">Copy Image</button>
+                </div>
+            </div>
+            <div class="side-panels">
+            <div class="panel legend-panel">
+                <div class="control-item">
+                    <label style="font-weight: normal;"><input type="checkbox" id="showLegend" checked onchange="updatePlot()"> Show Legend</label>
+                </div>
+                <input type="hidden" id="legendState" value="85,10">
+                <div class="control-item">
+                    <label>Legend Move</label>
+                    <div class="legend-move">
+                            <button type="button" class="legend-btn" onclick="nudgeLegend(0, -2)">▲</button>
+                            <div class="legend-move-row">
+                                <button type="button" class="legend-btn" onclick="nudgeLegend(-2, 0)">◀</button>
+                                <button type="button" class="legend-btn" onclick="nudgeLegend(2, 0)">▶</button>
+                            </div>
+                            <button type="button" class="legend-btn" onclick="nudgeLegend(0, 2)">▼</button>
+                        </div>
+                    </div>
+                    <div class="legend-row">
+                        <label for="legendFontSize">Font</label>
+                        <input type="number" id="legendFontSize" value="14" oninput="updatePlot()">
+                    </div>
+                </div>
+                <div class="panel legend-panel">
+                    <div class="option-list">
+                        <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
+                        <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
+                    </div>
+                    <div class="control-item">
+                        <label>Bracket Offset (px)</label>
+                        <input type="range" id="bracketOffset" min="-60" max="120" value="0" oninput="updatePlot()">
+                    </div>
+                </div>
+            </div>
         </div>
 
-    <div class="panel panel-tight">
-        <h3>2. Aesthetics & Annotations</h3>
-        <div class="visual-controls">
+        <div class="panel panel-tight panel-compact">
+            <div class="visual-controls">
             <div class="control-card">
-                <h4>Font</h4>
                 <div class="control-item">
                     <label>Font (X)</label>
                     <input type="number" id="fontSizeX" value="14" oninput="updatePlot()">
@@ -137,7 +206,6 @@
                 </div>
             </div>
             <div class="control-card">
-                <h4>Dot</h4>
                 <div class="control-item">
                     <label>Dot Size</label>
                     <div class="compact-row">
@@ -152,7 +220,6 @@
                 </div>
             </div>
             <div class="control-card">
-                <h4>Vertical Axis</h4>
                 <div class="control-item">
                     <label>Y-Max (0=Auto)</label>
                     <input type="number" id="yMaxInput" value="0" oninput="updatePlot()">
@@ -160,33 +227,6 @@
                 <div class="control-item">
                     <label>Ticks</label>
                     <input type="number" id="numTicks" value="5" oninput="updatePlot()">
-                </div>
-            </div>
-            <div class="control-card">
-                <h4>Legend</h4>
-                <div class="control-item">
-                    <label style="font-weight: normal;"><input type="checkbox" id="showLegend" checked onchange="updatePlot()"> Show Legend</label>
-                </div>
-                <div class="legend-row">
-                    <label for="legendX">X%</label>
-                    <input type="number" id="legendX" value="85" oninput="updatePlot()">
-                    <label for="legendY">Y%</label>
-                    <input type="number" id="legendY" value="10" oninput="updatePlot()">
-                </div>
-                <div class="legend-row">
-                    <label for="legendFontSize">Font</label>
-                    <input type="number" id="legendFontSize" value="14" oninput="updatePlot()">
-                </div>
-            </div>
-            <div class="control-card">
-                <h4>Significance</h4>
-                <div class="option-list">
-                    <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
-                    <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
-                </div>
-                <div class="control-item">
-                    <label>Bracket Offset (px)</label>
-                    <input type="range" id="bracketOffset" min="-60" max="120" value="0" oninput="updatePlot()">
                 </div>
             </div>
         </div>
@@ -204,6 +244,7 @@
             <div class="code-board" id="codeDisplay">// 統計アルゴリズムを表示中...</div>
         </div>
     </div>
+<div id="toast" class="toast">Copied</div>
 </div>
 
 <script>
@@ -703,11 +744,13 @@ function updatePlot() {
 
     // --- Legend Generation ---
     if (document.getElementById('showLegend').checked) {
-        const lxPercent = parseFloat(document.getElementById('legendX').value) / 100;
-        const lyPercent = parseFloat(document.getElementById('legendY').value) / 100;
         const legendFontSize = parseFloat(document.getElementById('legendFontSize').value) || fsY;
-        const lx = pL + (graphW * lxPercent);
-        const ly = pT + (graphH * lyPercent);
+        const legendState = document.getElementById('legendState');
+        const pos = legendState ? legendState.value.split(',').map(v => parseFloat(v)) : [85, 10];
+        const lxPercent = isNaN(pos[0]) ? 85 : pos[0];
+        const lyPercent = isNaN(pos[1]) ? 10 : pos[1];
+        const lx = pL + (graphW * (lxPercent / 100));
+        const ly = pT + (graphH * (lyPercent / 100));
 
         groupConfigs.forEach((group, i) => {
             const itemY = ly + (i * legendFontSize * 1.5);
@@ -723,6 +766,16 @@ function updatePlot() {
     displayStats(timeLabels, groupConfigs);
 }
 
+let toastTimer;
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1200);
+}
+
 function downloadSVG() {
     const svg = document.getElementById('svg-container').innerHTML;
     const blob = new Blob([svg], {type: "image/svg+xml"});
@@ -732,8 +785,18 @@ function downloadSVG() {
     link.click();
 }
 
-async function copySvgToClipboard(event) {
-    if (event) event.preventDefault();
+function nudgeLegend(dx, dy) {
+    const legendState = document.getElementById('legendState');
+    const pos = legendState.value.split(',').map(v => parseFloat(v));
+    let xVal = isNaN(pos[0]) ? 85 : pos[0];
+    let yVal = isNaN(pos[1]) ? 10 : pos[1];
+    xVal = Math.max(0, Math.min(100, xVal + dx));
+    yVal = Math.max(0, Math.min(100, yVal + dy));
+    legendState.value = `${xVal},${yVal}`;
+    updatePlot();
+}
+
+async function copySvgToClipboard() {
     const svgEl = document.querySelector('#svg-container svg');
     if (!svgEl) return;
     const svgData = new XMLSerializer().serializeToString(svgEl);
@@ -767,12 +830,15 @@ async function copySvgToClipboard(event) {
                 'text/plain': new Blob([svgData], { type: 'text/plain' })
             });
             await navigator.clipboard.write([item]);
+            showToast('Copied');
         } else if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(svgData);
+            showToast('Copied');
         }
     } catch (err) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(svgData);
+            showToast('Copied');
         }
     }
 }
@@ -804,9 +870,8 @@ function stopResize() {
     resizer.style.background = "";
 }
 
-function handleContextMenu(event) {
-    if (!event.altKey) return;
-    copySvgToClipboard(event);
+function handleContextMenu() {
+    copySvgToClipboard();
 }
 
 if (svgWrapper) {
