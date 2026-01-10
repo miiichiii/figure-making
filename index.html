@@ -177,6 +177,13 @@
             <label>Shared X-Labels (Space separated)</label>
             <input type="text" id="timePointsInput" class="text-input" value="Day1 Day3 Day7" oninput="updatePlot()">
         </div>
+        <div class="master-label-card" style="background:#f8f9fb; border-color:#e6e9ef;">
+            <label style="margin-bottom:6px;">Load Sample Data</label>
+            <div style="display:flex; gap:8px;">
+                <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleTimeline()">時系列サンプル</button>
+                <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleComparison()">2群比較サンプル</button>
+            </div>
+        </div>
 
         <h3>2. Group Data</h3>
         <div id="groupsContainer">
@@ -240,6 +247,7 @@
                 <div class="panel legend-panel">
                     <div class="option-list">
                         <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
+                        <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines (折れ線を表示)</label>
                         <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
                     </div>
                     <div class="control-item">
@@ -312,6 +320,34 @@ function addNewGroup(name = "", color = "", data = "") {
         <textarea class="group-data-input" placeholder="Paste data here..." oninput="handlePaste('${id}')">${data}</textarea>
     `;
     container.appendChild(card);
+    updatePlot();
+}
+
+function resetGroups() {
+    const container = document.getElementById('groupsContainer');
+    container.innerHTML = '';
+    groupCount = 0;
+}
+
+function loadSampleTimeline() {
+    const comparison = document.getElementById('comparisonMode');
+    comparison.checked = false;
+    toggleMode();
+    document.getElementById('timePointsInput').value = 'Day1 Day3 Day7 Day10';
+    resetGroups();
+    addNewGroup("WT", "#ffffff", "Day1\tDay3\tDay7\tDay10\n100\t250\t400\t520\n120\t280\t450\t560\n90\t230\t380\t500");
+    addNewGroup("KO", "#ffcccc", "Day1\tDay3\tDay7\tDay10\n80\t150\t200\t240\n70\t140\t220\t260\n85\t160\t190\t230");
+    updatePlot();
+}
+
+function loadSampleComparison() {
+    const comparison = document.getElementById('comparisonMode');
+    comparison.checked = true;
+    toggleMode();
+    document.getElementById('timePointsInput').value = 'Data';
+    resetGroups();
+    addNewGroup("Control", "#ffffff", "12.1\n11.5\n10.9\n12.8\n11.7");
+    addNewGroup("Treatment", "#ffcccc", "15.2\n14.6\n16.1\n15.8\n14.9");
     updatePlot();
 }
 
@@ -649,6 +685,7 @@ function updatePlot() {
     const isAutoY = isAutoFlag && (!yMaxManual || yMaxManual <= 0 || yMaxInputEl.dataset.auto === 'true');
     const jitterAmount = parseFloat(document.getElementById('jitter').value);
     const autoBrackets = document.getElementById('autoBrackets').checked;
+    const showLines = document.getElementById('showLines').checked;
     const errorType = document.getElementById('errorType')?.value || 'se';
     const bracketOffset = parseFloat(document.getElementById('bracketOffset').value);
 
@@ -747,20 +784,62 @@ function updatePlot() {
             svgItems.push(`<text x="${x}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" font-weight="bold">${group.name}</text>`);
         });
     } else {
-        timeLabels.forEach((label, tIdx) => {
-            const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
-            const groupSpace = (graphW / timeLabels.length) * 0.85;
+        if (showLines) {
+            groupConfigs.forEach((group) => {
+                const points = [];
+                const lineColor = group.color === '#ffffff' ? 'black' : group.color;
+                timeLabels.forEach((label, tIdx) => {
+                    const data = group.data[tIdx] || [];
+                    const s = calcStats(data);
+                    if (s.n > 0) {
+                        const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
+                        const y = yScale(s.mean);
+                        const errVal = errorType === 'sd' ? s.sd : s.se;
+                        const yT = yScale(s.mean + errVal);
+                        const yB = yScale(s.mean - errVal);
 
-            groupConfigs.forEach((group, gIdx) => {
-                const xOffset = (gIdx - (groupConfigs.length - 1) / 2) * (groupSpace / groupConfigs.length);
-                const x = xCenter + xOffset;
-                const data = group.data[tIdx] || [];
-                const s = calcStats(data);
+                        points.push(`${xCenter},${y}`);
+                        svgItems.push(`
+                <g stroke="${lineColor}" stroke-width="1.4">
+                    <line x1="${xCenter}" y1="${yB}" x2="${xCenter}" y2="${yT}" />
+                    <line x1="${xCenter-5}" y1="${yT}" x2="${xCenter+5}" y2="${yT}" />
+                    <line x1="${xCenter-5}" y1="${yB}" x2="${xCenter+5}" y2="${yB}" />
+                </g>`);
+                        svgItems.push(`<circle cx="${xCenter}" cy="${y}" r="${Math.max(2, dotR * 0.7)}" fill="${lineColor}" stroke="${lineColor}" stroke-width="0.8" />`);
+                    }
+                });
 
-                if (s.n > 0) {
-                    drawGroupContent(x, data, s, group);
+                if (points.length > 1) {
+                    svgItems.push(`
+                <polyline points="${points.join(' ')}"
+                          fill="none"
+                          stroke="${lineColor}"
+                          stroke-width="2"
+                          stroke-linejoin="round"
+                          stroke-linecap="round" />
+            `);
                 }
             });
+        } else {
+            timeLabels.forEach((label, tIdx) => {
+                const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
+                const groupSpace = (graphW / timeLabels.length) * 0.85;
+
+                groupConfigs.forEach((group, gIdx) => {
+                    const xOffset = (gIdx - (groupConfigs.length - 1) / 2) * (groupSpace / groupConfigs.length);
+                    const x = xCenter + xOffset;
+                    const data = group.data[tIdx] || [];
+                    const s = calcStats(data);
+
+                    if (s.n > 0) {
+                        drawGroupContent(x, data, s, group);
+                    }
+                });
+                svgItems.push(`<text x="${xCenter}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" font-weight="bold">${label}</text>`);
+            });
+        }
+        timeLabels.forEach((label, tIdx) => {
+            const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
             svgItems.push(`<text x="${xCenter}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" font-weight="bold">${label}</text>`);
         });
     }
@@ -784,10 +863,13 @@ function updatePlot() {
             if (nGroups === 2) {
                 const res = welchTTest(groupsData[0], groupsData[1]);
                 if (res && res.p < 0.05) {
+                    const s2 = calcStats(groupsData[1]);
+                    const err2 = errorType === 'sd' ? s2.sd : s2.se;
                     const targetX = isCompMode
                         ? pL + (1.5) * (graphW / nGroups)
-                        : xCenter + (1 - (nGroups - 1) / 2) * (groupSpace / nGroups);
-                    svgItems.push(drawBracket(ctrlX, targetX, bracketY, getStars(res.p), fsX));
+                        : (showLines ? xCenter : xCenter + (1 - (nGroups - 1) / 2) * (groupSpace / nGroups));
+                    const starY = yScale(s2.mean + err2) - 8 - bracketOffset;
+                    svgItems.push(`<text x="${targetX}" y="${starY}" text-anchor="middle" font-size="${fsX * 1.2}" font-family="Arial" font-weight="bold">${getStars(res.p)}</text>`);
                 }
             } else {
                 const a = oneWayANOVA(groupsData);
