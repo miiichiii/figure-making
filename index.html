@@ -45,8 +45,10 @@
         }
         .stats-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
         .code-board { background: #282c34; color: #abb2bf; padding: 15px; border-radius: 8px; font-family: "SF Mono", monospace; font-size: 11px; overflow-x: auto; white-space: pre; }
-        .visual-controls { display: grid; grid-template-columns: repeat(5, minmax(110px, max-content)); column-gap: 4px; row-gap: 8px; justify-content: start; }
-        .control-item { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; min-width: 0; }
+        .visual-controls { display: grid; grid-template-columns: repeat(5, minmax(160px, 1fr)); gap: 10px; }
+        .control-card { background: #f8f9fb; border: 1px solid #e6e9ef; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .control-card h4 { margin: 0; font-size: 0.85rem; color: #555; }
+        .control-item { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; min-width: 0; }
         .control-item input[type="number"] { width: 70px; }
         .control-item input[type="range"] { width: 100%; }
         .legend-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
@@ -123,43 +125,48 @@
     <div class="panel panel-tight">
         <h3>2. Aesthetics & Annotations</h3>
         <div class="visual-controls">
-            <div class="control-item">
-                <label>Font (X)</label>
-                <input type="number" id="fontSizeX" value="14" oninput="updatePlot()">
-            </div>
-            <div class="control-item">
-                <label>Font (Y)</label>
-                <input type="number" id="fontSizeY" value="14" oninput="updatePlot()">
-            </div>
-            <div class="control-item">
-                <label>Dot Size</label>
-                <div class="compact-row">
-                    <input type="number" id="dotSize" min="1" max="15" value="4" oninput="updatePlot()">
+            <div class="control-card">
+                <h4>Font</h4>
+                <div class="control-item">
+                    <label>Font (X)</label>
+                    <input type="number" id="fontSizeX" value="14" oninput="updatePlot()">
+                </div>
+                <div class="control-item">
+                    <label>Font (Y)</label>
+                    <input type="number" id="fontSizeY" value="14" oninput="updatePlot()">
                 </div>
             </div>
-            <div class="control-item">
-                <label>Dot Jitter</label>
-                <div class="compact-row">
-                    <input type="number" id="jitter" min="0" max="40" value="15" oninput="updatePlot()">
+            <div class="control-card">
+                <h4>Dot</h4>
+                <div class="control-item">
+                    <label>Dot Size</label>
+                    <div class="compact-row">
+                        <input type="number" id="dotSize" min="1" max="15" value="4" oninput="updatePlot()">
+                    </div>
+                </div>
+                <div class="control-item">
+                    <label>Dot Jitter</label>
+                    <div class="compact-row">
+                        <input type="number" id="jitter" min="0" max="40" value="15" oninput="updatePlot()">
+                    </div>
                 </div>
             </div>
-            <div class="control-item">
-                <label>Significance</label>
-                <div class="option-list">
-                    <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
-                    <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
+            <div class="control-card">
+                <h4>Vertical Axis</h4>
+                <div class="control-item">
+                    <label>Y-Max (0=Auto)</label>
+                    <input type="number" id="yMaxInput" value="0" oninput="updatePlot()">
+                </div>
+                <div class="control-item">
+                    <label>Ticks</label>
+                    <input type="number" id="numTicks" value="5" oninput="updatePlot()">
                 </div>
             </div>
-            <div class="control-item">
-                <label>Y-Max (0=Auto)</label>
-                <input type="number" id="yMaxInput" value="0" oninput="updatePlot()">
-            </div>
-            <div class="control-item">
-                <label>Ticks</label>
-                <input type="number" id="numTicks" value="5" oninput="updatePlot()">
-            </div>
-            <div class="control-item">
-                <label>Legend</label>
+            <div class="control-card">
+                <h4>Legend</h4>
+                <div class="control-item">
+                    <label style="font-weight: normal;"><input type="checkbox" id="showLegend" checked onchange="updatePlot()"> Show Legend</label>
+                </div>
                 <div class="legend-row">
                     <label for="legendX">X%</label>
                     <input type="number" id="legendX" value="85" oninput="updatePlot()">
@@ -171,9 +178,12 @@
                     <input type="number" id="legendFontSize" value="14" oninput="updatePlot()">
                 </div>
             </div>
-            <div class="control-item">
-                <label>Legend Toggle</label>
-                <label style="font-weight: normal;"><input type="checkbox" id="showLegend" checked onchange="updatePlot()"> Show Legend</label>
+            <div class="control-card">
+                <h4>Significance</h4>
+                <div class="option-list">
+                    <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
+                    <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
+                </div>
             </div>
         </div>
     </div>
