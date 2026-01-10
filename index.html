@@ -394,10 +394,11 @@ function handlePaste(id) {
     const lines = text.split('\n');
     const firstLine = lines[0].split('\t');
     const isHeader = firstLine.some(cell => isNaN(parseFloat(cell)) && cell !== "");
+    const hasDayLabel = firstLine.some(cell => /day\s*\d+/i.test(cell));
 
-    // 最初のグループかつヘッダーがある場合のみ、マスターラベルを更新
-    if (isHeader && id === document.querySelector('.group-card').id) {
+    if (isHeader && hasDayLabel) {
         document.getElementById('timePointsInput').value = firstLine.join(' ');
+        textarea.value = lines.slice(1).join('\n');
     }
     updatePlot();
 }
