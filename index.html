@@ -863,13 +863,20 @@ function updatePlot() {
             if (nGroups === 2) {
                 const res = welchTTest(groupsData[0], groupsData[1]);
                 if (res && res.p < 0.05) {
-                    const s2 = calcStats(groupsData[1]);
-                    const err2 = errorType === 'sd' ? s2.sd : s2.se;
-                    const targetX = isCompMode
-                        ? pL + (1.5) * (graphW / nGroups)
-                        : (showLines ? xCenter : xCenter + (1 - (nGroups - 1) / 2) * (groupSpace / nGroups));
-                    const starY = yScale(s2.mean + err2) - 8 - bracketOffset;
-                    svgItems.push(`<text x="${targetX}" y="${starY}" text-anchor="middle" font-size="${fsX * 1.2}" font-family="Arial" font-weight="bold">${getStars(res.p)}</text>`);
+                    if (showLines) {
+                        const s2 = calcStats(groupsData[1]);
+                        const err2 = errorType === 'sd' ? s2.sd : s2.se;
+                        const targetX = isCompMode
+                            ? pL + (1.5) * (graphW / nGroups)
+                            : xCenter;
+                        const starY = yScale(s2.mean + err2) - 8 - bracketOffset;
+                        svgItems.push(`<text x="${targetX}" y="${starY}" text-anchor="middle" font-size="${fsX * 1.2}" font-family="Arial" font-weight="bold">${getStars(res.p)}</text>`);
+                    } else {
+                        const targetX = isCompMode
+                            ? pL + (1.5) * (graphW / nGroups)
+                            : xCenter + (1 - (nGroups - 1) / 2) * (groupSpace / nGroups);
+                        svgItems.push(drawBracket(ctrlX, targetX, bracketY, getStars(res.p), fsX));
+                    }
                 }
             } else {
                 const a = oneWayANOVA(groupsData);
