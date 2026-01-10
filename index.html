@@ -182,7 +182,6 @@
         <div id="groupsContainer">
             </div>
         <button class="btn-add" onclick="addNewGroup()">+ Add New Group</button>
-        <button class="btn-dl" onclick="downloadSVG()">Download SVG</button>
     </div>
 
     <div class="resizer" id="resizerHandle"></div>
@@ -215,8 +214,8 @@
                 <div id="svg-wrapper"><div id="svg-container"></div></div>
                 <input type="range" class="slider-h" id="chartWidth" min="50" max="1000" value="600" oninput="updatePlot()">
                 <div style="grid-column: 3; grid-row: 3; width: 100%; display: flex; gap: 8px; justify-content: flex-start;">
-                    <button class="btn-dl btn-small" onclick="downloadSVG()">Download SVG</button>
-                    <button class="btn-dl btn-small" onclick="copySvgToClipboard()" style="background:#007bff;">Copy Image</button>
+                    <button class="btn-dl btn-small" onclick="downloadSVG()">Download for PPT</button>
+                    <button class="btn-dl btn-small" onclick="copySvgToClipboard()" style="background:#007bff;">Copy for Illustrator</button>
                 </div>
             </div>
             <div class="side-panels">
@@ -911,6 +910,7 @@ async function copySvgToClipboard() {
         }
     }
 }
+
 
 // 初期グループの作成
 addNewGroup("WT", "#ffffff", "Day1\tDay3\tDay7\n100\t250\t400\n120\t280\t450\n90\t230\t380");
