@@ -184,6 +184,10 @@
                     <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
                     <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
                 </div>
+                <div class="control-item">
+                    <label>Bracket Offset (px)</label>
+                    <input type="range" id="bracketOffset" min="-60" max="120" value="0" oninput="updatePlot()">
+                </div>
             </div>
         </div>
     </div>
@@ -547,6 +551,7 @@ function updatePlot() {
     const yMaxManual = parseFloat(document.getElementById('yMaxInput').value);
     const jitterAmount = parseFloat(document.getElementById('jitter').value);
     const autoBrackets = document.getElementById('autoBrackets').checked;
+    const bracketOffset = parseFloat(document.getElementById('bracketOffset').value);
 
     // 全グループデータの取得
     const groupCards = document.querySelectorAll('.group-card');
@@ -668,7 +673,7 @@ function updatePlot() {
 
             const statsAtTime = groupsData.map(calcStats);
             const errorMaxY = Math.min(...statsAtTime.map(s => yScale(s.mean + s.se)));
-            let bracketY = errorMaxY - 15;
+            let bracketY = errorMaxY - 15 - bracketOffset;
 
             if (nGroups === 2) {
                 const res = welchTTest(groupsData[0], groupsData[1]);
