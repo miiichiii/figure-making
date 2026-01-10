@@ -180,8 +180,8 @@
         <div class="master-label-card" style="background:#f8f9fb; border-color:#e6e9ef;">
             <label style="margin-bottom:6px;">Load Sample Data</label>
             <div style="display:flex; gap:8px;">
-                <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleTimeline()">時系列サンプル</button>
-                <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleComparison()">2群比較サンプル</button>
+                <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleTimeline()">Time Series Sample</button>
+                <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleComparison()">Two-Group Sample</button>
             </div>
         </div>
 
@@ -274,7 +274,7 @@
                         <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
                     </div>
                     <div class="control-item">
-                        <label>Bracket Offset (px)</label>
+                        <label>Bracket Offset <span id="bracketOffsetVal" style="font-weight: normal; color:#666;">center</span></label>
                         <input type="range" id="bracketOffset" min="-60" max="120" value="0" oninput="updatePlot()">
                     </div>
                 </div>
@@ -313,7 +313,12 @@
         </div>
 
         <div class="stats-panel">
-            <h3>4. Statistical Methods & Source Code</h3>
+            <h3>4. Calculation Details</h3>
+            <div class="code-board" id="calcDetails" style="background:#f8f9fb; color:#333; white-space:pre-wrap;"></div>
+        </div>
+
+        <div class="stats-panel">
+            <h3>5. Statistical Methods & Source Code</h3>
             <div class="code-board" id="codeDisplay">// 統計アルゴリズムを表示中...</div>
         </div>
     </div>
@@ -639,6 +644,24 @@ function toggleMode() {
 function displayStats(timeLabels, groupConfigs) {
     const nGroups = groupConfigs.length;
     const mainHeader = nGroups === 2 ? "Welch's t (p)" : "ANOVA (p)";
+    const formatP = (p) => {
+        if (p === null || p === undefined || Number.isNaN(p)) return "-";
+        if (p < 0.0001) return "<0.0001";
+        return p.toFixed(4);
+    };
+    const formatPPrecise = (p) => {
+        if (p === null || p === undefined || Number.isNaN(p)) return "-";
+        if (p === 0) return "0";
+        return p.toExponential(20);
+    };
+    const formatPPreciseWithDecimal = (p) => {
+        if (p === null || p === undefined || Number.isNaN(p)) return "-";
+        if (p === 0) return "0";
+        const exp = p.toExponential(20);
+        const dec = p.toFixed(22).replace(/\.?0+$/, "");
+        return `${exp} (${dec})`;
+    };
+    const detailLines = [];
 
     let html = `<table style="width:100%; border-collapse: collapse; font-size: 0.85rem;">
         <thead>
@@ -659,35 +682,55 @@ function displayStats(timeLabels, groupConfigs) {
         let pMain = 1;
         let postHocHtml = "-";
         let status = "NS";
+        const detailParts = [];
 
         if (nGroups === 2) {
             const res = welchTTest(groupsData[0], groupsData[1]);
             const bm = brunnerMunzel(groupsData[0], groupsData[1]);
             pMain = res ? res.p : 1;
-            postHocHtml = bm ? bm.p.toFixed(4) : "-";
+            postHocHtml = bm ? formatP(bm.p) : "-";
             status = pMain < 0.05 ? "Significant" : "NS";
+            if (res) {
+                detailParts.push(`Welch t=${res.t.toFixed(3)}, df=${res.df.toFixed(2)}, p=${formatPPreciseWithDecimal(res.p)}`);
+            }
+            if (bm && Number.isFinite(bm.w) && Number.isFinite(bm.p) && bm.p > 0) {
+                detailParts.push(`Brunner-Munzel (approx) W=${bm.w.toFixed(3)}, df=${bm.df ? bm.df.toFixed(2) : "-"}, p=${formatPPreciseWithDecimal(bm.p)}`);
+            } else {
+                detailParts.push('Brunner-Munzel (approx) result invalid or unstable (use external tool).');
+            }
         } else {
             const aRes = oneWayANOVA(groupsData);
             if (aRes) {
                 pMain = fDistributionP(aRes.f, aRes.df1, aRes.df2);
                 const dunnettRes = runDunnett(groupsData, aRes.msWithin, aRes.df2);
                 postHocHtml = dunnettRes.map((r, idx) =>
-                    `<div style="color:${r.isSig ? 'red' : '#666'}">${filteredGroups[idx + 1].name}: p=${r.p.toFixed(4)}</div>`
+                    `<div style="color:${r.isSig ? 'red' : '#666'}">${filteredGroups[idx + 1].name}: p=${formatP(r.p)}</div>`
                 ).join("");
                 status = pMain < 0.05 ? "Significant" : "NS";
+                detailParts.push(`ANOVA F=${aRes.f.toFixed(3)}, df1=${aRes.df1}, df2=${aRes.df2}, p=${formatPPreciseWithDecimal(pMain)}`);
+                dunnettRes.forEach((r, idx) => {
+                    detailParts.push(`Dunnett vs Ctrl -> ${filteredGroups[idx + 1].name}: p=${formatPPreciseWithDecimal(r.p)}`);
+                });
             }
         }
 
         html += `<tr style="border-bottom:1px solid #eee;">
             <td style="padding:8px; font-weight:bold;">${label}</td>
-            <td style="padding:8px; color:${pMain < 0.05 ? 'red' : 'black'}">${pMain.toFixed(4)}</td>
+            <td style="padding:8px; color:${pMain < 0.05 ? 'red' : 'black'}">${formatP(pMain)}</td>
             <td style="padding:8px; font-size:0.75rem;">${postHocHtml}</td>
             <td style="padding:8px;"><strong>${status}</strong></td>
         </tr>`;
+        if (detailParts.length) {
+            detailLines.push(`[${label}]\n${detailParts.join('\n')}`);
+        }
     });
 
     html += `</tbody></table>`;
     document.getElementById('statsTableContainer').innerHTML = html;
+    const detailEl = document.getElementById('calcDetails');
+    if (detailEl) {
+        detailEl.textContent = detailLines.length ? detailLines.join('\n\n') : 'No statistical details available.';
+    }
     updateCodeDisplay();
 }
 
@@ -711,6 +754,14 @@ function updatePlot() {
     const showLines = document.getElementById('showLines').checked;
     const errorType = document.getElementById('errorType')?.value || 'se';
     const bracketOffset = parseFloat(document.getElementById('bracketOffset').value);
+    const bracketOffsetLabel = document.getElementById('bracketOffsetVal');
+    if (bracketOffsetLabel) {
+        if (bracketOffset === 0) {
+            bracketOffsetLabel.textContent = 'center';
+        } else {
+            bracketOffsetLabel.textContent = `${bracketOffset > 0 ? '+' : ''}${bracketOffset}px`;
+        }
+    }
     const xAxisLabel = document.getElementById('xAxisLabel').value.trim();
     const yAxisLabel = document.getElementById('yAxisLabel').value.trim();
     const xLabelOffset = parseFloat(document.getElementById('xLabelOffset').value) || 0;
