@@ -266,6 +266,8 @@
                 <div style="grid-column: 3; grid-row: 3; width: 100%; display: flex; gap: 8px; justify-content: flex-start;">
                     <button class="btn-dl btn-small" onclick="downloadSVG()">Download for PPT</button>
                     <button class="btn-dl btn-small" onclick="copySvgToClipboard()" style="background:#007bff;">Copy for Illustrator</button>
+                    <button class="btn-dl btn-small" onclick="downloadCSV()" style="background:#6c757d;">Download CSV</button>
+                    <button class="btn-dl btn-small" onclick="downloadStatsCode()" style="background:#6c757d;">Download Statistical Code for R</button>
                 </div>
             </div>
             <div class="side-panels">
@@ -1081,6 +1083,111 @@ function adjustLabelOffset(id, delta) {
     const current = parseFloat(input.value) || 0;
     input.value = current + delta;
     updatePlot();
+}
+
+function downloadCSV() {
+    const isCompMode = document.getElementById('comparisonMode').checked;
+    const timeLabels = isCompMode ? ["Data"] : document.getElementById('timePointsInput').value.trim().split(/[\t\s]+/).filter(s => s !== "");
+    if (!timeLabels.length) return;
+
+    const groupCards = document.querySelectorAll('.group-card');
+    const groupConfigs = Array.from(groupCards).map(card => ({
+        name: card.querySelector('.group-name-input').value,
+        data: parseData(card.querySelector('.group-data-input').value, timeLabels.length)
+    }));
+
+    const lines = [];
+    lines.push('RawData');
+    lines.push('Time,Group,Value');
+    timeLabels.forEach((label, tIdx) => {
+        groupConfigs.forEach((group) => {
+            const data = group.data[tIdx] || [];
+            data.forEach((v) => {
+                lines.push(`${label},${group.name},${v}`);
+            });
+        });
+    });
+    lines.push('');
+    lines.push('Summary');
+    lines.push('Time,Group,Mean,SD,SE,N');
+    timeLabels.forEach((label, tIdx) => {
+        groupConfigs.forEach((group) => {
+            const data = group.data[tIdx] || [];
+            const s = calcStats(data);
+            lines.push(`${label},${group.name},${s.mean},${s.sd},${s.se},${s.n}`);
+        });
+    });
+
+    const csv = lines.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `plot_data_${new Date().getTime()}.csv`;
+    link.click();
+}
+
+function downloadStatsCode() {
+    const isCompMode = document.getElementById('comparisonMode').checked;
+    const timeLabels = isCompMode ? ["Data"] : document.getElementById('timePointsInput').value.trim().split(/[\t\s]+/).filter(s => s !== "");
+    if (!timeLabels.length) return;
+
+    const groupCards = document.querySelectorAll('.group-card');
+    const groupConfigs = Array.from(groupCards).map(card => ({
+        name: card.querySelector('.group-name-input').value,
+        data: parseData(card.querySelector('.group-data-input').value, timeLabels.length)
+    }));
+
+    const rows = [];
+    timeLabels.forEach((label, tIdx) => {
+        groupConfigs.forEach((group) => {
+            const data = group.data[tIdx] || [];
+            data.forEach((v) => {
+                rows.push(`  "${label}", "${group.name}", ${v}`);
+            });
+        });
+    });
+
+    const rScript = `# Generated from current app data
+# Paste into R as-is
+df <- read.csv(text = '
+Time,Group,Value
+${rows.join('\n')}
+', stringsAsFactors = FALSE)
+
+df$Time <- as.factor(df$Time)
+df$Group <- as.factor(df$Group)
+
+# Summary (mean, sd, se)
+library(dplyr)
+summary_stats <- df %>%
+  group_by(Time, Group) %>%
+  summarise(
+    mean = mean(Value),
+    sd = sd(Value),
+    se = sd(Value) / sqrt(n()),
+    n = n(),
+    .groups = "drop"
+  )
+print(summary_stats)
+
+# Two-group Welch t-test per Time
+if (length(levels(df$Group)) == 2) {
+  by(df, df$Time, function(sub) {
+    print(t.test(Value ~ Group, data = sub))
+  })
+} else {
+  # One-way ANOVA per Time
+  by(df, df$Time, function(sub) {
+    print(summary(aov(Value ~ Group, data = sub)))
+  })
+}
+`;
+
+    const blob = new Blob([rScript], { type: 'text/plain;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `statistical_code_${new Date().getTime()}.R`;
+    link.click();
 }
 
 async function copySvgToClipboard() {
