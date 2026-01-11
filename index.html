@@ -627,7 +627,6 @@ function studentTCDF(t, df) {
 
 // P値に応じたアスタリスクを返す
 function getStars(p) {
-    if (p < 0.001) return "***";
     if (p < 0.01) return "**";
     if (p < 0.05) return "*";
     return "";
