@@ -25,13 +25,13 @@
         }
 
         .preview-wrapper {
-            display: grid; grid-template-columns: 50px 120px 1fr; grid-template-rows: 1fr 50px;
+            display: grid; grid-template-columns: 50px 1fr; grid-template-rows: 1fr 50px;
             gap: 10px; background: #fafafa; padding: 30px; border: 2px dashed #ddd; border-radius: 12px;
             align-items: center; justify-items: center; position: relative;
         }
         .slider-v { grid-column: 1; grid-row: 1; appearance: slider-vertical; width: 12px; height: 400px; }
         .slider-h { grid-column: 3; grid-row: 2; width: 500px; height: 12px; }
-        #svg-wrapper { grid-column: 3; grid-row: 1; background: white; box-shadow: 0 8px 25px rgba(0,0,0,0.1); position: relative; justify-self: start; }
+        #svg-wrapper { grid-column: 2; grid-row: 1; background: white; box-shadow: 0 8px 25px rgba(0,0,0,0.1); position: relative; justify-self: start; }
         .resize-handle {
             width: 10px;
             height: 10px;
@@ -140,18 +140,14 @@
         .card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .panel-tight { padding: 14px; }
         .panel-tight h3 { margin-bottom: 10px; }
-        .draggable-card {
-            position: absolute;
-            top: 262px;
-            left: 6px;
-            cursor: move;
+        .ymax-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
-        .draggable-card.legend-panel {
-            width: auto;
-            display: inline-flex;
-            flex-direction: column;
-            gap: 6px;
-            padding: 6px;
+        .ymax-inline .control-item {
+            gap: 2px;
         }
         .panel-disabled { opacity: 0.5; pointer-events: none; }
 
@@ -312,33 +308,13 @@
                     <div class="resize-handle resize-br" data-handle="br"></div>
                     <div class="handle-pos" id="handlePosLeft" style="left: 6px; top: -18px;">L: 0</div>
                 </div>
-                <div style="grid-column: 3; grid-row: 2; display: flex; align-items: center; gap: 10px; justify-self: start;">
+                <div style="grid-column: 2; grid-row: 2; display: flex; align-items: center; gap: 10px; justify-self: start;">
                     <label style="font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 6px;">
                         W:
                         <input type="number" id="chartWidthVal" value="600" min="10" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
                     </label>
                 </div>
-                <div class="panel legend-panel draggable-card" id="ymaxCard">
-                    <div class="control-item">
-                        <label>Y-Max</label>
-                        <input type="number" id="yMaxInput" value="0" oninput="this.dataset.auto='false'; updatePlot()" class="ymax-input">
-                        <button type="button" class="auto-btn" onclick="setAutoYMax()" style="margin-top:4px;">Auto</button>
-                    </div>
-                    <div class="control-item">
-                        <label>Ticks</label>
-                        <input type="number" id="numTicks" value="5" oninput="updatePlot()" class="ymax-input">
-                    </div>
-                    <div class="control-item">
-                        <label>Error Bar</label>
-                        <div class="error-toggle" style="flex-direction: column; align-items: flex-start;">
-                            <button type="button" id="err-sem" class="btn-mini active" onclick="setErrorType('se')">SEM</button>
-                            <button type="button" id="err-sd" class="btn-mini" onclick="setErrorType('sd')">SD</button>
-                        </div>
-                        <input type="hidden" id="errorType" value="se">
-                    </div>
-                    <div class="ymax-pos" id="ymaxPos">pos: 6, 262</div>
-                </div>
-                <div style="grid-column: 3; grid-row: 3; width: 100%; display: flex; gap: 8px; justify-content: flex-start; justify-self: start;">
+                <div style="grid-column: 2; grid-row: 3; width: 100%; display: flex; gap: 8px; justify-content: flex-start; justify-self: start;">
                     <button class="btn-dl btn-small" onclick="downloadSVG()">Download for PPT</button>
                     <button class="btn-dl btn-small" onclick="copySvgToClipboard()" style="background:#007bff;">Copy for Illustrator</button>
                     <button class="btn-dl btn-small" onclick="downloadCSV()" style="background:#6c757d;">Download CSV</button>
@@ -346,6 +322,27 @@
                 </div>
             </div>
             <div class="side-panels">
+                <div class="panel legend-panel">
+                    <div class="ymax-inline">
+                        <div class="control-item">
+                            <label>Y-Max</label>
+                            <input type="number" id="yMaxInput" value="0" oninput="this.dataset.auto='false'; updatePlot()" class="ymax-input">
+                            <button type="button" class="auto-btn" onclick="setAutoYMax()">Auto</button>
+                        </div>
+                        <div class="control-item">
+                            <label>Ticks</label>
+                            <input type="number" id="numTicks" value="5" oninput="updatePlot()" class="ymax-input">
+                        </div>
+                        <div class="control-item">
+                            <label>Error Bar</label>
+                            <div class="error-toggle" style="flex-direction: column; align-items: flex-start;">
+                                <button type="button" id="err-sem" class="btn-mini active" onclick="setErrorType('se')">SEM</button>
+                                <button type="button" id="err-sd" class="btn-mini" onclick="setErrorType('sd')">SD</button>
+                            </div>
+                            <input type="hidden" id="errorType" value="se">
+                        </div>
+                    </div>
+                </div>
                 <div class="panel legend-panel" id="lineOptionsCard">
                     <div class="option-list">
                         <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines (折れ線を表示)</label>
@@ -428,6 +425,8 @@
 let groupCount = 0;
 const defaultColors = ['#ffffff', '#ffcccc', '#ccffcc', '#ccccff', '#ffffcc', '#ffccff'];
 let plotMetrics = null;
+let chartOffsetX = 0;
+let chartOffsetY = 0;
 
 function addNewGroup(name = "", color = "", data = "") {
     groupCount++;
@@ -995,10 +994,14 @@ function updatePlot() {
     const fsY = parseInt(document.getElementById('fontSizeY').value);
     const dotR = parseFloat(document.getElementById('dotSize').value);
     const numTicks = parseInt(document.getElementById('numTicks').value);
-    const width = parseInt(document.getElementById('chartWidthVal').value);
-    const height = parseInt(document.getElementById('chartHeightVal').value);
     const widthVal = document.getElementById('chartWidthVal');
     const heightVal = document.getElementById('chartHeightVal');
+    const widthRaw = parseInt(widthVal?.value, 10);
+    const heightRaw = parseInt(heightVal?.value, 10);
+    const width = Number.isFinite(widthRaw) && widthRaw > 0 ? widthRaw : 600;
+    const height = Number.isFinite(heightRaw) && heightRaw > 0 ? heightRaw : 400;
+    if (widthVal) widthVal.value = width;
+    if (heightVal) heightVal.value = height;
     if (widthVal) widthVal.value = width;
     if (heightVal) heightVal.value = height;
     const handlePosLeft = document.getElementById('handlePosLeft');
@@ -1053,6 +1056,12 @@ function updatePlot() {
         }
         const pL = fsY * 4.6, pB = fsX * 3 + 6, pT = 30, pR = 30;
         const graphW = width - pL - pR, graphH = height - pB - pT;
+        if (graphW <= 0 || graphH <= 0) {
+            return;
+        }
+        if (graphW <= 0 || graphH <= 0) {
+            return;
+        }
         const xScale = (v) => pL + (v / safeXMax) * graphW;
         const yScale = (v) => height - pB - (v / yMax * graphH);
         plotMetrics = { pL, pT, graphW, graphH, width, height };
@@ -1654,8 +1663,6 @@ const resizer = document.getElementById("resizerHandle");
 const leftPanel = document.getElementById("leftPanel");
 const svgWrapper = document.getElementById("svg-wrapper");
 const sizeHandles = document.querySelectorAll('.resize-handle');
-let chartOffsetX = 0;
-let chartOffsetY = 0;
 
 resizer.addEventListener("mousedown", function(e) {
     e.preventDefault();
@@ -1745,37 +1752,6 @@ window.addEventListener('mouseup', () => {
     resizeHandle = null;
 });
 
-const ymaxCard = document.getElementById('ymaxCard');
-let draggingYMax = false;
-let yMaxOffsetX = 0;
-let yMaxOffsetY = 0;
-
-    if (ymaxCard) {
-        ymaxCard.addEventListener('mousedown', (e) => {
-            draggingYMax = true;
-            const rect = ymaxCard.getBoundingClientRect();
-            yMaxOffsetX = e.clientX - rect.left;
-            yMaxOffsetY = e.clientY - rect.top;
-            e.preventDefault();
-        });
-        window.addEventListener('mousemove', (e) => {
-            if (!draggingYMax) return;
-            const wrapper = document.querySelector('.preview-wrapper');
-            if (!wrapper) return;
-            const wRect = wrapper.getBoundingClientRect();
-            const newLeft = e.clientX - wRect.left - yMaxOffsetX;
-            const newTop = e.clientY - wRect.top - yMaxOffsetY;
-            const clampedLeft = Math.max(0, Math.min(wRect.width - ymaxCard.offsetWidth, newLeft));
-            const clampedTop = Math.max(0, Math.min(wRect.height - ymaxCard.offsetHeight, newTop));
-            ymaxCard.style.left = `${clampedLeft}px`;
-            ymaxCard.style.top = `${clampedTop}px`;
-            const posEl = document.getElementById('ymaxPos');
-            if (posEl) posEl.textContent = `pos: ${Math.round(clampedLeft)}, ${Math.round(clampedTop)}`;
-        });
-        window.addEventListener('mouseup', () => {
-            draggingYMax = false;
-        });
-    }
 </script>
 </body>
 </html>
