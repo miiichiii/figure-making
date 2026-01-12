@@ -239,7 +239,13 @@
     <div class="main-content">
         <div class="preview-row">
             <div class="preview-wrapper">
-                <input type="range" class="slider-v" id="chartHeight" min="200" max="800" value="400" oninput="updatePlot()">
+                <div style="grid-column: 1; grid-row: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                    <input type="range" class="slider-v" id="chartHeight" min="200" max="800" value="400" oninput="updatePlot()">
+                    <label style="font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 6px;">
+                        H:
+                        <input type="number" id="chartHeightVal" value="400" min="200" max="800" oninput="syncChartSize('height')" style="width: 60px; padding: 2px 4px;">
+                    </label>
+                </div>
                 <div class="panel legend-panel ymax-card">
                     <div class="control-item">
                         <label>Y-Max</label>
@@ -262,7 +268,13 @@
                     </div>
                 </div>
                 <div id="svg-wrapper"><div id="svg-container"></div></div>
-                <input type="range" class="slider-h" id="chartWidth" min="50" max="1000" value="600" oninput="updatePlot()">
+                <div style="grid-column: 3; grid-row: 2; display: flex; align-items: center; gap: 10px;">
+                    <input type="range" class="slider-h" id="chartWidth" min="50" max="1000" value="600" oninput="updatePlot()">
+                    <label style="font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 6px;">
+                        W:
+                        <input type="number" id="chartWidthVal" value="600" min="50" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
+                    </label>
+                </div>
                 <div style="grid-column: 3; grid-row: 3; width: 100%; display: flex; gap: 8px; justify-content: flex-start;">
                     <button class="btn-dl btn-small" onclick="downloadSVG()">Download for PPT</button>
                     <button class="btn-dl btn-small" onclick="copySvgToClipboard()" style="background:#007bff;">Copy for Illustrator</button>
@@ -764,6 +776,10 @@ function updatePlot() {
     const numTicks = parseInt(document.getElementById('numTicks').value);
     const width = parseInt(document.getElementById('chartWidth').value);
     const height = parseInt(document.getElementById('chartHeight').value);
+    const widthVal = document.getElementById('chartWidthVal');
+    const heightVal = document.getElementById('chartHeightVal');
+    if (widthVal) widthVal.value = width;
+    if (heightVal) heightVal.value = height;
     const yMaxInputEl = document.getElementById('yMaxInput');
     let yMaxManual = parseFloat(yMaxInputEl.value);
     const isAutoFlag = yMaxInputEl.dataset.auto !== 'false';
@@ -1081,6 +1097,20 @@ function adjustLabelOffset(id, delta) {
     if (!input) return;
     const current = parseFloat(input.value) || 0;
     input.value = current + delta;
+    updatePlot();
+}
+
+function syncChartSize(axis) {
+    const widthInput = document.getElementById('chartWidth');
+    const heightInput = document.getElementById('chartHeight');
+    const widthVal = document.getElementById('chartWidthVal');
+    const heightVal = document.getElementById('chartHeightVal');
+    if (axis === 'width' && widthInput && widthVal) {
+        widthInput.value = widthVal.value;
+    }
+    if (axis === 'height' && heightInput && heightVal) {
+        heightInput.value = heightVal.value;
+    }
     updatePlot();
 }
 
