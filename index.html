@@ -16,7 +16,7 @@
         .panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
         .input-area {
             flex: 0 0 250px;
-            min-width: 250px;
+            min-width: 0;
             max-width: 800px;
             position: sticky;
             top: 10px;
@@ -51,7 +51,7 @@
         .visual-controls { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 10px; }
         .control-card { background: #f8f9fb; border: 1px solid #e6e9ef; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
         .control-card h4 { margin: 0; font-size: 0.85rem; color: #555; }
-        .control-item { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; min-width: 0; }
+        .control-item { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; min-width: 0; }
         .control-item input[type="number"] { width: 70px; }
         .control-item input[type="range"] { width: 100%; }
         .legend-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
@@ -301,24 +301,6 @@
                 </div>
             </div>
             <div class="side-panels">
-                <div class="panel legend-panel">
-                    <div class="control-item">
-                        <div style="display:flex; align-items:center; gap: 10px; justify-content: space-between;">
-                            <div class="legend-move">
-                                <button type="button" class="legend-btn" onclick="nudgeLegend(0, -2)" style="grid-column: 2;">▲</button>
-                                <button type="button" class="legend-btn" onclick="nudgeLegend(-2, 0)" style="grid-column: 1; grid-row: 2;">◀</button>
-                                <button type="button" class="legend-btn" onclick="nudgeLegend(0, 2)" style="grid-column: 2; grid-row: 2;">▼</button>
-                                <button type="button" class="legend-btn" onclick="nudgeLegend(2, 0)" style="grid-column: 3; grid-row: 2;">▶</button>
-                            </div>
-                            <label style="font-weight: normal; margin: 0;"><input type="checkbox" id="showLegend" checked onchange="updatePlot()"> Show Legend</label>
-                        </div>
-                    </div>
-                    <input type="hidden" id="legendState" value="95,10">
-                    <div class="legend-row">
-                        <label for="legendFontSize">Font</label>
-                        <input type="number" id="legendFontSize" value="14" oninput="updatePlot()" class="legend-input">
-                    </div>
-                </div>
                 <div class="panel legend-panel" id="lineOptionsCard">
                     <div class="option-list">
                         <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines (折れ線を表示)</label>
@@ -364,6 +346,16 @@
                         </div>
                     </div>
                 </div>
+                <div class="panel legend-panel">
+                    <div class="control-item">
+                        <label style="font-weight: normal; margin: 0;"><input type="checkbox" id="showLegend" checked onchange="updatePlot()"> Show Legend</label>
+                    </div>
+                    <input type="hidden" id="legendState" value="95,10">
+                    <div class="legend-row">
+                        <label for="legendFontSize">Font</label>
+                        <input type="number" id="legendFontSize" value="14" oninput="updatePlot()" class="legend-input">
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -390,6 +382,7 @@
 <script>
 let groupCount = 0;
 const defaultColors = ['#ffffff', '#ffcccc', '#ccffcc', '#ccccff', '#ffffcc', '#ffccff'];
+let plotMetrics = null;
 
 function addNewGroup(name = "", color = "", data = "") {
     groupCount++;
@@ -416,6 +409,35 @@ function addNewGroup(name = "", color = "", data = "") {
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('plotMode')) {
         setPlotMode();
+    }
+    const svgContainer = document.getElementById('svg-container');
+    let draggingLegend = false;
+
+    if (svgContainer) {
+        svgContainer.addEventListener('mousedown', (e) => {
+            const target = e.target;
+            const legendGroup = target && target.closest ? target.closest('#legend-group') : null;
+            if (legendGroup) {
+                draggingLegend = true;
+                e.preventDefault();
+            }
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!draggingLegend || !plotMetrics) return;
+            const legendState = document.getElementById('legendState');
+            const svg = svgContainer.querySelector('svg');
+            if (!legendState || !svg) return;
+            const rect = svg.getBoundingClientRect();
+            const x = e.clientX - rect.left - plotMetrics.pL;
+            const y = e.clientY - rect.top - plotMetrics.pT;
+            const xPercent = Math.max(0, Math.min(100, (x / plotMetrics.graphW) * 100));
+            const yPercent = Math.max(0, Math.min(100, (y / plotMetrics.graphH) * 100));
+            legendState.value = `${xPercent.toFixed(2)},${yPercent.toFixed(2)}`;
+            updatePlot();
+        });
+        window.addEventListener('mouseup', () => {
+            draggingLegend = false;
+        });
     }
 });
 
@@ -984,6 +1006,7 @@ function updatePlot() {
         const graphW = width - pL - pR, graphH = height - pB - pT;
         const xScale = (v) => pL + (v / safeXMax) * graphW;
         const yScale = (v) => height - pB - (v / yMax * graphH);
+        plotMetrics = { pL, pT, graphW, graphH, width, height };
 
         svgItems.push(`<line x1="${pL}" y1="${height-pB}" x2="${pL}" y2="${pT}" stroke="black" stroke-width="1.2"/>`);
 
@@ -1046,14 +1069,16 @@ function updatePlot() {
             const lyPercent = isNaN(pos[1]) ? 10 : pos[1];
             const lx = pL + (graphW * (lxPercent / 100));
             const ly = pT + (graphH * (lyPercent / 100));
+            svgItems.push(`<g id="legend-group" font-family="Arial" font-size="${legendFontSize}" style="cursor: move; pointer-events: all;">`);
             groupConfigs.forEach((group, i) => {
                 const itemY = ly + (i * legendFontSize * 1.5);
                 svgItems.push(`
-        <g id="Legend_${group.name}" font-family="Arial" font-size="${legendFontSize}">
+        <g id="Legend_${group.name}">
             <circle cx="${lx}" cy="${itemY}" r="${dotR}" fill="${group.color}" stroke="black" stroke-width="0.8" />
             <text x="${lx + legendFontSize}" y="${itemY}" dominant-baseline="central" fill="black">${group.name}</text>
         </g>`);
             });
+            svgItems.push(`</g>`);
         }
 
         document.getElementById('svg-container').innerHTML = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="background:white;">${svgItems.join('')}</svg>`;
@@ -1134,6 +1159,7 @@ function updatePlot() {
     const pL = fsY * 4.6, pB = fsX * 3 + 6, pT = 30, pR = 30;
     const graphW = width - pL - pR, graphH = height - pB - pT;
     const yScale = (v) => height - pB - (v / yMax * graphH);
+    plotMetrics = { pL, pT, graphW, graphH, width, height };
 
     let svgItems = [];
     const strokeW = 1.2;
@@ -1350,14 +1376,16 @@ function updatePlot() {
         const lx = pL + (graphW * (lxPercent / 100));
         const ly = pT + (graphH * (lyPercent / 100));
 
+        svgItems.push(`<g id="legend-group" font-family="Arial" font-size="${legendFontSize}" style="cursor: move; pointer-events: all;">`);
         groupConfigs.forEach((group, i) => {
             const itemY = ly + (i * legendFontSize * 1.5);
             svgItems.push(`
-        <g id="Legend_${group.name}" font-family="Arial" font-size="${legendFontSize}">
+        <g id="Legend_${group.name}">
             <circle cx="${lx}" cy="${itemY}" r="${dotR}" fill="${group.color}" stroke="black" stroke-width="${strokeW * 0.8}" />
             <text x="${lx + legendFontSize}" y="${itemY}" dominant-baseline="central" fill="black">${group.name}</text>
         </g>`);
         });
+        svgItems.push(`</g>`);
     }
 
     document.getElementById('svg-container').innerHTML = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="background:white;">${svgItems.join('')}</svg>`;
@@ -1381,17 +1409,6 @@ function downloadSVG() {
     link.href = URL.createObjectURL(blob);
     link.download = `MultiGroup_Figure_${new Date().getTime()}.svg`;
     link.click();
-}
-
-function nudgeLegend(dx, dy) {
-    const legendState = document.getElementById('legendState');
-    const pos = legendState.value.split(',').map(v => parseFloat(v));
-    let xVal = isNaN(pos[0]) ? 85 : pos[0];
-    let yVal = isNaN(pos[1]) ? 10 : pos[1];
-    xVal = Math.max(0, Math.min(100, xVal + dx));
-    yVal = Math.max(0, Math.min(100, yVal + dy));
-    legendState.value = `${xVal},${yVal}`;
-    updatePlot();
 }
 
 function setAutoYMax() {
@@ -1605,7 +1622,7 @@ resizer.addEventListener("mousedown", function(e) {
 
 function resize(e) {
     const newWidth = e.clientX;
-    if (newWidth > 250 && newWidth < 800) {
+    if (newWidth >= 0 && newWidth < 800) {
         leftPanel.style.flex = `0 0 ${newWidth}px`;
     }
 }
