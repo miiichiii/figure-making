@@ -112,6 +112,7 @@
         .card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .panel-tight { padding: 14px; }
         .panel-tight h3 { margin-bottom: 10px; }
+        .panel-disabled { opacity: 0.5; pointer-events: none; }
 
         .resizer {
             width: 8px;
@@ -318,14 +319,20 @@
                         <input type="number" id="legendFontSize" value="14" oninput="updatePlot()" class="legend-input">
                     </div>
                 </div>
-                <div class="panel legend-panel">
+                <div class="panel legend-panel" id="lineOptionsCard">
                     <div class="option-list">
-                        <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
                         <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines (折れ線を表示)</label>
+                    </div>
+                    <div class="option-list" id="lineOptionsBody">
                         <label style="font-weight: normal;"><input type="checkbox" id="showSampleLines" onchange="updatePlot()"> Sample Lines (各サンプル)</label>
                         <label style="font-weight: normal;"><input type="checkbox" id="showMean" onchange="updatePlot()" checked> Mean Line / Dots</label>
                         <label style="font-weight: normal;"><input type="checkbox" id="showMeanDots" onchange="updatePlot()" checked> Mean Dots (Line Mode)</label>
                         <label style="font-weight: normal;"><input type="checkbox" id="showErrorBars" onchange="updatePlot()" checked> Error Bars</label>
+                    </div>
+                </div>
+                <div class="panel legend-panel">
+                    <div class="option-list">
+                        <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
                         <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
                     </div>
                     <div class="control-item">
@@ -715,6 +722,7 @@ function setPlotMode() {
     const groupSection = document.getElementById('groupDataSection');
     const survivalSection = document.getElementById('survivalSection');
     const timeSeriesSection = document.getElementById('timeSeriesSection');
+    const yMaxInputEl = document.getElementById('yMaxInput');
 
     if (mode === 'survival') {
         if (timeInput) timeInput.disabled = true;
@@ -728,6 +736,10 @@ function setPlotMode() {
         if (groupSection) groupSection.style.display = '';
         if (survivalSection) survivalSection.style.display = 'none';
         if (timeSeriesSection) timeSeriesSection.style.display = mode === 'time' ? '' : 'none';
+    }
+    if (yMaxInputEl) {
+        yMaxInputEl.dataset.auto = 'true';
+        yMaxInputEl.value = '0';
     }
     updatePlot();
 }
@@ -935,6 +947,10 @@ function updatePlot() {
     const showErrorBars = document.getElementById('showErrorBars').checked;
     const errorType = document.getElementById('errorType')?.value || 'se';
     const bracketOffset = parseFloat(document.getElementById('bracketOffset').value);
+    const lineOptionsBody = document.getElementById('lineOptionsBody');
+    if (lineOptionsBody) {
+        lineOptionsBody.classList.toggle('panel-disabled', !showLines);
+    }
     const bracketOffsetLabel = document.getElementById('bracketOffsetVal');
     if (bracketOffsetLabel) {
         if (bracketOffset === 0) {
