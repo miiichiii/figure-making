@@ -27,11 +27,24 @@
         .preview-wrapper {
             display: grid; grid-template-columns: 50px 120px 1fr; grid-template-rows: 1fr 50px;
             gap: 10px; background: #fafafa; padding: 30px; border: 2px dashed #ddd; border-radius: 12px;
-            align-items: center; justify-items: center;
+            align-items: center; justify-items: center; position: relative;
         }
         .slider-v { grid-column: 1; grid-row: 1; appearance: slider-vertical; width: 12px; height: 400px; }
         .slider-h { grid-column: 3; grid-row: 2; width: 500px; height: 12px; }
-        #svg-wrapper { grid-column: 3; grid-row: 1; background: white; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        #svg-wrapper { grid-column: 3; grid-row: 1; background: white; box-shadow: 0 8px 25px rgba(0,0,0,0.1); position: relative; }
+        .resize-handle {
+            width: 10px;
+            height: 10px;
+            background: #ff69b4;
+            border: 1px solid #d84c8f;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 5;
+        }
+        .resize-tl { top: -6px; left: -6px; cursor: nwse-resize; }
+        .resize-tr { top: -6px; right: -6px; cursor: nesw-resize; }
+        .resize-bl { bottom: -6px; left: -6px; cursor: nesw-resize; }
+        .resize-br { bottom: -6px; right: -6px; cursor: nwse-resize; }
         .preview-row { display: flex; gap: 12px; align-items: flex-start; }
         .preview-wrapper { flex: 1; }
         .side-panels { display: flex; flex-direction: column; gap: 12px; width: 220px; }
@@ -52,6 +65,7 @@
         .control-card { background: #f8f9fb; border: 1px solid #e6e9ef; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
         .control-card h4 { margin: 0; font-size: 0.85rem; color: #555; }
         .control-item { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; min-width: 0; }
+        .legend-panel { padding: 10px; }
         .control-item input[type="number"] { width: 70px; }
         .control-item input[type="range"] { width: 100%; }
         .legend-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
@@ -60,7 +74,7 @@
         .option-list { display: grid; gap: 6px; font-size: 0.75rem; }
         .compact-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
         .ymax-card { grid-column: 2; grid-row: 1; justify-self: start; align-self: start; }
-        .ymax-input { width: 44px; height: 44px; text-align: center; padding: 0; }
+        .ymax-input { width: 34px; height: 30px; text-align: center; padding: 0; }
         .ymax-card { grid-column: 2; grid-row: 1; justify-self: start; align-self: start; }
         .ymax-input { width: 44px; height: 44px; text-align: center; padding: 0; }
         .card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -105,6 +119,8 @@
             background: #fff;
             border-radius: 4px;
             cursor: pointer;
+            width: 36px;
+            height: 22px;
         }
         .btn-mini.active { background: #007bff; color: white; border-color: #007bff; }
         .ymax-card { grid-column: 2; grid-row: 1; justify-self: start; align-self: start; }
@@ -112,6 +128,19 @@
         .card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .panel-tight { padding: 14px; }
         .panel-tight h3 { margin-bottom: 10px; }
+        .draggable-card {
+            position: absolute;
+            top: 40px;
+            left: 8px;
+            cursor: move;
+        }
+        .draggable-card.legend-panel {
+            width: auto;
+            display: inline-flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 6px;
+        }
         .panel-disabled { opacity: 0.5; pointer-events: none; }
 
         .resizer {
@@ -140,7 +169,7 @@
         .btn-add { background: #6c757d; color: white; margin-bottom: 20px; }
         .btn-gen { background: #007bff; color: white; }
         .btn-dl { background: #28a745; color: white; }
-        .btn-small { width: 30%; margin-top: 0; padding: 8px 10px; font-size: 0.85rem; }
+        .btn-small { width: 30%; margin-top: 0; padding: 5px 10px; font-size: 0.85rem; }
         .panel-compact { padding: 10px; }
         .toast {
             position: fixed;
@@ -258,19 +287,29 @@
         <div class="preview-row">
             <div class="preview-wrapper">
                 <div style="grid-column: 1; grid-row: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
-                    <input type="range" class="slider-v" id="chartHeight" min="200" max="800" value="400" oninput="updatePlot()">
                     <label style="font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 6px;">
                         H:
                         <input type="number" id="chartHeightVal" value="400" min="200" max="800" oninput="syncChartSize('height')" style="width: 60px; padding: 2px 4px;">
                     </label>
                 </div>
-                <div class="panel legend-panel ymax-card">
+                <div id="svg-wrapper">
+                    <div id="svg-container"></div>
+                    <div class="resize-handle resize-tl" data-handle="tl"></div>
+                    <div class="resize-handle resize-tr" data-handle="tr"></div>
+                    <div class="resize-handle resize-bl" data-handle="bl"></div>
+                    <div class="resize-handle resize-br" data-handle="br"></div>
+                </div>
+                <div style="grid-column: 3; grid-row: 2; display: flex; align-items: center; gap: 10px;">
+                    <label style="font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 6px;">
+                        W:
+                        <input type="number" id="chartWidthVal" value="600" min="50" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
+                    </label>
+                </div>
+                <div class="panel legend-panel draggable-card" id="ymaxCard">
                     <div class="control-item">
                         <label>Y-Max</label>
-                        <div class="compact-row">
-                            <input type="number" id="yMaxInput" value="0" oninput="this.dataset.auto='false'; updatePlot()" class="ymax-input">
-                            <button type="button" class="auto-btn" onclick="setAutoYMax()">Auto</button>
-                        </div>
+                        <input type="number" id="yMaxInput" value="0" oninput="this.dataset.auto='false'; updatePlot()" class="ymax-input">
+                        <button type="button" class="auto-btn" onclick="setAutoYMax()" style="margin-top:4px;">Auto</button>
                     </div>
                     <div class="control-item">
                         <label>Ticks</label>
@@ -278,20 +317,12 @@
                     </div>
                     <div class="control-item">
                         <label>Error Bar</label>
-                        <div class="error-toggle">
+                        <div class="error-toggle" style="flex-direction: column; align-items: flex-start;">
                             <button type="button" id="err-sem" class="btn-mini active" onclick="setErrorType('se')">SEM</button>
                             <button type="button" id="err-sd" class="btn-mini" onclick="setErrorType('sd')">SD</button>
                         </div>
                         <input type="hidden" id="errorType" value="se">
                     </div>
-                </div>
-                <div id="svg-wrapper"><div id="svg-container"></div></div>
-                <div style="grid-column: 3; grid-row: 2; display: flex; align-items: center; gap: 10px;">
-                    <input type="range" class="slider-h" id="chartWidth" min="50" max="1000" value="600" oninput="updatePlot()">
-                    <label style="font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 6px;">
-                        W:
-                        <input type="number" id="chartWidthVal" value="600" min="50" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
-                    </label>
                 </div>
                 <div style="grid-column: 3; grid-row: 3; width: 100%; display: flex; gap: 8px; justify-content: flex-start;">
                     <button class="btn-dl btn-small" onclick="downloadSVG()">Download for PPT</button>
@@ -950,8 +981,8 @@ function updatePlot() {
     const fsY = parseInt(document.getElementById('fontSizeY').value);
     const dotR = parseFloat(document.getElementById('dotSize').value);
     const numTicks = parseInt(document.getElementById('numTicks').value);
-    const width = parseInt(document.getElementById('chartWidth').value);
-    const height = parseInt(document.getElementById('chartHeight').value);
+    const width = parseInt(document.getElementById('chartWidthVal').value);
+    const height = parseInt(document.getElementById('chartHeightVal').value);
     const widthVal = document.getElementById('chartWidthVal');
     const heightVal = document.getElementById('chartHeightVal');
     if (widthVal) widthVal.value = width;
@@ -1437,16 +1468,8 @@ function adjustLabelOffset(id, delta) {
 }
 
 function syncChartSize(axis) {
-    const widthInput = document.getElementById('chartWidth');
-    const heightInput = document.getElementById('chartHeight');
     const widthVal = document.getElementById('chartWidthVal');
     const heightVal = document.getElementById('chartHeightVal');
-    if (axis === 'width' && widthInput && widthVal) {
-        widthInput.value = widthVal.value;
-    }
-    if (axis === 'height' && heightInput && heightVal) {
-        heightInput.value = heightVal.value;
-    }
     updatePlot();
 }
 
@@ -1612,6 +1635,7 @@ addNewGroup("KO", "#ffcccc", "80\t150\t200\n70\t140\t220\n85\t160\t190");
 const resizer = document.getElementById("resizerHandle");
 const leftPanel = document.getElementById("leftPanel");
 const svgWrapper = document.getElementById("svg-wrapper");
+const sizeHandles = document.querySelectorAll('.resize-handle');
 
 resizer.addEventListener("mousedown", function(e) {
     e.preventDefault();
@@ -1638,6 +1662,78 @@ function handleContextMenu() {
 
 if (svgWrapper) {
     svgWrapper.addEventListener("contextmenu", handleContextMenu);
+}
+
+let resizingChart = false;
+let resizeHandle = null;
+let startX = 0;
+let startY = 0;
+let startW = 0;
+let startH = 0;
+
+sizeHandles.forEach(handle => {
+    handle.addEventListener('mousedown', (e) => {
+        resizingChart = true;
+        resizeHandle = handle.dataset.handle;
+        startX = e.clientX;
+        startY = e.clientY;
+        startW = parseInt(document.getElementById('chartWidthVal').value, 10);
+        startH = parseInt(document.getElementById('chartHeightVal').value, 10);
+        e.preventDefault();
+    });
+});
+
+window.addEventListener('mousemove', (e) => {
+    if (!resizingChart) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    let newW = startW;
+    let newH = startH;
+
+    if (resizeHandle === 'tr' || resizeHandle === 'br') newW = startW + dx;
+    if (resizeHandle === 'tl' || resizeHandle === 'bl') newW = startW - dx;
+    if (resizeHandle === 'bl' || resizeHandle === 'br') newH = startH + dy;
+    if (resizeHandle === 'tl' || resizeHandle === 'tr') newH = startH - dy;
+
+    newW = Math.max(50, Math.min(1000, Math.round(newW)));
+    newH = Math.max(200, Math.min(800, Math.round(newH)));
+
+    document.getElementById('chartWidthVal').value = newW;
+    document.getElementById('chartHeightVal').value = newH;
+    updatePlot();
+});
+
+window.addEventListener('mouseup', () => {
+    resizingChart = false;
+    resizeHandle = null;
+});
+
+const ymaxCard = document.getElementById('ymaxCard');
+let draggingYMax = false;
+let yMaxOffsetX = 0;
+let yMaxOffsetY = 0;
+
+if (ymaxCard) {
+    ymaxCard.addEventListener('mousedown', (e) => {
+        draggingYMax = true;
+        const rect = ymaxCard.getBoundingClientRect();
+        yMaxOffsetX = e.clientX - rect.left;
+        yMaxOffsetY = e.clientY - rect.top;
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!draggingYMax) return;
+        const wrapper = document.querySelector('.preview-wrapper');
+        if (!wrapper) return;
+        const wRect = wrapper.getBoundingClientRect();
+        const newLeft = e.clientX - wRect.left - yMaxOffsetX;
+        const newTop = e.clientY - wRect.top - yMaxOffsetY;
+        ymaxCard.style.left = `${Math.max(0, Math.min(wRect.width - ymaxCard.offsetWidth, newLeft))}px`;
+        ymaxCard.style.top = `${Math.max(0, Math.min(wRect.height - ymaxCard.offsetHeight, newTop))}px`;
+    });
+    window.addEventListener('mouseup', () => {
+        draggingYMax = false;
+    });
 }
 </script>
 </body>
