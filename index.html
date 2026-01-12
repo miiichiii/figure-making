@@ -803,6 +803,10 @@ function setPlotMode() {
         if (survivalSection) survivalSection.style.display = 'none';
         if (timeSeriesSection) timeSeriesSection.style.display = mode === 'time' ? '' : 'none';
     }
+    const showLegendEl = document.getElementById('showLegend');
+    if (showLegendEl && mode === 'comparison') {
+        showLegendEl.checked = false;
+    }
     if (yMaxInputEl) {
         yMaxInputEl.dataset.auto = 'true';
         yMaxInputEl.value = '0';
