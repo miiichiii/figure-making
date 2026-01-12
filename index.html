@@ -165,34 +165,12 @@
     <div class="panel input-area" id="leftPanel">
         <h3 style="margin-top:0;">1. Time Points / Labels</h3>
         <div class="master-label-card" style="background: #fff4e6; border-color: #ffd8a8; margin-bottom: 20px;">
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: bold; color: #d9480f;">
-                <input type="checkbox" id="comparisonMode" onchange="toggleMode()">
-                Comparison Mode (群名で比較)
-            </label>
-            <small style="color: #868e96; display: block; margin-top: 4px;">
-                ※ ONにすると、Day表示ではなく「WT」「KO」が横に並びます。
-            </small>
-        </div>
-        <div class="master-label-card">
-            <label>Shared X-Labels (Space separated)</label>
-            <input type="text" id="timePointsInput" class="text-input" value="Day1 Day3 Day7" oninput="updatePlot()">
-        </div>
-        <div class="master-label-card" style="background:#f8f9fb; border-color:#e6e9ef;">
-            <label style="margin-bottom:6px; display:flex; gap:8px; align-items:center;">
-                <input type="checkbox" id="survivalMode" onchange="toggleSurvivalMode()">
-                Survival Mode (Kaplan-Meier)
-            </label>
-            <textarea id="survivalData" placeholder="Group[TAB]Sample[TAB]Day of death" oninput="updatePlot()" style="height: 90px;"></textarea>
-            <div style="display:flex; gap:6px; align-items:center; margin-top:6px;">
-                <span style="font-size:0.75rem; color:#666;">X Max</span>
-                <input type="number" id="survivalXMax" value="0" min="0" oninput="updatePlot()" style="width:70px;">
-                <small style="color:#666;">0=Auto</small>
-            </div>
-            <div style="display:flex; gap:12px; align-items:center; margin-top:6px; flex-wrap: wrap;">
-                <label style="font-size:0.75rem; color:#666;"><input type="checkbox" id="survivalYAxisPercent" onchange="updatePlot()"> Y-axis %</label>
-                <label style="font-size:0.75rem; color:#666;"><input type="checkbox" id="survivalLogRank" onchange="updatePlot()"> Log-rank (2 groups)</label>
-            </div>
-            <small style="color:#666;">Format: Group, Sample, Day (tab-separated)</small>
+            <label style="display: block; font-weight: bold; color: #d9480f; margin-bottom: 6px;">Mode</label>
+            <select id="plotMode" class="text-input" onchange="setPlotMode()">
+                <option value="time" selected>Time Series Mode</option>
+                <option value="comparison">Comparison Mode</option>
+                <option value="survival">Survival Mode</option>
+            </select>
         </div>
         <div class="master-label-card" style="background:#f8f9fb; border-color:#e6e9ef;">
             <label style="margin-bottom:6px;">Load Sample Data</label>
@@ -201,6 +179,10 @@
                 <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleComparison()">Two-Group Sample</button>
                 <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleSurvival()">Survival Sample</button>
             </div>
+        </div>
+        <div class="master-label-card" id="timeSeriesSection">
+            <label>Shared X-Labels (Space separated)</label>
+            <input type="text" id="timePointsInput" class="text-input" value="Day1 Day3 Day7" oninput="updatePlot()">
         </div>
 
         <div id="groupDataSection">
@@ -231,6 +213,21 @@
                     <input type="number" id="yAxisFontSize" value="18" oninput="updatePlot()" style="width:50px;">
                 </div>
             </div>
+        </div>
+        <div class="master-label-card" id="survivalSection" style="background:#f8f9fb; border-color:#e6e9ef; margin-top: 15px; display:none;">
+            <label style="margin-bottom:6px; display:flex; gap:8px; align-items:center;">
+                Survival Mode (Kaplan-Meier)
+            </label>
+            <textarea id="survivalData" placeholder="Group[TAB]Sample[TAB]Day of death" oninput="updatePlot()" style="height: 90px;"></textarea>
+            <div style="display:flex; gap:6px; align-items:center; margin-top:6px;">
+                <span style="font-size:0.75rem; color:#666;">X Max</span>
+                <input type="number" id="survivalXMax" value="0" min="0" oninput="this.dataset.auto='false'; updatePlot()" style="width:70px;">
+                <small style="color:#666;">0=Auto</small>
+            </div>
+            <div style="display:flex; gap:12px; align-items:center; margin-top:6px; flex-wrap: wrap;">
+                <label style="font-size:0.75rem; color:#666;"><input type="checkbox" id="survivalYAxisPercent" onchange="updatePlot()"> Y-axis %</label>
+            </div>
+            <small style="color:#666;">Format: Group, Sample, Day (tab-separated)</small>
         </div>
         <div style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
             <details open style="font-size: 0.85rem; color: #444; cursor: pointer;">
@@ -409,6 +406,12 @@ function addNewGroup(name = "", color = "", data = "") {
     updatePlot();
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('plotMode')) {
+        setPlotMode();
+    }
+});
+
 function resetGroups() {
     const container = document.getElementById('groupsContainer');
     container.innerHTML = '';
@@ -416,9 +419,8 @@ function resetGroups() {
 }
 
 function loadSampleTimeline() {
-    const comparison = document.getElementById('comparisonMode');
-    comparison.checked = false;
-    toggleMode();
+    document.getElementById('plotMode').value = 'time';
+    setPlotMode();
     document.getElementById('timePointsInput').value = 'Day1 Day3 Day7 Day10';
     resetGroups();
     addNewGroup("WT", "#ffffff", "Day1\tDay3\tDay7\tDay10\n100\t250\t400\t520\n120\t280\t450\t560\n90\t230\t380\t500");
@@ -427,9 +429,8 @@ function loadSampleTimeline() {
 }
 
 function loadSampleComparison() {
-    const comparison = document.getElementById('comparisonMode');
-    comparison.checked = true;
-    toggleMode();
+    document.getElementById('plotMode').value = 'comparison';
+    setPlotMode();
     document.getElementById('timePointsInput').value = 'Data';
     resetGroups();
     addNewGroup("Control", "#ffffff", "12.1\n11.5\n10.9\n12.8\n11.7");
@@ -438,9 +439,8 @@ function loadSampleComparison() {
 }
 
 function loadSampleSurvival() {
-    const survival = document.getElementById('survivalMode');
-    survival.checked = true;
-    toggleSurvivalMode();
+    document.getElementById('plotMode').value = 'survival';
+    setPlotMode();
     document.getElementById('survivalData').value = [
         "WT\tS1\t5",
         "WT\tS2\t8",
@@ -709,28 +709,25 @@ ${welchTTest.toString()}`;
     document.getElementById('codeDisplay').textContent = code;
 }
 
-function toggleMode() {
-    const isComp = document.getElementById('comparisonMode').checked;
-    document.getElementById('timePointsInput').disabled = isComp;
-    updatePlot();
-}
-
-function toggleSurvivalMode() {
-    const survival = document.getElementById('survivalMode').checked;
-    const comp = document.getElementById('comparisonMode');
+function setPlotMode() {
+    const mode = document.getElementById('plotMode').value;
     const timeInput = document.getElementById('timePointsInput');
     const groupSection = document.getElementById('groupDataSection');
-    if (survival) {
-        if (comp) {
-            comp.checked = false;
-            comp.disabled = true;
-        }
+    const survivalSection = document.getElementById('survivalSection');
+    const timeSeriesSection = document.getElementById('timeSeriesSection');
+
+    if (mode === 'survival') {
         if (timeInput) timeInput.disabled = true;
         if (groupSection) groupSection.style.display = 'none';
+        if (survivalSection) survivalSection.style.display = '';
+        if (timeSeriesSection) timeSeriesSection.style.display = 'none';
+        const xMaxEl = document.getElementById('survivalXMax');
+        if (xMaxEl) xMaxEl.dataset.auto = 'true';
     } else {
-        if (comp) comp.disabled = false;
         if (timeInput) timeInput.disabled = false;
         if (groupSection) groupSection.style.display = '';
+        if (survivalSection) survivalSection.style.display = 'none';
+        if (timeSeriesSection) timeSeriesSection.style.display = mode === 'time' ? '' : 'none';
     }
     updatePlot();
 }
@@ -743,9 +740,16 @@ function parseSurvivalData(text) {
         if (parts.length < 3) {
             parts = line.split(/\s+/).map(p => p.trim());
         }
-        if (parts.length < 3) return;
+        if (parts.length < 2) return;
         const group = parts[0];
-        const day = parseFloat(parts[2]);
+        let day = NaN;
+        for (let i = parts.length - 1; i >= 0; i--) {
+            const val = parseFloat(parts[i]);
+            if (Number.isFinite(val)) {
+                day = val;
+                break;
+            }
+        }
         if (!group || !Number.isFinite(day)) return;
         if (!groups.has(group)) groups.set(group, []);
         groups.get(group).push(day);
@@ -902,8 +906,9 @@ function displayStats(timeLabels, groupConfigs) {
 }
 
 function updatePlot() {
-    const survivalMode = document.getElementById('survivalMode').checked;
-    const isCompMode = document.getElementById('comparisonMode').checked;
+    const mode = document.getElementById('plotMode').value;
+    const survivalMode = mode === 'survival';
+    const isCompMode = mode === 'comparison';
     const timeLabels = isCompMode ? ["Data"] : document.getElementById('timePointsInput').value.trim().split(/[\t\s]+/).filter(s => s !== "");
     if (!survivalMode && timeLabels.length === 0) return;
 
@@ -946,16 +951,18 @@ function updatePlot() {
     const yAxisFontSize = parseFloat(document.getElementById('yAxisFontSize').value) || fsY;
     if (survivalMode) {
         const { groupConfigs, maxTime } = parseSurvivalData(document.getElementById('survivalData').value);
-        const xMaxInput = parseFloat(document.getElementById('survivalXMax').value);
+        const xMaxEl = document.getElementById('survivalXMax');
+        const xMaxInput = parseFloat(xMaxEl.value);
+        const isAutoX = xMaxEl.dataset.auto !== 'false';
         const yAxisPercent = document.getElementById('survivalYAxisPercent').checked;
-        const showLogRank = document.getElementById('survivalLogRank').checked;
         const xMax = xMaxInput > 0 ? xMaxInput : maxTime;
         const svgItems = [];
-        const safeXMax = xMax > 0 ? xMax : 1;
-        let yMax = yAxisPercent ? 100 : (yMaxManual > 0 ? yMaxManual : 1);
-        if (isAutoY) {
-            yMaxInputEl.dataset.auto = 'true';
-            yMaxInputEl.value = yMax;
+        const safeXMax = (isAutoX || xMaxInput <= 0 || Number.isNaN(xMaxInput)) ? (maxTime || 1) : (xMax > 0 ? xMax : maxTime || 1);
+        let yMax = yAxisPercent ? 100 : 1;
+        yMaxInputEl.dataset.auto = 'true';
+        yMaxInputEl.value = yMax;
+        if (xMaxEl && (isAutoX || xMaxInput <= 0 || Number.isNaN(xMaxInput))) {
+            xMaxEl.value = safeXMax;
         }
         const pL = fsY * 4.6, pB = fsX * 3 + 6, pT = 30, pR = 30;
         const graphW = width - pL - pR, graphH = height - pB - pT;
@@ -1035,7 +1042,7 @@ function updatePlot() {
 
         document.getElementById('svg-container').innerHTML = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="background:white;">${svgItems.join('')}</svg>`;
         const detailEl = document.getElementById('calcDetails');
-        if (showLogRank && groupConfigs.length === 2) {
+        if (groupConfigs.length === 2) {
             const lr = logRankTestTwoGroups(groupConfigs[0].times, groupConfigs[1].times);
             const pText = lr ? (lr.p < 0.0001 ? "<0.0001" : lr.p.toFixed(4)) : "N/A";
             document.getElementById('statsTableContainer').innerHTML = `
@@ -1057,8 +1064,8 @@ function updatePlot() {
                 </table>`;
             if (detailEl) detailEl.textContent = lr ? `Log-rank Z=${lr.z.toFixed(3)}, p=${lr.p}` : 'Log-rank result not available.';
         } else {
-            document.getElementById('statsTableContainer').innerHTML = '<p style="color:#666;">Survival mode: statistical table is not available.</p>';
-            if (detailEl) detailEl.textContent = 'Survival mode: calculation details are not available.';
+            document.getElementById('statsTableContainer').innerHTML = '<p style="color:#666;">Survival mode: log-rank is available only for 2 groups.</p>';
+            if (detailEl) detailEl.textContent = 'Survival mode: log-rank is available only for 2 groups.';
         }
         updateCodeDisplay();
         return;
@@ -1411,7 +1418,8 @@ function syncChartSize(axis) {
 }
 
 function downloadCSV() {
-    const isCompMode = document.getElementById('comparisonMode').checked;
+    const mode = document.getElementById('plotMode').value;
+    const isCompMode = mode === 'comparison';
     const timeLabels = isCompMode ? ["Data"] : document.getElementById('timePointsInput').value.trim().split(/[\t\s]+/).filter(s => s !== "");
     if (!timeLabels.length) return;
 
@@ -1452,7 +1460,8 @@ function downloadCSV() {
 }
 
 function downloadStatsCode() {
-    const isCompMode = document.getElementById('comparisonMode').checked;
+    const mode = document.getElementById('plotMode').value;
+    const isCompMode = mode === 'comparison';
     const timeLabels = isCompMode ? ["Data"] : document.getElementById('timePointsInput').value.trim().split(/[\t\s]+/).filter(s => s !== "");
     if (!timeLabels.length) return;
 
