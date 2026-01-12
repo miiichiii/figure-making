@@ -305,6 +305,10 @@
                     <div class="option-list">
                         <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
                         <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines (折れ線を表示)</label>
+                        <label style="font-weight: normal;"><input type="checkbox" id="showSampleLines" onchange="updatePlot()"> Sample Lines (各サンプル)</label>
+                        <label style="font-weight: normal;"><input type="checkbox" id="showMean" onchange="updatePlot()" checked> Mean Line / Dots</label>
+                        <label style="font-weight: normal;"><input type="checkbox" id="showMeanDots" onchange="updatePlot()" checked> Mean Dots (Line Mode)</label>
+                        <label style="font-weight: normal;"><input type="checkbox" id="showErrorBars" onchange="updatePlot()" checked> Error Bars</label>
                         <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
                     </div>
                     <div class="control-item">
@@ -787,6 +791,10 @@ function updatePlot() {
     const jitterAmount = parseFloat(document.getElementById('jitter').value);
     const autoBrackets = document.getElementById('autoBrackets').checked;
     const showLines = document.getElementById('showLines').checked;
+    const showSampleLines = document.getElementById('showSampleLines').checked;
+    const showMean = document.getElementById('showMean').checked;
+    const showMeanDots = document.getElementById('showMeanDots').checked;
+    const showErrorBars = document.getElementById('showErrorBars').checked;
     const errorType = document.getElementById('errorType')?.value || 'se';
     const bracketOffset = parseFloat(document.getElementById('bracketOffset').value);
     const bracketOffsetLabel = document.getElementById('bracketOffsetVal');
@@ -861,17 +869,21 @@ function updatePlot() {
         const dotR = parseFloat(document.getElementById('dotSize').value);
         const jitter = parseFloat(document.getElementById('jitter').value);
 
-        svgItems.push(`
+        if (showErrorBars) {
+            svgItems.push(`
     <g stroke="black" stroke-width="1.2">
         <line x1="${x}" y1="${yB}" x2="${x}" y2="${yT}" />
         <line x1="${x-5}" y1="${yT}" x2="${x+5}" y2="${yT}" />
         <line x1="${x-5}" y1="${yB}" x2="${x+5}" y2="${yB}" />
         <line x1="${x-12}" y1="${yM}" x2="${x+12}" y2="${yM}" stroke-width="3" />
     </g>`);
-        data.forEach(v => {
-            const j = (Math.random() - 0.5) * jitter;
-            svgItems.push(`<circle cx="${x + j}" cy="${yScale(v)}" r="${dotR}" fill="${group.color}" stroke="black" stroke-width="0.8" />`);
-        });
+        }
+        if (showMean) {
+            data.forEach(v => {
+                const j = (Math.random() - 0.5) * jitter;
+                svgItems.push(`<circle cx="${x + j}" cy="${yScale(v)}" r="${dotR}" fill="${group.color}" stroke="black" stroke-width="0.8" />`);
+            });
+        }
     }
 
     // 軸
@@ -913,6 +925,34 @@ function updatePlot() {
             groupConfigs.forEach((group) => {
                 const points = [];
                 const lineColor = group.color === '#ffffff' ? 'black' : group.color;
+                if (showSampleLines) {
+                    let maxSamples = 0;
+                    timeLabels.forEach((label, tIdx) => {
+                        const data = group.data[tIdx] || [];
+                        maxSamples = Math.max(maxSamples, data.length);
+                    });
+                    for (let sIdx = 0; sIdx < maxSamples; sIdx++) {
+                        const samplePoints = [];
+                        timeLabels.forEach((label, tIdx) => {
+                            const data = group.data[tIdx] || [];
+                            if (data[sIdx] === undefined) return;
+                            const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
+                            const y = yScale(data[sIdx]);
+                            samplePoints.push(`${xCenter},${y}`);
+                        });
+                        if (samplePoints.length > 1) {
+                            svgItems.push(`
+                <polyline points="${samplePoints.join(' ')}"
+                          fill="none"
+                          stroke="${lineColor}"
+                          stroke-width="1"
+                          opacity="0.35"
+                          stroke-linejoin="round"
+                          stroke-linecap="round" />
+            `);
+                        }
+                    }
+                }
                 timeLabels.forEach((label, tIdx) => {
                     const data = group.data[tIdx] || [];
                     const s = calcStats(data);
@@ -924,17 +964,21 @@ function updatePlot() {
                         const yB = yScale(s.mean - errVal);
 
                         points.push(`${xCenter},${y}`);
-                        svgItems.push(`
+                        if (showErrorBars) {
+                            svgItems.push(`
                 <g stroke="${lineColor}" stroke-width="1.4">
                     <line x1="${xCenter}" y1="${yB}" x2="${xCenter}" y2="${yT}" />
                     <line x1="${xCenter-5}" y1="${yT}" x2="${xCenter+5}" y2="${yT}" />
                     <line x1="${xCenter-5}" y1="${yB}" x2="${xCenter+5}" y2="${yB}" />
                 </g>`);
-                        svgItems.push(`<circle cx="${xCenter}" cy="${y}" r="${Math.max(2, dotR * 0.7)}" fill="${lineColor}" stroke="${lineColor}" stroke-width="0.8" />`);
+                        }
+                        if (showMeanDots) {
+                            svgItems.push(`<circle cx="${xCenter}" cy="${y}" r="${Math.max(2, dotR * 0.7)}" fill="${lineColor}" stroke="${lineColor}" stroke-width="0.8" />`);
+                        }
                     }
                 });
 
-                if (points.length > 1) {
+                if (showMean && points.length > 1) {
                     svgItems.push(`
                 <polyline points="${points.join(' ')}"
                           fill="none"
