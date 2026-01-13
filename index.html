@@ -320,8 +320,6 @@
                 <div style="grid-column: 2; grid-row: 3; width: 100%; display: flex; gap: 8px; justify-content: flex-start; justify-self: start;">
                     <button class="btn-dl btn-small" onclick="downloadSVG()">Download for PPT</button>
                     <button class="btn-dl btn-small" onclick="copySvgToClipboard()" style="background:#007bff;">Copy for Illustrator</button>
-                    <button class="btn-dl btn-small" onclick="downloadCSV()" style="background:#6c757d;">Download CSV</button>
-                    <button class="btn-dl btn-small" onclick="downloadStatsCode()" style="background:#6c757d;">Download Statistical Code for R</button>
                 </div>
             </div>
             <div class="side-panels">
@@ -412,6 +410,10 @@
             <h3>3. Statistical Analysis Board</h3>
             <div id="statsTableContainer">
                 <p style="color: #666;">データを入力すると、各タイムポイントごとの検定結果がここに表示されます。</p>
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn-dl btn-small" onclick="downloadCSV()" style="background:#6c757d;">Download CSV</button>
+                <button class="btn-dl btn-small" onclick="downloadStatsCode()" style="background:#6c757d;">Download Statistical Code for R</button>
             </div>
         </div>
 
