@@ -167,6 +167,9 @@
         .group-header { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; padding-right: 30px; }
         .btn-remove { position: absolute; top: 8px; right: 8px; background: #ff4444; color: white; border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; font-size: 12px; }
         textarea { width: 100%; height: 70px; font-family: "SF Mono", monospace; font-size: 11px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .paste-preview { margin-top: 6px; max-height: 140px; overflow: auto; border: 1px solid #eee; border-radius: 4px; }
+        .paste-preview table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+        .paste-preview th, .paste-preview td { border: 1px solid #eee; padding: 2px 4px; text-align: center; }
 
         .master-label-card { background: #eef6ff; border: 1px solid #b6d4fe; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; font-size: 0.85rem; }
@@ -445,6 +448,7 @@ function addNewGroup(name = "", color = "", data = "") {
             <input type="color" class="group-color-input" value="${colorVal}" oninput="updatePlot()">
         </div>
         <textarea class="group-data-input" placeholder="Paste data here..." oninput="handlePaste('${id}')">${data}</textarea>
+        <div class="paste-preview"></div>
     `;
     container.appendChild(card);
     updatePlot();
@@ -550,6 +554,7 @@ function handlePaste(id) {
         document.getElementById('timePointsInput').value = firstLine.join(' ');
         textarea.value = lines.slice(1).join('\n');
     }
+    renderGroupTable(card);
     updatePlot();
 }
 
@@ -573,6 +578,49 @@ function parseData(text, expectedCount) {
         }
     }
     return result;
+}
+
+function getColumnCount(text) {
+    const line = text.trim().split('\n').find(l => l.trim() !== "");
+    if (!line) return 0;
+    return line.split('\t').length;
+}
+
+function renderGroupTable(card) {
+    if (!card) return;
+    const textarea = card.querySelector('.group-data-input');
+    const preview = card.querySelector('.paste-preview');
+    if (!textarea || !preview) return;
+    const text = textarea.value.trim();
+    if (!text) {
+        preview.innerHTML = '';
+        return;
+    }
+    const mode = document.getElementById('plotMode').value;
+    const timeLabels = mode === 'comparison'
+        ? ["Data"]
+        : document.getElementById('timePointsInput').value.trim().split(/[\t\s]+/).filter(s => s !== "");
+    const colCount = timeLabels.length > 0 ? timeLabels.length : getColumnCount(text);
+    if (colCount === 0) {
+        preview.innerHTML = '';
+        return;
+    }
+    const data = parseData(text, colCount);
+    const maxRows = Math.max(...data.map(arr => arr.length), 0);
+    const headers = timeLabels.length > 0 ? timeLabels : Array.from({ length: colCount }, (_, i) => `Col${i + 1}`);
+    let html = '<table><thead><tr>';
+    headers.forEach(h => { html += `<th>${h}</th>`; });
+    html += '</tr></thead><tbody>';
+    for (let r = 0; r < maxRows; r++) {
+        html += '<tr>';
+        for (let c = 0; c < colCount; c++) {
+            const val = data[c][r];
+            html += `<td>${val !== undefined ? val : ''}</td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+    preview.innerHTML = html;
 }
 
 function calcStats(arr) {
@@ -1176,6 +1224,7 @@ function updatePlot() {
 
     // 全グループデータの取得
     const groupCards = document.querySelectorAll('.group-card');
+    groupCards.forEach(card => renderGroupTable(card));
     const groupConfigs = Array.from(groupCards).map(card => ({
         name: card.querySelector('.group-name-input').value,
         color: card.querySelector('.group-color-input').value,
