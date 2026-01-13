@@ -328,6 +328,10 @@
                 <div class="panel legend-panel">
                     <div class="ymax-inline">
                         <div class="control-item">
+                            <label>Y-Min</label>
+                            <input type="number" id="yMinInput" value="0" oninput="this.dataset.auto='false'; updatePlot()" class="ymax-input">
+                        </div>
+                        <div class="control-item">
                             <label>Y-Max</label>
                             <input type="number" id="yMaxInput" value="0" oninput="this.dataset.auto='false'; updatePlot()" class="ymax-input">
                             <button type="button" class="auto-btn" onclick="setAutoYMax()">Auto</button>
@@ -1060,7 +1064,9 @@ function updatePlot() {
     if (handlePosLeft) {
         handlePosLeft.textContent = `L: ${Math.round(chartOffsetX)}`;
     }
+    const yMinInputEl = document.getElementById('yMinInput');
     const yMaxInputEl = document.getElementById('yMaxInput');
+    const yMinManual = parseFloat(yMinInputEl.value);
     let yMaxManual = parseFloat(yMaxInputEl.value);
     const isAutoFlag = yMaxInputEl.dataset.auto !== 'false';
     const isAutoY = isAutoFlag && (!yMaxManual || yMaxManual <= 0 || yMaxInputEl.dataset.auto === 'true');
@@ -1252,9 +1258,11 @@ function updatePlot() {
     const allValues = groupConfigs.flatMap(g => g.data.flat());
     const statsAll = groupConfigs.flatMap(g => g.data.map(calcStats));
     const rawMax = Math.max(...allValues, ...statsAll.map(s => s.mean + (errorType === 'sd' ? s.sd : s.se)), 1);
+    const rawMin = Math.min(...allValues, ...statsAll.map(s => s.mean - (errorType === 'sd' ? s.sd : s.se)), 0);
 
     const baseYMax = niceCeil(rawMax);
     let yMax = yMaxManual > 0 ? yMaxManual : baseYMax;
+    let yMin = Number.isFinite(yMinManual) && yMinManual !== 0 ? yMinManual : rawMin;
 
     // 有意差マークがある場合、強制的に上限を押し上げる
     if (autoBrackets && maxBracketLayers > 0 && isAutoY) {
@@ -1265,11 +1273,12 @@ function updatePlot() {
     if (isAutoY) {
         yMaxInputEl.dataset.auto = 'true';
         yMaxInputEl.value = yMax;
+        if (yMinInputEl) yMinInputEl.value = yMin;
     }
 
     const pL = fsY * 4.6, pB = fsX * 3 + 6, pT = 30, pR = 30;
     const graphW = width - pL - pR, graphH = height - pB - pT;
-    const yScale = (v) => height - pB - (v / yMax * graphH);
+    const yScale = (v) => height - pB - ((v - yMin) / (yMax - yMin) * graphH);
     plotMetrics = { pL, pT, graphW, graphH, width, height };
 
     let svgItems = [];
@@ -1304,7 +1313,7 @@ function updatePlot() {
 
     // Y軸目盛り
     for(let i=0; i<=numTicks; i++){
-        const val = Number((yMax / numTicks * i).toFixed(1));
+        const val = Number((yMin + (yMax - yMin) / numTicks * i).toFixed(1));
         const y = yScale(val);
         svgItems.push(`<line x1="${pL}" y1="${y}" x2="${pL-5}" y2="${y}" stroke="black" stroke-width="${strokeW}"/>`);
         svgItems.push(`<text x="${pL-8}" y="${y}" text-anchor="end" dominant-baseline="central" font-size="${fsY}" font-family="Arial">${val}</text>`);
@@ -1524,8 +1533,13 @@ function downloadSVG() {
 
 function setAutoYMax() {
     const yMaxInputEl = document.getElementById('yMaxInput');
+    const yMinInputEl = document.getElementById('yMinInput');
     yMaxInputEl.dataset.auto = 'true';
     yMaxInputEl.value = '0';
+    if (yMinInputEl) {
+        yMinInputEl.dataset.auto = 'true';
+        yMinInputEl.value = '0';
+    }
     updatePlot();
 }
 
