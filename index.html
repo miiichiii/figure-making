@@ -221,6 +221,15 @@
                 <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleSurvival()">Survival Sample</button>
             </div>
         </div>
+        <div class="master-label-card" style="background:#f8f9fb; border-color:#e6e9ef;">
+            <label style="margin-bottom:6px;">Configuration Profile</label>
+            <div style="display:flex; gap:8px; flex-wrap: wrap;">
+                <button type="button" class="btn-add" style="margin:0;" onclick="downloadProfile()">Download Profile (JSON)</button>
+                <button type="button" class="btn-add" style="margin:0;" onclick="document.getElementById('profileInput').click()">Load Profile</button>
+                <button type="button" class="btn-add" style="margin:0;" onclick="resetProfile()">Reset to Default</button>
+                <input type="file" id="profileInput" accept="application/json" style="display:none;" onchange="loadProfile(event)">
+            </div>
+        </div>
         <div class="master-label-card" id="timeSeriesSection">
             <label>Shared X-Labels (Space separated)</label>
             <input type="text" id="timePointsInput" class="text-input" value="Day1 Day3 Day7" oninput="updatePlot()">
@@ -437,6 +446,7 @@ const defaultColors = ['#ffffff', '#ffcccc', '#ccffcc', '#ccccff', '#ffffcc', '#
 let plotMetrics = null;
 let chartOffsetX = 0;
 let chartOffsetY = 0;
+let activeProfile = null;
 
 function addNewGroup(name = "", color = "", data = "") {
     groupCount++;
@@ -509,6 +519,7 @@ function loadSampleTimeline() {
     resetGroups();
     addNewGroup("WT", "#ffffff", "Day1\tDay3\tDay7\tDay10\n100\t250\t400\t520\n120\t280\t450\t560\n90\t230\t380\t500");
     addNewGroup("KO", "#ffcccc", "Day1\tDay3\tDay7\tDay10\n80\t150\t200\t240\n70\t140\t220\t260\n85\t160\t190\t230");
+    applyActiveProfile();
     updatePlot();
 }
 
@@ -519,6 +530,7 @@ function loadSampleComparison() {
     resetGroups();
     addNewGroup("Control", "#ffffff", "12.1\n11.5\n10.9\n12.8\n11.7");
     addNewGroup("Treatment", "#ffcccc", "15.2\n14.6\n16.1\n15.8\n14.9");
+    applyActiveProfile();
     updatePlot();
 }
 
@@ -537,6 +549,189 @@ function loadSampleSurvival() {
         "KO\tS4\t10",
         "KO\tS5\t11"
     ].join("\n");
+    applyActiveProfile();
+    updatePlot();
+}
+
+function collectProfile() {
+    const mode = document.getElementById('plotMode').value;
+    const groupCards = document.querySelectorAll('.group-card');
+    const groups = Array.from(groupCards).map(card => ({
+        name: card.querySelector('.group-name-input').value,
+        color: card.querySelector('.group-color-input').value
+    }));
+    return {
+        version: 1,
+        mode,
+        timeLabels: document.getElementById('timePointsInput').value,
+        survival: {
+            xMax: document.getElementById('survivalXMax').value,
+            yPercent: document.getElementById('survivalYAxisPercent').checked
+        },
+        chartSize: {
+            width: document.getElementById('chartWidthVal').value,
+            height: document.getElementById('chartHeightVal').value
+        },
+        yAxis: {
+            min: document.getElementById('yMinInput').value,
+            max: document.getElementById('yMaxInput').value,
+            ticks: document.getElementById('numTicks').value,
+            errorType: document.getElementById('errorType').value
+        },
+        labels: {
+            x: document.getElementById('xAxisLabel').value,
+            y: document.getElementById('yAxisLabel').value,
+            xOffset: document.getElementById('xLabelOffset').value,
+            yOffset: document.getElementById('yLabelOffset').value,
+            xFont: document.getElementById('xAxisFontSize').value,
+            yFont: document.getElementById('yAxisFontSize').value
+        },
+        style: {
+            fontX: document.getElementById('fontSizeX').value,
+            fontY: document.getElementById('fontSizeY').value,
+            dotSize: document.getElementById('dotSize').value,
+            jitter: document.getElementById('jitter').value
+        },
+        options: {
+            showLines: document.getElementById('showLines').checked,
+            showBars: document.getElementById('showBars').checked,
+            showSampleLines: document.getElementById('showSampleLines').checked,
+            showMean: document.getElementById('showMean').checked,
+            showMeanDots: document.getElementById('showMeanDots').checked,
+            showErrorBars: document.getElementById('showErrorBars').checked,
+            showPostHoc: document.getElementById('showPostHoc').checked,
+            autoBrackets: document.getElementById('autoBrackets').checked,
+            bracketOffset: document.getElementById('bracketOffset').value
+        },
+        groups
+    };
+}
+
+function applyActiveProfile() {
+    if (activeProfile) {
+        applyProfile(activeProfile);
+    }
+}
+
+function applyProfile(profile) {
+    if (!profile || typeof profile !== 'object') return;
+    if (profile.timeLabels !== undefined) {
+        document.getElementById('timePointsInput').value = profile.timeLabels;
+    }
+    if (profile.survival) {
+        document.getElementById('survivalXMax').value = profile.survival.xMax || '0';
+        document.getElementById('survivalYAxisPercent').checked = !!profile.survival.yPercent;
+    }
+    if (profile.chartSize) {
+        document.getElementById('chartWidthVal').value = profile.chartSize.width || 600;
+        document.getElementById('chartHeightVal').value = profile.chartSize.height || 400;
+    }
+    if (profile.yAxis) {
+        document.getElementById('yMinInput').value = profile.yAxis.min ?? '0';
+        document.getElementById('yMaxInput').value = profile.yAxis.max ?? '0';
+        document.getElementById('numTicks').value = profile.yAxis.ticks ?? '5';
+        document.getElementById('errorType').value = profile.yAxis.errorType || 'se';
+        setErrorType(profile.yAxis.errorType || 'se');
+    }
+    if (profile.labels) {
+        document.getElementById('xAxisLabel').value = profile.labels.x || '';
+        document.getElementById('yAxisLabel').value = profile.labels.y || '';
+        document.getElementById('xLabelOffset').value = profile.labels.xOffset || '25';
+        document.getElementById('yLabelOffset').value = profile.labels.yOffset || '25';
+        document.getElementById('xAxisFontSize').value = profile.labels.xFont || '18';
+        document.getElementById('yAxisFontSize').value = profile.labels.yFont || '18';
+    }
+    if (profile.style) {
+        document.getElementById('fontSizeX').value = profile.style.fontX || '14';
+        document.getElementById('fontSizeY').value = profile.style.fontY || '14';
+        document.getElementById('dotSize').value = profile.style.dotSize || '4';
+        document.getElementById('jitter').value = profile.style.jitter || '15';
+    }
+    if (profile.options) {
+        document.getElementById('showLines').checked = !!profile.options.showLines;
+        document.getElementById('showBars').checked = !!profile.options.showBars;
+        document.getElementById('showSampleLines').checked = !!profile.options.showSampleLines;
+        document.getElementById('showMean').checked = !!profile.options.showMean;
+        document.getElementById('showMeanDots').checked = !!profile.options.showMeanDots;
+        document.getElementById('showErrorBars').checked = !!profile.options.showErrorBars;
+        document.getElementById('showPostHoc').checked = !!profile.options.showPostHoc;
+        document.getElementById('autoBrackets').checked = !!profile.options.autoBrackets;
+        document.getElementById('bracketOffset').value = profile.options.bracketOffset ?? '0';
+    }
+    if (Array.isArray(profile.groups)) {
+        const cards = Array.from(document.querySelectorAll('.group-card'));
+        profile.groups.forEach((g, idx) => {
+            const card = cards[idx];
+            if (card) {
+                const nameEl = card.querySelector('.group-name-input');
+                const colorEl = card.querySelector('.group-color-input');
+                if (nameEl && g.name) nameEl.value = g.name;
+                if (colorEl && g.color) colorEl.value = g.color;
+            } else {
+                addNewGroup(g.name, g.color, '');
+            }
+        });
+    }
+    updatePlot();
+}
+
+function downloadProfile() {
+    const profile = collectProfile();
+    const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `plot_profile_${new Date().getTime()}.json`;
+    link.click();
+}
+
+function loadProfile(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const profile = JSON.parse(reader.result);
+            activeProfile = profile;
+            applyProfile(profile);
+        } catch (e) {
+            alert('Invalid profile JSON');
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+function resetProfile() {
+    activeProfile = null;
+    const defaultProfile = {
+        timeLabels: 'Day1 Day3 Day7',
+        survival: { xMax: '0', yPercent: false },
+        chartSize: { width: '600', height: '400' },
+        yAxis: { min: '0', max: '0', ticks: '5', errorType: 'se' },
+        labels: { x: '', y: '', xOffset: '25', yOffset: '25', xFont: '18', yFont: '18' },
+        style: { fontX: '14', fontY: '14', dotSize: '4', jitter: '15' },
+        options: {
+            showLines: false,
+            showBars: false,
+            showSampleLines: false,
+            showMean: true,
+            showMeanDots: true,
+            showErrorBars: true,
+            showPostHoc: false,
+            autoBrackets: true,
+            bracketOffset: '0'
+        },
+        groups: []
+    };
+    applyProfile(defaultProfile);
+    const cards = Array.from(document.querySelectorAll('.group-card'));
+    cards.forEach((card, idx) => {
+        const colorEl = card.querySelector('.group-color-input');
+        if (colorEl) colorEl.value = defaultColors[idx % defaultColors.length];
+    });
+    document.getElementById('showLegend').checked = true;
+    document.getElementById('legendFontSize').value = '14';
+    document.getElementById('legendState').value = '95,10';
     updatePlot();
 }
 
