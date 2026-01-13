@@ -402,6 +402,13 @@
             color: #cdd6e3;
             margin-top: 6px;
         }
+        .explorer-preview-wrap {
+            max-height: 50vh;
+            overflow: auto;
+            border: 1px solid #324355;
+            border-radius: 6px;
+            background: #ffffff;
+        }
     </style>
 </head>
 <body>
@@ -413,29 +420,20 @@
             <h3>Explorer</h3>
         </div>
         <div class="explorer-controls">
-            <div class="explorer-row">
-                <label for="explorerMode">Plot Mode (Explorer)</label>
-                <select id="explorerMode">
-                    <option value="time">Time Series</option>
-                    <option value="comparison" selected>Comparison</option>
-                </select>
-            </div>
-            <div class="explorer-row">
-                <label for="explorerSharedLabels">Shared X-Labels</label>
-                <input type="text" id="explorerSharedLabels" placeholder="Day1 Day3 Day7">
-            </div>
             <div>
                 <label for="explorerDirInput">Open Folder</label>
                 <input type="file" id="explorerDirInput" webkitdirectory>
             </div>
             <div>
-                <label for="explorerFileInput">Open File (CSV / Excel)</label>
-                <input type="file" id="explorerFileInput" accept=".csv,.tsv,.xlsx,.xls">
-            </div>
-            <div>
                 <label for="explorerFileList">Select From Folder</label>
                 <select id="explorerFileList">
                     <option value="">No file selected</option>
+                </select>
+            </div>
+            <div>
+                <label for="explorerSheetSelect">Sheet</label>
+                <select id="explorerSheetSelect" disabled>
+                    <option value="">No sheet</option>
                 </select>
             </div>
         </div>
@@ -716,6 +714,8 @@ let explorerSelection = null;
 let explorerFiles = [];
 let stagedGroups = {};
 let explorerOpenedOnce = false;
+let explorerWorkbook = null;
+let explorerSheetName = null;
 
 function addNewGroup(name = "", color = "", data = "") {
     groupCount++;
@@ -761,6 +761,36 @@ function updateExplorerFileList(files) {
     });
 }
 
+function updateExplorerSheetList(sheetNames) {
+    const select = document.getElementById('explorerSheetSelect');
+    if (!select) return;
+    select.innerHTML = '';
+    if (!sheetNames || sheetNames.length === 0) {
+        select.innerHTML = '<option value=\"\">No sheet</option>';
+        select.disabled = true;
+        return;
+    }
+    sheetNames.forEach((name, idx) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name || `Sheet ${idx + 1}`;
+        select.appendChild(opt);
+    });
+    select.disabled = false;
+}
+
+function loadExplorerSheet(name) {
+    if (!explorerWorkbook || !name) return;
+    explorerSheetName = name;
+    const sheet = explorerWorkbook.Sheets[name];
+    explorerData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    explorerSelectedCol = -1;
+    explorerSelection = null;
+    hideExplorerMenu();
+    renderStagedGroups();
+    renderExplorerPreview();
+}
+
 function readExplorerFile(file) {
     if (!file) return;
     const ext = file.name.toLowerCase();
@@ -768,18 +798,22 @@ function readExplorerFile(file) {
     reader.onload = (evt) => {
         if (ext.endsWith('.xlsx') || ext.endsWith('.xls')) {
             const data = evt.target.result;
-            const workbook = XLSX.read(data, { type: 'binary' });
-            const sheetName = workbook.SheetNames[0];
-            const sheet = workbook.Sheets[sheetName];
-            explorerData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            explorerWorkbook = XLSX.read(data, { type: 'binary' });
+            updateExplorerSheetList(explorerWorkbook.SheetNames || []);
+            const first = explorerWorkbook.SheetNames[0];
+            if (first) {
+                loadExplorerSheet(first);
+            }
+            return;
         } else {
+            explorerWorkbook = null;
+            updateExplorerSheetList([]);
             const text = evt.target.result;
             explorerData = parseDelimitedText(text);
         }
         explorerSelectedCol = -1;
         explorerSelection = null;
         hideExplorerMenu();
-        stagedGroups = {};
         renderStagedGroups();
         renderExplorerPreview();
     };
@@ -793,13 +827,16 @@ function readExplorerFile(file) {
 function renderExplorerPreview() {
     const area = document.getElementById('explorer-preview-area');
     if (!area) return;
+    const prevWrap = area.querySelector('.explorer-preview-wrap');
+    const prevScrollTop = prevWrap ? prevWrap.scrollTop : 0;
+    const prevScrollLeft = prevWrap ? prevWrap.scrollLeft : 0;
     if (!explorerData || explorerData.length === 0) {
         area.innerHTML = '<p class=\"explorer-note\">No preview available.</p>';
         return;
     }
-    const maxRows = Math.min(25, explorerData.length);
+    const maxRows = Math.min(200, explorerData.length);
     const maxCols = Math.max(...explorerData.slice(0, maxRows).map(r => r.length), 0);
-    let html = '<table class=\"explorer-table\"><thead><tr>';
+    let html = '<div class=\"explorer-preview-wrap\"><table class=\"explorer-table\"><thead><tr>';
     for (let c = 0; c < maxCols; c++) {
         html += `<th>Col ${c + 1}</th>`;
     }
@@ -815,9 +852,14 @@ function renderExplorerPreview() {
         }
         html += '</tr>';
     }
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     html += '<div class=\"explorer-note\">Click-drag to select cells, then release to stage.</div>';
     area.innerHTML = html;
+    const wrap = area.querySelector('.explorer-preview-wrap');
+    if (wrap) {
+        wrap.scrollTop = prevScrollTop;
+        wrap.scrollLeft = prevScrollLeft;
+    }
     bindExplorerTable();
 }
 
@@ -953,20 +995,11 @@ function applyStagedGroups() {
         return;
     }
 
-    // A. 先にモードとラベルを同期（フリーズ防止の安全策）
-    const explorerMode = document.getElementById('explorerMode');
+    // A. 常にComparisonモード
     const plotMode = document.getElementById('plotMode');
-    if (explorerMode && plotMode) {
-        plotMode.value = explorerMode.value;
-        setPlotMode(); 
-    }
-
-    const explorerShared = document.getElementById('explorerSharedLabels');
-    if (explorerShared && explorerShared.value.trim() !== "") {
-        const sharedInput = document.getElementById('timePointsInput');
-        if (sharedInput) {
-            sharedInput.value = explorerShared.value.trim();
-        }
+    if (plotMode) {
+        plotMode.value = 'comparison';
+        setPlotMode();
     }
 
     // B. グループID連番リセット
@@ -1089,18 +1122,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     const explorerDirInput = document.getElementById('explorerDirInput');
-    const explorerFileInput = document.getElementById('explorerFileInput');
     const explorerFileList = document.getElementById('explorerFileList');
-    const explorerMode = document.getElementById('explorerMode');
-    if (explorerMode) {
-        explorerMode.addEventListener('change', () => {
-            const plotMode = document.getElementById('plotMode');
-            if (plotMode) {
-                plotMode.value = explorerMode.value;
-                setPlotMode();
-            }
-        });
-    }
+    const explorerSheetSelect = document.getElementById('explorerSheetSelect');
     if (explorerDirInput) {
         explorerDirInput.addEventListener('change', (e) => {
             explorerFiles = Array.from(e.target.files || []).filter(file => {
@@ -1114,19 +1137,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    if (explorerFileInput) {
-        explorerFileInput.addEventListener('change', (e) => {
-            const file = (e.target.files || [])[0];
-            if (file) {
-                readExplorerFile(file);
-            }
-        });
-    }
     if (explorerFileList) {
         explorerFileList.addEventListener('change', (e) => {
             const idx = parseInt(e.target.value, 10);
             if (!isNaN(idx) && explorerFiles[idx]) {
                 readExplorerFile(explorerFiles[idx]);
+            }
+        });
+    }
+    if (explorerSheetSelect) {
+        explorerSheetSelect.addEventListener('change', (e) => {
+            const name = e.target.value;
+            if (name) {
+                loadExplorerSheet(name);
             }
         });
     }
