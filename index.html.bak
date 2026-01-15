@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>SVG Plotter v10 - Multi-Group Support</title>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; margin: 20px; background: #f8f9fa; color: #333; }
         .container {
@@ -26,20 +25,12 @@
         }
 
         .preview-wrapper {
-            display: grid;
-            grid-template-columns: 50px 1fr;
-            grid-template-rows: 1fr auto auto auto auto auto;
-            gap: 10px;
-            background: #fafafa;
-            padding: 30px;
-            border: 2px dashed #ddd;
-            border-radius: 12px;
-            align-items: center;
-            justify-items: center;
-            position: relative;
+            display: grid; grid-template-columns: 50px 1fr; grid-template-rows: 1fr 50px;
+            gap: 10px; background: #fafafa; padding: 30px; border: 2px dashed #ddd; border-radius: 12px;
+            align-items: center; justify-items: center; position: relative;
         }
-        .slider-v { grid-column: 1; grid-row: 1; width: 12px; height: 400px; writing-mode: vertical-lr; direction: rtl; }
-        .slider-h { grid-column: 2; grid-row: 2; width: 100%; height: 12px; }
+        .slider-v { grid-column: 1; grid-row: 1; appearance: slider-vertical; width: 12px; height: 400px; }
+        .slider-h { grid-column: 3; grid-row: 2; width: 500px; height: 12px; }
         #svg-wrapper { grid-column: 2; grid-row: 1; background: white; box-shadow: 0 8px 25px rgba(0,0,0,0.1); position: relative; justify-self: start; }
         .resize-handle {
             width: 10px;
@@ -190,28 +181,6 @@
         .btn-gen { background: #007bff; color: white; }
         .btn-dl { background: #28a745; color: white; }
         .btn-small { width: 30%; margin-top: 0; padding: 5px 10px; font-size: 0.85rem; }
-        .config-profile {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            font-size: 0.85rem;
-        }
-        .config-profile .config-title { font-weight: bold; color: #555; }
-        .config-profile .config-actions {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .config-profile .btn-profile {
-            width: auto;
-            padding: 6px 10px;
-            margin-top: 0;
-            font-size: 0.8rem;
-            border-radius: 4px;
-            background: #6c757d;
-            color: white;
-        }
         .panel-compact { padding: 10px; }
         .toast {
             position: fixed;
@@ -229,359 +198,9 @@
             z-index: 999;
         }
         .toast.show { opacity: 1; }
-
-        #explorer-panel {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: 100vw;
-            background: #1f2d3d;
-            color: #f8f9fa;
-            transform: translateX(calc(-100% + 16px));
-            transition: transform 0.25s ease;
-            z-index: 2000;
-            display: flex;
-        }
-        #explorer-panel.pinned {
-            transform: translateX(0);
-        }
-        #explorer-handle {
-            width: 16px;
-            background: #2f4054;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            user-select: none;
-        }
-        #explorer-content {
-            flex: 1;
-            padding: 18px 20px 20px;
-            overflow-y: auto;
-        }
-        #explorer-content h3 {
-            margin: 0;
-            font-size: 1rem;
-        }
-        .explorer-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        .explorer-hide {
-            background: #40556f;
-            color: #f8f9fa;
-            border: none;
-            padding: 4px 8px;
-            font-size: 0.75rem;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .explorer-controls {
-            display: grid;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-        .explorer-controls label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #cdd6e3;
-        }
-        .explorer-controls input,
-        .explorer-controls select {
-            width: 100%;
-            padding: 6px;
-            border-radius: 4px;
-            border: 1px solid #40556f;
-            background: #233446;
-            color: #f8f9fa;
-            font-size: 0.8rem;
-        }
-        .explorer-controls .explorer-row {
-            display: grid;
-            gap: 6px;
-        }
-        .explorer-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #ffffff;
-            color: #333;
-            font-size: 11px;
-            border-radius: 6px;
-            overflow: hidden;
-            user-select: none;
-        }
-        .explorer-table th,
-        .explorer-table td {
-            border: 1px solid #e0e0e0;
-            padding: 4px 6px;
-            text-align: left;
-            user-select: none;
-        }
-        .explorer-table tr:hover td {
-            background: #f1f1f1;
-            cursor: pointer;
-        }
-        .explorer-selected {
-            background: #e3f2fd !important;
-        }
-        .explorer-menu {
-            position: fixed;
-            z-index: 3000;
-            background: #ffffff;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-shadow: 0 6px 14px rgba(0,0,0,0.15);
-            padding: 6px;
-            display: none;
-            min-width: 160px;
-        }
-        .explorer-menu button {
-            width: 100%;
-            margin: 2px 0;
-            padding: 6px 8px;
-            font-size: 0.75rem;
-            border: none;
-            border-radius: 4px;
-            background: #27ae60;
-            color: #fff;
-            cursor: pointer;
-        }
-        .explorer-staged {
-            margin-top: 14px;
-            border-top: 1px solid #3a4b5f;
-            padding-top: 10px;
-        }
-        .explorer-staged h4 {
-            margin: 0 0 6px 0;
-            font-size: 0.85rem;
-            color: #cdd6e3;
-        }
-        #explorer-staged-area {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .staged-item {
-            flex: 0 0 140px;
-        }
-        .explorer-staged textarea {
-            width: 100%;
-            height: 70px;
-            font-family: monospace;
-            font-size: 11px;
-            margin-top: 4px;
-            border-radius: 4px;
-            border: 1px solid #40556f;
-            background: #1c2a3a;
-            color: #f8f9fa;
-        }
-        .explorer-staged-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 8px;
-        }
-        .explorer-staged-actions button {
-            flex: 1;
-            padding: 6px 8px;
-            font-size: 0.75rem;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-        }
-        .explorer-apply { background: #27ae60; color: #fff; }
-        .explorer-clear { background: #6c757d; color: #fff; }
-        .explorer-menu .explorer-menu-row {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-            margin-top: 4px;
-        }
-        .explorer-menu input {
-            width: 60px;
-            padding: 4px 6px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            font-size: 0.75rem;
-        }
-        .explorer-send {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 6px;
-            margin-top: 10px;
-        }
-        .explorer-send button {
-            padding: 6px 8px;
-            font-size: 0.75rem;
-            border-radius: 4px;
-            border: none;
-            background: #27ae60;
-            color: #fff;
-            cursor: pointer;
-        }
-        .explorer-send .explorer-custom {
-            grid-column: span 3;
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-        .explorer-send .explorer-custom input {
-            width: 70px;
-            padding: 4px 6px;
-            border-radius: 4px;
-            border: 1px solid #40556f;
-            background: #233446;
-            color: #f8f9fa;
-            font-size: 0.75rem;
-        }
-        .explorer-note {
-            font-size: 0.75rem;
-            color: #cdd6e3;
-            margin-top: 6px;
-        }
-        .drop-zone {
-            border: 1.5px dashed #6b7da1;
-            background: #24364a;
-            color: #f8f9fa;
-            border-radius: 8px;
-            padding: 14px;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
-            flex: 0 0 33%;
-        }
-        .drop-zone:hover, .drop-zone.dragging {
-            border-color: #8fb1ff;
-            background: #2d4661;
-        }
-        .drop-zone .drop-title { font-size: 0.9rem; font-weight: 700; }
-        .drop-zone .drop-note { font-size: 0.75rem; color: #d6e1f0; margin-top: 6px; }
-        .drop-zone .drop-hint { font-size: 0.7rem; color: #cdd6e3; margin-top: 4px; }
-        .drop-browse {
-            margin-top: 10px;
-            padding: 6px 10px;
-            border: 1px solid #6b7da1;
-            background: #1f2d3d;
-            color: #f8f9fa;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-        .drop-browse:hover {
-            border-color: #8fb1ff;
-        }
-        .explorer-top-row {
-            display: flex;
-            gap: 10px;
-            align-items: stretch;
-        }
-        #explorerFileTree {
-            flex: 1;
-            background: #1c2a3a;
-            border: 1px solid #40556f;
-            border-radius: 8px;
-            color: #f8f9fa;
-            padding: 10px;
-            min-height: 160px;
-            overflow: auto;
-            user-select: none;
-        }
-        .tree-note { font-size: 0.8rem; color: #cdd6e3; }
-        .tree-node { padding-left: 14px; font-size: 0.85rem; line-height: 1.4; }
-        .tree-dir, .tree-file { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-        .tree-dir:hover, .tree-file:hover { background: rgba(255,255,255,0.05); }
-        .tree-toggle { width: 14px; text-align: center; color: #cdd6e3; }
-        .tree-name { color: #f8f9fa; }
-        .tree-file .tree-name { color: #dce6f5; }
-        .explorer-preview-wrap {
-            max-height: 50vh;
-            overflow: auto;
-            border: 1px solid #324355;
-            border-radius: 6px;
-            background: #ffffff;
-            user-select: none;
-        }
-        .bar-width-card { display: none; }
-        .bar-width-card .control-item { margin: 0; }
-        .bar-draggable { cursor: grab; }
-        .bar-draggable.dragging { cursor: grabbing; opacity: 0.8; stroke: #ff69b4; stroke-width: 2; }
-        .graph-controls-row {
-            grid-column: 2;
-            grid-row: 2;
-            width: 100%;
-            background: #fff;
-            border: 1px solid #e6e9ef;
-            border-radius: 8px;
-            padding: 10px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 10px;
-        }
-        .graph-controls-row .legend-panel { margin: 0; width: 100%; box-shadow: none; }
     </style>
 </head>
 <body>
-
-<div id="explorer-panel">
-    <div id="explorer-handle" title="Explorer">⋮</div>
-    <div id="explorer-content">
-        <div class="explorer-header">
-            <h3>Explorer</h3>
-        </div>
-                <div class="explorer-controls">
-            <div class="explorer-top-row">
-                <div class="drop-zone" id="explorerDropZone">
-                    <div class="drop-title">Drag & Drop local files or folders</div>
-                    <div class="drop-note">Local-only loading; no upload.</div>
-                    <div class="drop-hint">Drop CSV / TSV / XLSX / XLS here</div>
-                    <button type="button" class="drop-browse" onclick="document.getElementById('explorerDirInput').click()">or select from local</button>
-                </div>
-                <div id="explorerFileTree">
-                    <div class="tree-note">Drop a folder to show its tree here.</div>
-                </div>
-            </div>
-            <input type="file" id="explorerDirInput" webkitdirectory style="display:none;">
-            <div>
-                <label for="explorerFileList">Select From Folder (local)</label>
-                <select id="explorerFileList">
-                    <option value="">No file selected</option>
-                </select>
-            </div>
-            <div>
-                <label for="explorerSheetSelect">Sheet</label>
-                <select id="explorerSheetSelect" disabled>
-                    <option value="">No sheet</option>
-                </select>
-            </div>
-            <small class="explorer-note">Files stay local; nothing is uploaded.</small>
-        </div>
-        <div id="explorer-preview-area">
-            <p class="explorer-note">Select a local file to preview (読み込みのみで端末から外へ送信されません)。Drag to select cells, then stage to a group.</p>
-        </div>
-        <div class="explorer-staged">
-            <h4>Staged Group Data</h4>
-            <div id="explorer-staged-area"></div>
-            <div class="explorer-staged-actions">
-                <button type="button" class="explorer-apply" onclick="applyStagedGroups()">Send to Main</button>
-                <button type="button" class="explorer-clear" onclick="clearStagedGroups()">Clear</button>
-            </div>
-        </div>
-        <button type="button" class="explorer-hide" id="explorerHideBtn" style="margin-top: 12px; width: 100%;">Hide</button>
-    </div>
-</div>
-<div id="explorerMenu" class="explorer-menu">
-    <button type="button" onclick="sendExplorerToGroup(1)">Stage to Group 1</button>
-    <button type="button" onclick="sendExplorerToGroup(2)">Stage to Group 2</button>
-    <button type="button" onclick="sendExplorerToGroup(3)">Stage to Group 3</button>
-    <div class="explorer-menu-row">
-        <span style="font-size:0.7rem; color:#555;">Group #</span>
-        <input type="number" id="explorerGroupIndexMenu" min="1" value="4">
-        <button type="button" style="width:auto; padding:4px 8px;" onclick="sendExplorerToGroup()">Stage</button>
-    </div>
-</div>
 
 <div class="container">
     <div class="panel input-area" id="leftPanel">
@@ -589,8 +208,8 @@
         <div class="master-label-card" style="background: #fff4e6; border-color: #ffd8a8; margin-bottom: 20px;">
             <label style="display: block; font-weight: bold; color: #d9480f; margin-bottom: 6px;">Mode</label>
             <select id="plotMode" class="text-input" onchange="setPlotMode()">
-                <option value="time">Time Series Mode</option>
-                <option value="comparison" selected>Comparison Mode</option>
+                <option value="time" selected>Time Series Mode</option>
+                <option value="comparison">Comparison Mode</option>
                 <option value="survival">Survival Mode</option>
             </select>
         </div>
@@ -600,6 +219,15 @@
                 <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleTimeline()">Time Series Sample</button>
                 <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleComparison()">Two-Group Sample</button>
                 <button type="button" class="btn-add" style="margin:0;" onclick="loadSampleSurvival()">Survival Sample</button>
+            </div>
+        </div>
+        <div class="master-label-card" style="background:#f8f9fb; border-color:#e6e9ef;">
+            <label style="margin-bottom:6px;">Configuration Profile</label>
+            <div style="display:flex; gap:8px; flex-wrap: wrap;">
+                <button type="button" class="btn-add" style="margin:0;" onclick="downloadProfile()">Download Profile (JSON)</button>
+                <button type="button" class="btn-add" style="margin:0;" onclick="document.getElementById('profileInput').click()">Load Profile</button>
+                <button type="button" class="btn-add" style="margin:0;" onclick="resetProfile()">Reset to Default</button>
+                <input type="file" id="profileInput" accept="application/json" style="display:none;" onchange="loadProfile(event)">
             </div>
         </div>
         <div class="master-label-card" id="timeSeriesSection">
@@ -619,18 +247,18 @@
                 <input type="text" id="xAxisLabel" class="text-input" placeholder="X-axis label" oninput="updatePlot()">
                 <div style="display:flex; gap:6px; align-items:center;">
                     <span style="font-size:0.75rem; color:#666;">X距離</span>
-                    <button type="button" class="btn-mini" onclick="adjustLabelOffset('xLabelOffset', -2)">←</button>
+                    <button type="button" class="btn-mini" onclick="adjustLabelOffset('xLabelOffset', -2)">−</button>
                     <input type="number" id="xLabelOffset" value="25" oninput="updatePlot()" style="width:50px;">
-                    <button type="button" class="btn-mini" onclick="adjustLabelOffset('xLabelOffset', 2)">→</button>
+                    <button type="button" class="btn-mini" onclick="adjustLabelOffset('xLabelOffset', 2)">＋</button>
                     <span style="font-size:0.75rem; color:#666; margin-left:6px;">Font</span>
                     <input type="number" id="xAxisFontSize" value="18" oninput="updatePlot()" style="width:50px;">
                 </div>
                 <input type="text" id="yAxisLabel" class="text-input" placeholder="Y-axis label" oninput="updatePlot()">
                 <div style="display:flex; gap:6px; align-items:center;">
                     <span style="font-size:0.75rem; color:#666;">Y距離</span>
-                    <button type="button" class="btn-mini" onclick="adjustLabelOffset('yLabelOffset', -2)">←</button>
+                    <button type="button" class="btn-mini" onclick="adjustLabelOffset('yLabelOffset', -2)">−</button>
                     <input type="number" id="yLabelOffset" value="25" oninput="updatePlot()" style="width:50px;">
-                    <button type="button" class="btn-mini" onclick="adjustLabelOffset('yLabelOffset', 2)">→</button>
+                    <button type="button" class="btn-mini" onclick="adjustLabelOffset('yLabelOffset', 2)">＋</button>
                     <span style="font-size:0.75rem; color:#666; margin-left:6px;">Font</span>
                     <input type="number" id="yAxisFontSize" value="18" oninput="updatePlot()" style="width:50px;">
                 </div>
@@ -653,7 +281,7 @@
         </div>
         <div style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
             <details open style="font-size: 0.85rem; color: #444; cursor: pointer;">
-                <summary style="font-weight: bold; margin-bottom: 10px; color: #d9480f;">⚠EEUsage Notes & Disclaimer</summary>
+                <summary style="font-weight: bold; margin-bottom: 10px; color: #d9480f;">⚠️ Usage Notes & Disclaimer</summary>
                 <div style="background: #fffcf0; padding: 12px; border: 1px solid #ffe8cc; border-radius: 8px; line-height: 1.6;">
                     <strong>Purpose</strong><br>
                     This tool is designed for rapid visualization of raw spreadsheet data, with the primary goal of <strong>checking dot distributions and overall trends at a glance</strong>.<br><br>
@@ -692,121 +320,97 @@
                     <div class="resize-handle resize-br" data-handle="br"></div>
                     <div class="handle-pos" id="handlePosLeft" style="left: 6px; top: -18px;">L: 0</div>
                 </div>
-                <div class="graph-controls-row">
-                    <div class="panel legend-panel" id="lineOptionsCard">
-                        <div class="option-list">
-                            <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines (??????)</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showBars" onchange="handleShowBarsToggle()" checked> Show Bars (????)</label>
-                        </div>
-                        <div class="option-list" id="lineOptionsBody">
-                            <label style="font-weight: normal;"><input type="checkbox" id="showSampleLines" onchange="updatePlot()"> Sample Lines (????)</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showMean" onchange="updatePlot()" checked> Mean Line / Dots</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showMeanDots" onchange="updatePlot()" checked> Mean Dots (Line Mode)</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showErrorBars" onchange="updatePlot()" checked> Error Bars</label>
-                        </div>
-                    </div>
-                    <div class="panel legend-panel bar-width-card" id="barWidthCard">
-                        <div class="control-item">
-                            <label for="barWidthSlider">Bar Width</label>
-                            <input type="range" id="barWidthSlider" min="6" max="80" value="28" oninput="syncBarWidthFromSlider()">
-                            <div style="font-size:0.8rem; color:#666;">Current: <span id="barWidthValue">28</span> px</div>
-                        </div>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <button type="button" class="btn-mini" style="width:auto;" onclick="resetBarPositions()">Reset Bar Positions</button>
-                            <button type="button" class="btn-mini" style="width:auto;" onclick="undoBarChanges()">Undo</button>
-                            <button type="button" class="btn-mini" style="width:auto;" onclick="redoBarChanges()">Redo</button>
-                        </div>
-                    </div>
-                    <div class="panel legend-panel">
-                        <div class="option-list">
-                            <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
-                        </div>
-                        <div class="control-item">
-                            <label>Bracket Offset <span id="bracketOffsetVal" style="font-weight: normal; color:#666;">center</span></label>
-                            <input type="range" id="bracketOffset" min="-60" max="120" value="0" oninput="updatePlot()">
-                        </div>
-                    </div>
-                    <div class="panel legend-panel">
-                        <div class="card-grid-2">
-                            <div class="control-item">
-                                <label for="fontSizeX">Font (X)</label>
-                                <input type="number" id="fontSizeX" value="14" oninput="updatePlot()">
-                            </div>
-                            <div class="control-item">
-                                <label for="dotSize">Dot Size</label>
-                                <div class="compact-row">
-                                    <input type="number" id="dotSize" min="1" max="15" value="4" oninput="updatePlot()">
-                                </div>
-                            </div>
-                            <div class="control-item">
-                                <label for="fontSizeY">Font (Y)</label>
-                                <input type="number" id="fontSizeY" value="14" oninput="updatePlot()">
-                            </div>
-                            <div class="control-item">
-                                <label for="jitter">Dot Jitter</label>
-                                <div class="compact-row">
-                                    <input type="number" id="jitter" min="0" max="40" value="15" oninput="updatePlot()">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="panel legend-panel panel-tight">
-                        <h4 style="margin:0 0 6px 0; font-size:0.9rem; color:#555;">Y-Axis</h4>
-                        <div class="ymax-inline" style="align-items:flex-end;">
-                            <div class="control-item" style="min-width:70px;">
-                                <label for="yMinInput">Y-Min</label>
-                                <input type="number" id="yMinInput" value="0" data-auto="true" oninput="updatePlot()" aria-label="Y minimum">
-                            </div>
-                            <div class="control-item" style="min-width:70px;">
-                                <label for="yMaxInput">Y-Max</label>
-                                <input type="number" id="yMaxInput" value="0" data-auto="true" oninput="this.dataset.auto='false'; updatePlot();" aria-label="Y maximum">
-                            </div>
-                            <button type="button" class="btn-mini" style="width:auto;" onclick="setAutoYMax()">Auto</button>
-                        </div>
-                        <div class="control-item">
-                            <label for="numTicks">Ticks</label>
-                            <input type="number" id="numTicks" value="5" min="2" max="12" oninput="updatePlot()">
-                        </div>
-                        <div class="control-item">
-                            <label>Error Bar</label>
-                            <input type="hidden" id="errorType" value="se">
-                            <div class="error-toggle">
-                                <button type="button" id="err-sem" class="btn-mini active" style="width:auto;" onclick="setErrorType('se')">SEM</button>
-                                <button type="button" id="err-sd" class="btn-mini" style="width:auto;" onclick="setErrorType('sd')">SD</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="panel legend-panel">
-                        <div class="control-item">
-                            <label style="font-weight: normal; margin: 0;"><input type="checkbox" id="showLegend" checked onchange="updatePlot()"> Show Legend</label>
-                        </div>
-                        <input type="hidden" id="legendState" value="95,10">
-                        <div class="legend-row">
-                            <label for="legendFontSize">Font</label>
-                            <input type="number" id="legendFontSize" value="14" oninput="updatePlot()" class="legend-input">
-                        </div>
-                    </div>
-                </div>
-                <div style="grid-column: 2; grid-row: 3; display: flex; align-items: center; gap: 10px; justify-self: start;">
+                <div style="grid-column: 2; grid-row: 2; display: flex; align-items: center; gap: 10px; justify-self: start;">
                     <label style="font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 6px;">
                         W:
                         <input type="number" id="chartWidthVal" value="600" min="10" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
                     </label>
                 </div>
-                <div style="grid-column: 2; grid-row: 4; width: 100%; display: flex; gap: 8px; justify-content: flex-start; justify-self: start;">
+                <div style="grid-column: 2; grid-row: 3; width: 100%; display: flex; gap: 8px; justify-content: flex-start; justify-self: start;">
                     <button class="btn-dl btn-small" onclick="downloadSVG()">Download for PPT</button>
                     <button class="btn-dl btn-small" onclick="copySvgToClipboard()" style="background:#007bff;">Copy SVG (for Illustrator or Affinity)</button>
                 </div>
-                <div style="grid-column: 2; grid-row: 5; width: 100%; justify-self: start;">
-                    <div class="config-profile">
-                        <div class="config-title">Configuration Profile</div>
-                        <div class="config-actions">
-                            <button type="button" class="btn-profile" onclick="downloadProfile()">Download (JSON)</button>
-                            <button type="button" class="btn-profile" onclick="document.getElementById('profileInput').click()">Load</button>
-                            <button type="button" class="btn-profile" onclick="resetProfile()">Reset</button>
-                            <input type="file" id="profileInput" accept="application/json" style="display:none;" onchange="loadProfile(event)">
+            </div>
+            <div class="side-panels">
+                <div class="panel legend-panel">
+                    <div class="ymax-inline">
+                        <div class="control-item">
+                            <label>Y-Min</label>
+                            <input type="number" id="yMinInput" value="0" oninput="this.dataset.auto='false'; updatePlot()" class="ymax-input">
                         </div>
+                        <div class="control-item">
+                            <label>Y-Max</label>
+                            <input type="number" id="yMaxInput" value="0" oninput="this.dataset.auto='false'; updatePlot()" class="ymax-input">
+                            <button type="button" class="auto-btn" onclick="setAutoYMax()">Auto</button>
+                        </div>
+                        <div class="control-item">
+                            <label>Ticks</label>
+                            <input type="number" id="numTicks" value="5" oninput="updatePlot()" class="ymax-input">
+                        </div>
+                        <div class="control-item">
+                            <label>Error Bar</label>
+                            <div class="error-toggle" style="flex-direction: column; align-items: flex-start;">
+                                <button type="button" id="err-sem" class="btn-mini active" onclick="setErrorType('se')">SEM</button>
+                                <button type="button" id="err-sd" class="btn-mini" onclick="setErrorType('sd')">SD</button>
+                            </div>
+                            <input type="hidden" id="errorType" value="se">
+                        </div>
+                    </div>
+                </div>
+                <div class="panel legend-panel" id="lineOptionsCard">
+                    <div class="option-list">
+                        <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines (折れ線を表示)</label>
+                        <label style="font-weight: normal;"><input type="checkbox" id="showBars" onchange="updatePlot()"> Show Bars (棒グラフ)</label>
+                    </div>
+                    <div class="option-list" id="lineOptionsBody">
+                        <label style="font-weight: normal;"><input type="checkbox" id="showSampleLines" onchange="updatePlot()"> Sample Lines (各サンプル)</label>
+                        <label style="font-weight: normal;"><input type="checkbox" id="showMean" onchange="updatePlot()" checked> Mean Line / Dots</label>
+                        <label style="font-weight: normal;"><input type="checkbox" id="showMeanDots" onchange="updatePlot()" checked> Mean Dots (Line Mode)</label>
+                        <label style="font-weight: normal;"><input type="checkbox" id="showErrorBars" onchange="updatePlot()" checked> Error Bars</label>
+                    </div>
+                </div>
+                <div class="panel legend-panel">
+                    <div class="option-list">
+                        <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
+                        <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
+                    </div>
+                    <div class="control-item">
+                        <label>Bracket Offset <span id="bracketOffsetVal" style="font-weight: normal; color:#666;">center</span></label>
+                        <input type="range" id="bracketOffset" min="-60" max="120" value="0" oninput="updatePlot()">
+                    </div>
+                </div>
+                <div class="panel legend-panel">
+                    <div class="card-grid-2">
+                        <div class="control-item">
+                            <label>Font (X)</label>
+                            <input type="number" id="fontSizeX" value="14" oninput="updatePlot()">
+                        </div>
+                        <div class="control-item">
+                            <label>Dot Size</label>
+                            <div class="compact-row">
+                                <input type="number" id="dotSize" min="1" max="15" value="4" oninput="updatePlot()">
+                            </div>
+                        </div>
+                        <div class="control-item">
+                            <label>Font (Y)</label>
+                            <input type="number" id="fontSizeY" value="14" oninput="updatePlot()">
+                        </div>
+                        <div class="control-item">
+                            <label>Dot Jitter</label>
+                            <div class="compact-row">
+                                <input type="number" id="jitter" min="0" max="40" value="15" oninput="updatePlot()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel legend-panel">
+                    <div class="control-item">
+                        <label style="font-weight: normal; margin: 0;"><input type="checkbox" id="showLegend" checked onchange="updatePlot()"> Show Legend</label>
+                    </div>
+                    <input type="hidden" id="legendState" value="95,10">
+                    <div class="legend-row">
+                        <label for="legendFontSize">Font</label>
+                        <input type="number" id="legendFontSize" value="14" oninput="updatePlot()" class="legend-input">
                     </div>
                 </div>
             </div>
@@ -815,7 +419,7 @@
         <div class="stats-panel">
             <h3>3. Statistical Analysis Board</h3>
             <div id="statsTableContainer">
-                <p style="color: #666;">チEEタをE力すると、各タイムポイントごとの検定結果がここに表示されます、E/p>
+                <p style="color: #666;">データを入力すると、各タイムポイントごとの検定結果がここに表示されます。</p>
             </div>
             <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
                 <button class="btn-dl btn-small" onclick="downloadCSV()" style="background:#6c757d;">Download CSV</button>
@@ -843,32 +447,6 @@ let plotMetrics = null;
 let chartOffsetX = 0;
 let chartOffsetY = 0;
 let activeProfile = null;
-let explorerData = null;
-let explorerSelectedCol = -1;
-let explorerSelecting = false;
-let explorerSelection = null;
-let explorerFiles = [];
-let stagedGroups = {};
-let explorerOpenedOnce = false;
-let explorerWorkbook = null;
-let explorerSheetName = null;
-let explorerLastPointer = { x: 0, y: 0 };
-let explorerDocMouseUpHandlerAdded = false;
-let stagedGroupNames = {};
-let explorerTreeState = {};
-let barWidthState = 28;
-let groupOffsetX = [];
-let undoStack = [];
-let redoStack = [];
-let draggingBarIndex = null;
-let draggingStartOffset = 0;
-let draggingBarStartX = 0;
-let autoBottomPad = 0;
-let targetBottomPad = 0;
-let stableZeroSince = null;
-let lastGrowAt = 0;
-const NEVER_SHRINK = true;
-let updateRafScheduled = false;
 
 function addNewGroup(name = "", color = "", data = "") {
     groupCount++;
@@ -891,601 +469,6 @@ function addNewGroup(name = "", color = "", data = "") {
     `;
     container.appendChild(card);
     updatePlot();
-}
-
-function parseDelimitedText(text) {
-    const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-    const nonEmpty = lines.filter(l => l.trim() !== '');
-    if (nonEmpty.length === 0) return [];
-    const sample = nonEmpty[0];
-    const delim = sample.includes('\t') ? '\t' : ',';
-    return nonEmpty.map(line => line.split(delim));
-}
-
-function updateExplorerFileList(files) {
-    const list = document.getElementById('explorerFileList');
-    if (!list) return;
-    list.innerHTML = '<option value=\"\">Select a file</option>';
-    files.forEach((file, idx) => {
-        const opt = document.createElement('option');
-        opt.value = String(idx);
-        opt.textContent = file.webkitRelativePath || file.name;
-        list.appendChild(opt);
-    });
-}
-
-function updateExplorerSheetList(sheetNames) {
-    const select = document.getElementById('explorerSheetSelect');
-    if (!select) return;
-    select.innerHTML = '';
-    if (!sheetNames || sheetNames.length === 0) {
-        select.innerHTML = '<option value=\"\">No sheet</option>';
-        select.disabled = true;
-        return;
-    }
-    sheetNames.forEach((name, idx) => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name || `Sheet ${idx + 1}`;
-        select.appendChild(opt);
-    });
-    select.disabled = false;
-}
-
-function loadExplorerSheet(name) {
-    if (!explorerWorkbook || !name) return;
-    explorerSheetName = name;
-    const sheet = explorerWorkbook.Sheets[name];
-    explorerData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    explorerSelectedCol = -1;
-    explorerSelection = null;
-    hideExplorerMenu();
-    renderStagedGroups();
-    renderExplorerPreview();
-}
-
-function readExplorerFile(file) {
-    if (!file) return;
-    const ext = file.name.toLowerCase();
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-        if (ext.endsWith('.xlsx') || ext.endsWith('.xls')) {
-            const data = evt.target.result;
-            explorerWorkbook = XLSX.read(data, { type: 'binary' });
-            updateExplorerSheetList(explorerWorkbook.SheetNames || []);
-            const first = explorerWorkbook.SheetNames[0];
-            if (first) {
-                loadExplorerSheet(first);
-            }
-            return;
-        } else {
-            explorerWorkbook = null;
-            updateExplorerSheetList([]);
-            const text = evt.target.result;
-            explorerData = parseDelimitedText(text);
-        }
-        explorerSelectedCol = -1;
-        explorerSelection = null;
-        hideExplorerMenu();
-        renderStagedGroups();
-        renderExplorerPreview();
-    };
-    if (ext.endsWith('.xlsx') || ext.endsWith('.xls')) {
-        reader.readAsBinaryString(file);
-    } else {
-        reader.readAsText(file);
-    }
-}
-
-function collectDroppedFiles(dataTransfer) {
-    return new Promise((resolve) => {
-        if (!dataTransfer) return resolve([]);
-        const items = dataTransfer.items ? Array.from(dataTransfer.items) : [];
-        const pending = [];
-        const files = [];
-
-        const walkEntry = (entry) => new Promise((res) => {
-            if (!entry) return res([]);
-            if (entry.isFile) {
-                entry.file((file) => res([file]), () => res([]));
-            } else if (entry.isDirectory && entry.createReader) {
-                const reader = entry.createReader();
-                const all = [];
-                const readChunk = () => {
-                    reader.readEntries((entries) => {
-                        if (!entries.length) {
-                            Promise.all(all.map(walkEntry)).then((nested) => res(nested.flat()));
-                            return;
-                        }
-                        all.push(...entries);
-                        readChunk();
-                    }, () => res([]));
-                };
-                readChunk();
-            } else {
-                res([]);
-            }
-        });
-
-        if (items.length) {
-            items.forEach((item) => {
-                if (item.kind === 'file') {
-                    const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
-                    if (entry && (entry.isDirectory || entry.isFile)) {
-                        pending.push(walkEntry(entry));
-                    } else {
-                        const f = item.getAsFile && item.getAsFile();
-                        if (f) files.push(f);
-                    }
-                }
-            });
-            if (pending.length) {
-                Promise.all(pending).then((nested) => {
-                    resolve(files.concat(...nested));
-                });
-                return;
-            }
-        }
-        resolve(Array.from(dataTransfer.files || []));
-    });
-}
-
-function filterExplorerFiles(fileList) {
-    const allowed = ['.csv', '.tsv', '.xlsx', '.xls'];
-    return Array.from(fileList || []).filter((file) => {
-        const name = file.name.toLowerCase();
-        return allowed.some((ext) => name.endsWith(ext));
-    });
-}
-
-function handleExplorerFiles(fileList) {
-    const filtered = filterExplorerFiles(fileList);
-    if (!filtered.length) return;
-    explorerFiles = filtered;
-    explorerTreeState = {};
-    updateExplorerFileList(explorerFiles);
-    renderExplorerTree(explorerFiles);
-    const explorerFileList = document.getElementById('explorerFileList');
-    if (explorerFiles[0] && explorerFileList) {
-        explorerFileList.value = '0';
-        readExplorerFile(explorerFiles[0]);
-    }
-}
-
-function renderExplorerPreview() {
-    const area = document.getElementById('explorer-preview-area');
-    if (!area) return;
-    const prevWrap = area.querySelector('.explorer-preview-wrap');
-    const prevScrollTop = prevWrap ? prevWrap.scrollTop : 0;
-    const prevScrollLeft = prevWrap ? prevWrap.scrollLeft : 0;
-    if (!explorerData || explorerData.length === 0) {
-        area.innerHTML = '<p class=\"explorer-note\">No preview available.</p>';
-        return;
-    }
-    const maxRows = Math.min(200, explorerData.length);
-    const maxCols = Math.max(...explorerData.slice(0, maxRows).map(r => r.length), 0);
-    let html = '<div class=\"explorer-preview-wrap\"><table class=\"explorer-table\"><thead><tr>';
-    for (let c = 0; c < maxCols; c++) {
-        html += `<th>Col ${c + 1}</th>`;
-    }
-    html += '</tr></thead><tbody>';
-    for (let r = 0; r < maxRows; r++) {
-        html += '<tr>';
-        for (let c = 0; c < maxCols; c++) {
-            const val = explorerData[r] && explorerData[r][c] !== undefined ? explorerData[r][c] : '';
-            const cellClass = explorerSelection && r >= explorerSelection.r1 && r <= explorerSelection.r2 && c >= explorerSelection.c1 && c <= explorerSelection.c2
-                ? 'explorer-selected'
-                : '';
-            html += `<td class=\"${cellClass}\" data-row=\"${r}\" data-col=\"${c}\">${val}</td>`;
-        }
-        html += '</tr>';
-    }
-    html += '</tbody></table></div>';
-    html += '<div class=\"explorer-note\">Click-drag to select cells, then release to stage.</div>';
-    area.innerHTML = html;
-    const wrap = area.querySelector('.explorer-preview-wrap');
-    if (wrap) {
-        wrap.scrollTop = prevScrollTop;
-        wrap.scrollLeft = prevScrollLeft;
-    }
-    bindExplorerTable();
-}
-
-function renderStagedGroups() {
-    const area = document.getElementById('explorer-staged-area');
-    if (!area) return;
-    const groupIndices = Object.keys(stagedGroups).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
-    const currentGroups = document.querySelectorAll('.group-card').length;
-    const maxGroup = Math.max(3, currentGroups, ...groupIndices, 3);
-    let html = '';
-    for (let i = 1; i <= maxGroup; i++) {
-        const val = stagedGroups[i] || '';
-        const nameVal = stagedGroupNames[i] || `Group ${i}`;
-        html += `
-            <div class="staged-item">
-                <label style="font-size:0.75rem; color:#cdd6e3;">Group ${i}</label>
-                <input type="text" data-staged-name="${i}" value="${nameVal}" style="width:100%; font-size:0.85rem; padding:4px 6px; border-radius:4px; border:1px solid #40556f; background:#1c2a3a; color:#f8f9fa;" oninput="updateStagedName(${i}, this.value)">
-                <textarea data-staged="${i}" oninput="updateStagedFromTextarea(${i}, this.value)">${val}</textarea>
-            </div>
-        `;
-    }
-    area.innerHTML = html;
-}
-
-function updateStagedFromTextarea(idx, value) {
-    stagedGroups[idx] = value;
-}
-function updateStagedName(idx, value) {
-    stagedGroupNames[idx] = value;
-}
-
-function collectStagedGroupsFromUI() {
-    const area = document.getElementById('explorer-staged-area');
-    if (!area) return;
-    const inputs = area.querySelectorAll('textarea[data-staged]');
-    stagedGroups = {};
-    stagedGroupNames = {};
-    inputs.forEach((ta) => {
-        const idx = parseInt(ta.dataset.staged, 10);
-        if (!isNaN(idx)) {
-            stagedGroups[idx] = ta.value;
-        }
-    });
-    const nameInputs = area.querySelectorAll('input[data-staged-name]');
-    nameInputs.forEach((inp) => {
-        const idx = parseInt(inp.dataset.stagedName, 10);
-        if (!isNaN(idx)) {
-            stagedGroupNames[idx] = inp.value;
-        }
-    });
-}
-
-function buildExplorerTree(files, basePrefix = '') {
-    const root = { children: {}, files: [] };
-    files.forEach((file, idx) => {
-        const rawPathFull = (file.webkitRelativePath || file.name || '').replace(/\\\\/g, '/').replace(/\\+/g, '/');
-        const rawPath = basePrefix && rawPathFull.startsWith(basePrefix)
-            ? rawPathFull.slice(basePrefix.length).replace(/^\//, '').replace(/^\//, '')
-            : rawPathFull;
-        const parts = rawPath.split('/').filter(Boolean);
-        const fileName = parts.pop() || file.name;
-        let node = root;
-        let pathAcc = '';
-        parts.forEach((part) => {
-            pathAcc = pathAcc ? `${pathAcc}/${part}` : part;
-            if (!node.children[part]) {
-                node.children[part] = { children: {}, files: [], path: pathAcc };
-            }
-            node = node.children[part];
-        });
-        node.files.push({ name: fileName, idx, fullPath: rawPath || fileName });
-    });
-    return root;
-}
-
-function renderExplorerTree(files) {
-    const treeEl = document.getElementById('explorerFileTree');
-    if (!treeEl) return;
-    if (!files || !files.length) {
-        treeEl.innerHTML = '<div class="tree-note">フォルダをドロチEEするとチEー表示されます、E/div>';
-        return;
-    }
-    const relPaths = files.map((file) => (file.webkitRelativePath || file.name || '').replace(/\\\\/g, '/').replace(/\\+/g, '/'));
-    const commonRoot = (() => {
-        if (!relPaths.length) return '';
-        const splitPaths = relPaths.map(p => p.split('/').filter(Boolean));
-        const minLen = Math.min(...splitPaths.map(p => p.length));
-        const parts = [];
-        for (let i = 0; i < minLen; i++) {
-            const seg = splitPaths[0][i];
-            if (splitPaths.every(p => p[i] === seg)) {
-                parts.push(seg);
-            } else {
-                break;
-            }
-        }
-        return parts.length ? parts.join('/') : '';
-    })();
-    const root = buildExplorerTree(files, commonRoot ? `${commonRoot}` : '');
-    const lines = [];
-
-    function renderNode(node, name, depth, parentPath) {
-        const key = parentPath ? `${parentPath}/${name}` : name || '';
-        const isRoot = depth === 0;
-        const indent = depth > 0 ? 'padding-left:' + (depth * 12) + 'px;' : '';
-        if (!isRoot) {
-            const hasChildren = Object.keys(node.children).length > 0 || node.files.length > 0;
-            const open = explorerTreeState[key] === true;
-            const toggle = hasChildren ? (open ? '▼' : '▶') : '•';
-            lines.push(`
-                <div class="tree-node" style="${indent}">
-                    <div class="tree-dir" data-path="${key}" data-open="${open}">
-                        <span class="tree-toggle">${toggle}</span>
-                        <span class="tree-name">${name}</span>
-                    </div>
-                </div>
-            `);
-            if (!open) return;
-        }
-        const childKeys = Object.keys(node.children).sort();
-        childKeys.forEach((child) => renderNode(node.children[child], child, depth + 1, key));
-        node.files
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .forEach((f) => {
-                const fIndent = 'padding-left:' + ((depth + 1) * 12) + 'px;';
-                lines.push(`
-                    <div class="tree-node" style="${fIndent}">
-                        <div class="tree-file" data-file-idx="${f.idx}">
-                            <span class="tree-toggle">•</span>
-                            <span class="tree-name">${f.name}</span>
-                        </div>
-                    </div>
-                `);
-            });
-    }
-
-    renderNode(root, '', 0, '');
-    treeEl.innerHTML = lines.join('');
-
-    treeEl.querySelectorAll('.tree-dir').forEach((dir) => {
-        dir.addEventListener('click', () => {
-            const path = dir.dataset.path || '';
-            const open = dir.dataset.open === 'true';
-            explorerTreeState[path] = !open;
-            renderExplorerTree(files);
-        });
-    });
-    treeEl.querySelectorAll('.tree-file').forEach((fileEl) => {
-        fileEl.addEventListener('click', () => {
-            const idx = parseInt(fileEl.dataset.fileIdx, 10);
-            if (!isNaN(idx) && files[idx]) {
-                const explorerFileList = document.getElementById('explorerFileList');
-                if (explorerFileList) explorerFileList.value = String(idx);
-                readExplorerFile(files[idx]);
-            }
-        });
-    });
-}
-
-function bindExplorerTable() {
-    const table = document.querySelector('.explorer-table');
-    if (!table) return;
-    table.addEventListener('mousedown', (e) => {
-        if (e.button !== 0) return; // only left-click initiates selection
-        const cell = e.target.closest('td');
-        if (!cell) return;
-        explorerSelecting = true;
-        const r = parseInt(cell.dataset.row, 10);
-        const c = parseInt(cell.dataset.col, 10);
-        explorerSelection = { r1: r, r2: r, c1: c, c2: c };
-        explorerLastPointer = { x: e.clientX, y: e.clientY };
-        hideExplorerMenu();
-        updateExplorerSelectionHighlight(table);
-    });
-    table.addEventListener('mouseover', (e) => {
-        if (!explorerSelecting) return;
-        const cell = e.target.closest('td');
-        if (!cell) return;
-        const r = parseInt(cell.dataset.row, 10);
-        const c = parseInt(cell.dataset.col, 10);
-        explorerSelection.r2 = r;
-        explorerSelection.c2 = c;
-        normalizeExplorerSelection();
-        explorerLastPointer = { x: e.clientX, y: e.clientY };
-        updateExplorerSelectionHighlight(table);
-    });
-    table.addEventListener('mouseleave', () => {
-        if (explorerSelecting) {
-            updateExplorerSelectionHighlight(table);
-        }
-    });
-    table.addEventListener('mousemove', (e) => {
-        explorerLastPointer = { x: e.clientX, y: e.clientY };
-    });
-    table.addEventListener('contextmenu', (e) => {
-        const cell = e.target.closest('td');
-        if (!cell) return;
-        e.preventDefault();
-        const r = parseInt(cell.dataset.row, 10);
-        const c = parseInt(cell.dataset.col, 10);
-        const alreadySelected = explorerSelection
-            && r >= explorerSelection.r1 && r <= explorerSelection.r2
-            && c >= explorerSelection.c1 && c <= explorerSelection.c2;
-        if (!alreadySelected) {
-            explorerSelection = { r1: r, r2: r, c1: c, c2: c };
-            updateExplorerSelectionHighlight(table);
-        }
-        showExplorerMenu(e.clientX, e.clientY);
-    });
-    table.addEventListener('mouseup', (e) => {
-        explorerLastPointer = { x: e.clientX, y: e.clientY };
-        handleExplorerMouseUp(e);
-    });
-    if (!explorerDocMouseUpHandlerAdded) {
-        document.addEventListener('mouseup', handleExplorerMouseUp);
-        explorerDocMouseUpHandlerAdded = true;
-    }
-}
-
-function normalizeExplorerSelection() {
-    if (!explorerSelection) return;
-    const rMin = Math.min(explorerSelection.r1, explorerSelection.r2);
-    const rMax = Math.max(explorerSelection.r1, explorerSelection.r2);
-    const cMin = Math.min(explorerSelection.c1, explorerSelection.c2);
-    const cMax = Math.max(explorerSelection.c1, explorerSelection.c2);
-    explorerSelection = { r1: rMin, r2: rMax, c1: cMin, c2: cMax };
-}
-
-function updateExplorerSelectionHighlight(table) {
-    if (!table) table = document.querySelector('.explorer-table');
-    if (!table) return;
-    const cells = table.querySelectorAll('td');
-    cells.forEach((cell) => {
-        const r = parseInt(cell.dataset.row, 10);
-        const c = parseInt(cell.dataset.col, 10);
-        const selected = explorerSelection && r >= explorerSelection.r1 && r <= explorerSelection.r2 && c >= explorerSelection.c1 && c <= explorerSelection.c2;
-        cell.classList.toggle('explorer-selected', !!selected);
-    });
-}
-
-function handleExplorerMouseUp(e) {
-    if (!explorerSelecting) return;
-    explorerSelecting = false;
-    normalizeExplorerSelection();
-    updateExplorerSelectionHighlight();
-    explorerLastPointer = {
-        x: (e && e.clientX) || explorerLastPointer.x,
-        y: (e && e.clientY) || explorerLastPointer.y
-    };
-    const x = explorerLastPointer.x;
-    const y = explorerLastPointer.y;
-    showExplorerMenu(x, y);
-}
-
-function onBarPointerDown(e) {
-    const rect = e.target.closest('rect.bar-draggable');
-    if (!rect) return;
-    const idx = parseInt(rect.dataset.groupIndex, 10);
-    if (isNaN(idx)) return;
-    e.preventDefault();
-    pushUndoState();
-    draggingBarIndex = idx;
-    draggingStartOffset = groupOffsetX[idx] || 0;
-    draggingBarStartX = e.clientX;
-    rect.classList.add('dragging');
-    window.addEventListener('pointermove', onBarPointerMove);
-    window.addEventListener('pointerup', onBarPointerUp, { once: true });
-}
-
-function onBarPointerMove(e) {
-    if (draggingBarIndex === null) return;
-    const step = e.shiftKey ? 10 : (e.altKey ? 1 : 2);
-    const dx = e.clientX - draggingBarStartX;
-    const snapped = Math.round(dx / step) * step;
-    groupOffsetX[draggingBarIndex] = draggingStartOffset + snapped;
-    updatePlot();
-}
-
-function onBarPointerUp() {
-    draggingBarIndex = null;
-    window.removeEventListener('pointermove', onBarPointerMove);
-    updatePlot();
-}
-
-function showExplorerMenu(x, y) {
-    const menu = document.getElementById('explorerMenu');
-    if (!menu) return;
-    menu.style.left = `${x + 10}px`;
-    menu.style.top = `${y + 10}px`;
-    menu.style.display = 'block';
-}
-
-function hideExplorerMenu() {
-    const menu = document.getElementById('explorerMenu');
-    if (menu) menu.style.display = 'none';
-}
-
-function sendExplorerToGroup(groupNumber) {
-    if (!explorerData || !explorerSelection) return;
-    const idxInput = document.getElementById('explorerGroupIndexMenu');
-    const targetGroup = groupNumber || (idxInput ? parseInt(idxInput.value, 10) : 1);
-    if (!targetGroup || targetGroup < 1) return;
-    if (!stagedGroupNames[targetGroup]) {
-        stagedGroupNames[targetGroup] = `Group ${targetGroup}`;
-    }
-    const rows = [];
-    for (let r = explorerSelection.r1; r <= explorerSelection.r2; r++) {
-        for (let c = explorerSelection.c1; c <= explorerSelection.c2; c++) {
-            if (!explorerData[r]) continue;
-            const val = explorerData[r][c];
-            if (val !== undefined && val !== null && val !== '' && !isNaN(parseFloat(val))) {
-                rows.push(parseFloat(val));
-            }
-        }
-    }
-    stagedGroups[targetGroup] = rows.join('\n');
-    renderStagedGroups();
-    renderExplorerTree(explorerFiles);
-    hideExplorerMenu();
-}
-
-function applyStagedGroups() {
-    // 1. UI???????????
-    collectStagedGroupsFromUI();
-
-    // 2. ??????????????????
-    const indices = Object.keys(stagedGroups)
-        .map(n => parseInt(n, 10))
-        .filter(n => !isNaN(n) && stagedGroups[n] && stagedGroups[n].trim() !== '');
-
-    if (indices.length === 0) {
-        showToast("No data staged to send.");
-        return;
-    }
-
-    // A. ??Comparison???
-    const plotMode = document.getElementById('plotMode');
-    if (plotMode) {
-        plotMode.value = 'comparison';
-        setPlotMode();
-    }
-
-    // B. ????ID??????
-    renumberGroups();
-
-    // 3. ?????????
-    indices.sort((a, b) => a - b).forEach((groupNum) => {
-        // ???????????????????????
-        while (groupCount < groupNum) {
-            const isTarget = (groupCount + 1) === groupNum;
-            const initialData = isTarget ? (stagedGroups[groupNum] || "") : "";
-            const initialName = isTarget ? (stagedGroupNames[groupNum] || `Group ${groupNum}`) : "";
-            addNewGroup(initialName, "", initialData);
-        }
-
-        // ????????
-        const target = document.getElementById(`group_${groupNum}`);
-        
-        if (target) {
-            const textarea = target.querySelector('.group-data-input');
-            if (textarea) {
-                textarea.value = stagedGroups[groupNum] || '';
-            }
-            const nameInput = target.querySelector('.group-name-input');
-            if (nameInput) {
-                nameInput.value = stagedGroupNames[groupNum] || nameInput.value;
-            }
-
-            handlePaste(target.id);
-        }
-    });
-
-    // 4. ??????????
-    updatePlot();
-
-    const explorerPanel = document.getElementById('explorer-panel');
-    if (explorerPanel) {
-        explorerPanel.classList.remove('pinned');
-    }
-    
-    showToast(`Updated ${indices.length} group(s)!`);
-}
-
-function clearStagedGroups() {
-    stagedGroups = {};
-    stagedGroupNames = {};
-    renderStagedGroups();
-}
-
-function clearGroupDataInputs(skipUpdate = false) {
-    const cards = document.querySelectorAll('.group-card');
-    cards.forEach((card) => {
-        const textarea = card.querySelector('.group-data-input');
-        if (textarea) textarea.value = '';
-        const preview = card.querySelector('.paste-preview');
-        if (preview) preview.innerHTML = '';
-    });
-    if (!skipUpdate) updatePlot();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1520,103 +503,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('mouseup', () => {
             draggingLegend = false;
         });
-        svgContainer.addEventListener('pointerdown', onBarPointerDown);
     }
-
-    const explorerPanel = document.getElementById('explorer-panel');
-    const explorerHandle = document.getElementById('explorer-handle');
-    const explorerHideBtn = document.getElementById('explorerHideBtn');
-    if (explorerHandle && explorerPanel) {
-        explorerHandle.addEventListener('click', () => {
-            explorerPanel.classList.toggle('pinned');
-        });
-    }
-    if (explorerPanel) {
-        explorerPanel.addEventListener('mouseenter', () => {
-            explorerPanel.classList.add('pinned');
-            const explorerMode = document.getElementById('explorerMode');
-            const plotMode = document.getElementById('plotMode');
-            if (explorerMode && plotMode) {
-                explorerMode.value = plotMode.value;
-            }
-        });
-    }
-    if (explorerHideBtn && explorerPanel) {
-        explorerHideBtn.addEventListener('click', () => {
-            explorerPanel.classList.remove('pinned');
-        });
-    }
-    const explorerDirInput = document.getElementById('explorerDirInput');
-    const explorerFileList = document.getElementById('explorerFileList');
-    const explorerSheetSelect = document.getElementById('explorerSheetSelect');
-    const explorerDropZone = document.getElementById('explorerDropZone');
-    if (explorerDirInput) {
-        explorerDirInput.addEventListener('change', (e) => {
-            handleExplorerFiles(e.target.files || []);
-        });
-    }
-    if (explorerFileList) {
-        explorerFileList.addEventListener('change', (e) => {
-            const idx = parseInt(e.target.value, 10);
-            if (!isNaN(idx) && explorerFiles[idx]) {
-                readExplorerFile(explorerFiles[idx]);
-            }
-        });
-    }
-    if (explorerSheetSelect) {
-        explorerSheetSelect.addEventListener('change', (e) => {
-            const name = e.target.value;
-            if (name) {
-                loadExplorerSheet(name);
-            }
-        });
-    }
-    if (explorerDropZone) {
-        ['dragover', 'dragenter'].forEach((evt) => {
-            explorerDropZone.addEventListener(evt, (e) => {
-                e.preventDefault();
-                explorerDropZone.classList.add('dragging');
-            });
-        });
-        ['dragleave', 'drop'].forEach((evt) => {
-            explorerDropZone.addEventListener(evt, (e) => {
-                e.preventDefault();
-                explorerDropZone.classList.remove('dragging');
-            });
-        });
-        explorerDropZone.addEventListener('drop', async (e) => {
-            const dropped = await collectDroppedFiles(e.dataTransfer);
-            handleExplorerFiles(dropped);
-        });
-    }
-    document.addEventListener('click', (e) => {
-        const menu = document.getElementById('explorerMenu');
-        if (!menu) return;
-        if (menu.contains(e.target)) return;
-        hideExplorerMenu();
-    });
-    renderStagedGroups();
-    const showBarsBox = document.getElementById('showBars');
-    if (showBarsBox) showBarsBox.checked = true;
-    syncBarControlsUI();
-    document.addEventListener('keydown', (e) => {
-        const key = (e.key || '').toLowerCase();
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'z') {
-            e.preventDefault();
-            undoBarChanges();
-        } else if ((e.ctrlKey || e.metaKey) && (key === 'y' || (e.shiftKey && key === 'z'))) {
-            e.preventDefault();
-            redoBarChanges();
-        }
-    });
-    loadSampleComparison();
 });
 
 function resetGroups() {
     const container = document.getElementById('groupsContainer');
     container.innerHTML = '';
     groupCount = 0;
-    groupOffsetX = [];
 }
 
 function loadSampleTimeline() {
@@ -1637,87 +530,7 @@ function loadSampleComparison() {
     resetGroups();
     addNewGroup("Control", "#ffffff", "12.1\n11.5\n10.9\n12.8\n11.7");
     addNewGroup("Treatment", "#ffcccc", "15.2\n14.6\n16.1\n15.8\n14.9");
-    document.getElementById('showBars').checked = true;
-    syncBarControlsUI();
     applyActiveProfile();
-    updatePlot();
-}
-
-function ensureGroupOffsets(len) {
-    for (let i = 0; i < len; i++) {
-        if (groupOffsetX[i] === undefined || isNaN(groupOffsetX[i])) groupOffsetX[i] = 0;
-    }
-}
-
-function snapshotBarState() {
-    return { offsets: groupOffsetX.slice(), barWidth: barWidthState };
-}
-
-function pushUndoState() {
-    const last = undoStack[undoStack.length - 1];
-    const snap = snapshotBarState();
-    if (last && JSON.stringify(last) === JSON.stringify(snap)) return;
-    undoStack.push(snap);
-    if (undoStack.length > 50) undoStack.shift();
-    redoStack = [];
-}
-
-function undoBarChanges() {
-    if (!undoStack.length) return;
-    const current = snapshotBarState();
-    const prev = undoStack.pop();
-    redoStack.push(current);
-    groupOffsetX = prev.offsets.slice();
-    barWidthState = prev.barWidth;
-    syncBarControlsUI();
-    updatePlot();
-}
-
-function redoBarChanges() {
-    if (!redoStack.length) return;
-    const current = snapshotBarState();
-    const next = redoStack.pop();
-    undoStack.push(current);
-    groupOffsetX = next.offsets.slice();
-    barWidthState = next.barWidth;
-    syncBarControlsUI();
-    updatePlot();
-}
-
-function resetBarPositions() {
-    pushUndoState();
-    groupOffsetX = groupOffsetX.map(() => 0);
-    syncBarControlsUI();
-    updatePlot();
-}
-
-function syncBarControlsUI() {
-    const showBars = document.getElementById('showBars');
-    const card = document.getElementById('barWidthCard');
-    const slider = document.getElementById('barWidthSlider');
-    const val = document.getElementById('barWidthValue');
-    if (slider) slider.value = barWidthState;
-    if (val) val.textContent = Math.round(barWidthState);
-    if (card && showBars) {
-        card.style.display = showBars.checked ? 'block' : 'none';
-    }
-}
-
-function handleShowBarsToggle() {
-    syncBarControlsUI();
-    updatePlot();
-}
-
-function syncBarWidthFromSlider() {
-    const slider = document.getElementById('barWidthSlider');
-    if (!slider) return;
-    const val = parseFloat(slider.value);
-    if (!isNaN(val) && val !== barWidthState) {
-        pushUndoState();
-        barWidthState = val;
-        redoStack = [];
-    }
-    syncBarControlsUI();
     updatePlot();
 }
 
@@ -1777,10 +590,8 @@ function collectProfile() {
             fontX: document.getElementById('fontSizeX').value,
             fontY: document.getElementById('fontSizeY').value,
             dotSize: document.getElementById('dotSize').value,
-            jitter: document.getElementById('jitter').value,
-            barWidth: barWidthState
+            jitter: document.getElementById('jitter').value
         },
-        barOffsets: groupOffsetX.slice(),
         options: {
             showLines: document.getElementById('showLines').checked,
             showBars: document.getElementById('showBars').checked,
@@ -1835,13 +646,10 @@ function applyProfile(profile) {
         document.getElementById('fontSizeY').value = profile.style.fontY || '14';
         document.getElementById('dotSize').value = profile.style.dotSize || '4';
         document.getElementById('jitter').value = profile.style.jitter || '15';
-        if (profile.style.barWidth !== undefined) {
-            barWidthState = parseFloat(profile.style.barWidth) || barWidthState;
-        }
     }
     if (profile.options) {
         document.getElementById('showLines').checked = !!profile.options.showLines;
-        document.getElementById('showBars').checked = true; // force bars on
+        document.getElementById('showBars').checked = !!profile.options.showBars;
         document.getElementById('showSampleLines').checked = !!profile.options.showSampleLines;
         document.getElementById('showMean').checked = !!profile.options.showMean;
         document.getElementById('showMeanDots').checked = !!profile.options.showMeanDots;
@@ -1864,51 +672,16 @@ function applyProfile(profile) {
             }
         });
     }
-    if (Array.isArray(profile.barOffsets)) {
-        groupOffsetX = profile.barOffsets.map(v => parseFloat(v) || 0);
-    }
-    syncBarControlsUI();
     updatePlot();
 }
 
 function downloadProfile() {
     const profile = collectProfile();
-    const json = JSON.stringify(profile, null, 2);
-    const filename = `plot_profile_${new Date().getTime()}.json`;
-
-    const doFallbackDownload = () => {
-        const blob = new Blob([json], { type: 'application/json' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = filename;
-        link.click();
-    };
-
-    if (window.showSaveFilePicker) {
-        (async () => {
-            try {
-                const handle = await window.showSaveFilePicker({
-                    suggestedName: filename,
-                    types: [
-                        {
-                            description: 'JSON file',
-                            accept: { 'application/json': ['.json'] }
-                        }
-                    ]
-                });
-                const writable = await handle.createWritable();
-                await writable.write(json);
-                await writable.close();
-                showToast('Saved');
-                return;
-            } catch (err) {
-                if (err && err.name === 'AbortError') return;
-            }
-            doFallbackDownload();
-        })();
-    } else {
-        doFallbackDownload();
-    }
+    const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `plot_profile_${new Date().getTime()}.json`;
+    link.click();
 }
 
 function loadProfile(event) {
@@ -1965,22 +738,7 @@ function resetProfile() {
 function removeGroup(id) {
     const el = document.getElementById(id);
     if (el) el.remove();
-    renumberGroups();
     updatePlot();
-}
-
-function renumberGroups() {
-    const cards = document.querySelectorAll('.group-card');
-    groupCount = 0;
-    cards.forEach((card) => {
-        groupCount += 1;
-        const newId = `group_${groupCount}`;
-        card.id = newId;
-        const btn = card.querySelector('.btn-remove');
-        if (btn) {
-            btn.setAttribute('onclick', `removeGroup('${newId}')`);
-        }
-    });
 }
 
 function handlePaste(id) {
@@ -2076,21 +834,21 @@ function calcStats(arr) {
     return { mean, sd, se: sd / Math.sqrt(n), n };
 }
 
-// --- 統計計算ユーチEリチE ---
+// --- 統計計算ユーティリティ ---
 
-// 1. Welch's t-test (2群の平坁Eの比輁E
+// 1. Welch's t-test (2群の平均値の比較)
 function welchTTest(a, b) {
     const s1 = calcStats(a), s2 = calcStats(b);
     if (s1.n < 2 || s2.n < 2) return null;
     const v1 = Math.pow(s1.sd, 2), v2 = Math.pow(s2.sd, 2);
     const t = Math.abs(s1.mean - s2.mean) / Math.sqrt(v1 / s1.n + v2 / s2.n);
     const df = Math.pow(v1 / s1.n + v2 / s2.n, 2) / (Math.pow(v1 / s1.n, 2) / (s1.n - 1) + Math.pow(v2 / s2.n, 2) / (s2.n - 1));
-    // p-value 近似 (正規E币E似)
+    // p-value 近似 (正規分布近似)
     const p = 2 * (1 - normalCDF(Math.abs(t)));
     return { t, p, df, method: "Welch's t-test" };
 }
 
-// 2. One-way ANOVA (3群以上E比輁E
+// 2. One-way ANOVA (3群以上の比較)
 function oneWayANOVA(groupsData) {
     const validGroups = groupsData.filter(g => g.length > 1);
     if (validGroups.length < 3) return null;
@@ -2114,41 +872,41 @@ function oneWayANOVA(groupsData) {
     return { f, df1: dfBetween, df2: dfWithin, msWithin, method: "One-way ANOVA" };
 }
 
-// 3. Brunner-Munzel Test (非パラメトリチE)
+// 3. Brunner-Munzel Test (非パラメトリック)
 function brunnerMunzel(x, y) {
     const n1 = x.length, n2 = y.length;
     if (n1 < 2 || n2 < 2) return { p: 1.0, w: 0 };
 
-    // 1. 共通ランク R の計箁E
+    // 1. 共通ランク R の計算
     const combined = [...x.map(v => ({ v, g: 1 })), ...y.map(v => ({ v, g: 2 }))].sort((a, b) => a.v - b.v);
-    combined.forEach((d, i) => d.r = i + 1); // 簡易ランクEタイ調整なし！E
+    combined.forEach((d, i) => d.r = i + 1); // 簡易ランク（タイ調整なし）
 
     const r1 = combined.filter(d => d.g === 1).map(d => d.r);
     const r2 = combined.filter(d => d.g === 2).map(d => d.r);
 
-    // 2. 冁Eランク S の計箁E
+    // 2. 内部ランク S の計算
     const s1 = x.slice().sort((a, b) => a - b).map((v, i) => i + 1);
     const s2 = y.slice().sort((a, b) => a - b).map((v, i) => i + 1);
 
     const m1 = r1.reduce((a, b) => a + b, 0) / n1;
     const m2 = r2.reduce((a, b) => a + b, 0) / n2;
 
-    // 3. 不偏刁Eの推宁E
+    // 3. 不偏分散の推定
     const v1 = r1.reduce((sum, ri, i) => sum + Math.pow(ri - s1[i] - m1 + (n1 + 1) / 2, 2), 0) / (n1 - 1);
     const v2 = r2.reduce((sum, rj, i) => sum + Math.pow(rj - s2[i] - m2 + (n2 + 1) / 2, 2), 0) / (n2 - 1);
 
-    // 4. 統計量 W の算E
+    // 4. 統計量 W の算出
     const w = (n1 * n2 * (m2 - m1)) / ((n1 + n2) * Math.sqrt(n1 * v1 + n2 * v2));
 
-    // 5. 自由度 df の推宁E
+    // 5. 自由度 df の推定
     const df = Math.pow(n1 * v1 + n2 * v2, 2) / (Math.pow(n1 * v1, 2) / (n1 - 1) + Math.pow(n2 * v2, 2) / (n2 - 1));
 
-    // 6. P値の算E (正規E币E似 - サンプルサイズが小さくなぁE揁E
+    // 6. P値の算出 (正規分布近似 - サンプルサイズが小さくない前提)
     const p = 2 * (1 - normalCDF(Math.abs(w)));
     return { p, w, df };
 }
 
-// 標準正規E币EE累積E币E数 (p値算E用)
+// 標準正規分布の累積分布関数 (p値算出用)
 function normalCDF(x) {
     const t = 1 / (1 + 0.2316419 * Math.abs(x));
     const d = 0.3989423 * Math.exp(-x * x / 2);
@@ -2165,7 +923,7 @@ function niceCeil(val) {
     return first * exp;
 }
 
-// 正剁E完EベEタ関数の近似ロジチEE統計関数で共通利用EE
+// 正則不完全ベータ関数の近似ロジック（統計関数で共通利用）
 function ibeta(x, a, b) {
     let bt = (x > 0 && x < 1) ? Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1 - x)) : 0;
     if (x < (a + 1) / (a + b + 2)) return bt * betacf(x, a, b) / a;
@@ -2198,10 +956,10 @@ function betacf(x, a, b) {
     return h;
 }
 
-// --- 追加EF刁EEらP値を算Eする関数EENOVA用EE---
+// --- 追加：F分布からP値を算出する関数（ANOVA用） ---
 function fDistributionP(F, df1, df2) {
     if (F <= 0) return 1.0;
-    // 簡易的な不完EベEタ関数による近似EEanilla JSでの実裁EE
+    // 簡易的な不完全ベータ関数による近似（Vanilla JSでの実装）
     const x = df2 / (df2 + df1 * F);
     const a = df2 / 2;
     const b = df1 / 2;
@@ -2209,7 +967,7 @@ function fDistributionP(F, df1, df2) {
     return ibeta(x, a, b);
 }
 
-// --- Dunnett's Test 簡易実裁E(Control vs Others) ---
+// --- Dunnett's Test 簡易実装 (Control vs Others) ---
 function runDunnett(groupsData, msWithin, dfWithin) {
     const control = groupsData[0];
     const results = [];
@@ -2225,7 +983,7 @@ function runDunnett(groupsData, msWithin, dfWithin) {
         const se = Math.sqrt(msWithin * (1 / n1 + 1 / n2));
         const tVal = Math.abs(mean1 - mean2) / se;
 
-        // P値の近似 (Bonferroni調整を加えたt刁EE似)
+        // P値の近似 (Bonferroni調整を加えたt分布近似)
         const k = groupsData.length - 1;
         const rawP = 2 * (1 - studentTCDF(tVal, dfWithin));
         const adjustedP = Math.min(1.0, rawP * k);
@@ -2239,7 +997,7 @@ function runDunnett(groupsData, msWithin, dfWithin) {
     return results;
 }
 
-// 自由度dfのt刁EE積E币E数 (簡易近似)
+// 自由度dfのt分布累積分布関数 (簡易近似)
 function studentTCDF(t, df) {
     const x = df / (df + t * t);
     return 1 - 0.5 * ibeta(x, df / 2, 0.5);
@@ -2252,9 +1010,9 @@ function getStars(p) {
     return "";
 }
 
-// ブラケチE描画用の関数
+// ブラケット描画用の関数
 function drawBracket(x1, x2, y, stars, fontSize) {
-    const tickH = 6; // カギ線E端の長ぁE
+    const tickH = 6; // カギ線の端の長さ
     return `
     <g class="sig-bracket" stroke="black" fill="none" stroke-width="1.2">
         <path d="M ${x1} ${y} L ${x1} ${y - tickH} L ${x2} ${y - tickH} L ${x2} ${y}" />
@@ -2479,29 +1237,11 @@ function displayStats(timeLabels, groupConfigs) {
     updateCodeDisplay();
 }
 
-function scheduleUpdatePlot(resetPad = false) {
-    if (resetPad) autoBottomPad = 0;
-    if (updateRafScheduled) return;
-    updateRafScheduled = true;
-    requestAnimationFrame(() => {
-        updateRafScheduled = false;
-        updatePlot(0);
-    });
-}
-
-function updatePlot(reflowPass = 0) {
+function updatePlot() {
     const mode = document.getElementById('plotMode').value;
     const survivalMode = mode === 'survival';
     const isCompMode = mode === 'comparison';
-    let timeLabels = isCompMode ? ["Data"] : document.getElementById('timePointsInput').value.trim().split(/[\t\s]+/).filter(s => s !== "");
-    if (!survivalMode && timeLabels.length === 0) {
-        const fallbackCols = Array.from(document.querySelectorAll('.group-data-input'))
-            .map(el => getColumnCount(el.value))
-            .reduce((max, n) => Math.max(max, n), 0);
-        if (fallbackCols > 0) {
-            timeLabels = Array.from({ length: fallbackCols }, (_, i) => `Col${i + 1}`);
-        }
-    }
+    const timeLabels = isCompMode ? ["Data"] : document.getElementById('timePointsInput').value.trim().split(/[\t\s]+/).filter(s => s !== "");
     if (!survivalMode && timeLabels.length === 0) return;
 
     const fsX = parseInt(document.getElementById('fontSizeX').value);
@@ -2532,7 +1272,6 @@ function updatePlot(reflowPass = 0) {
     const autoBrackets = document.getElementById('autoBrackets').checked;
     const showLines = document.getElementById('showLines').checked;
     const showBars = document.getElementById('showBars').checked;
-    syncBarControlsUI();
     const showSampleLines = document.getElementById('showSampleLines').checked;
     const showMean = document.getElementById('showMean').checked;
     const showMeanDots = document.getElementById('showMeanDots').checked;
@@ -2557,91 +1296,6 @@ function updatePlot(reflowPass = 0) {
     const yLabelOffset = parseFloat(document.getElementById('yLabelOffset').value) || 0;
     const xAxisFontSize = parseFloat(document.getElementById('xAxisFontSize').value) || fsX;
     const yAxisFontSize = parseFloat(document.getElementById('yAxisFontSize').value) || fsY;
-    function applyAutoRotateXLabels() {
-        const svgRoot = document.querySelector('#svg-container svg');
-        if (!svgRoot) return;
-        const labels = Array.from(svgRoot.querySelectorAll('.x-axis-label'));
-        if (labels.length < 2) return;
-        const basePos = labels.map(el => ({
-            x: parseFloat(el.getAttribute('x')) || 0,
-            y: parseFloat(el.getAttribute('y')) || 0
-        }));
-        const angles = [0, -15, -25, -35, -45, -60];
-        for (const ang of angles) {
-            labels.forEach((el, i) => {
-                const { x, y } = basePos[i];
-                const yAdj = ang === 0 ? 0 : 4;
-                el.setAttribute('x', x);
-                el.setAttribute('y', y + yAdj);
-                el.setAttribute('text-anchor', ang === 0 ? 'middle' : 'end');
-                if (ang === 0) {
-                    el.removeAttribute('transform');
-                } else {
-                    el.setAttribute('transform', `rotate(${ang} ${x} ${y + yAdj})`);
-                }
-            });
-            let overlap = false;
-            for (let i = 1; i < labels.length; i++) {
-                const b0 = labels[i - 1].getBBox();
-                const b1 = labels[i].getBBox();
-                if (b0.x + b0.width > b1.x) { overlap = true; break; }
-            }
-            if (!overlap) break;
-        }
-    }
-    function schedulePadCheck() {
-        if (reflowPass >= 1) return;
-        const SAFETY = 20;
-        const measure = () => {
-            const svgRoot = document.querySelector('#svg-container svg');
-            if (!svgRoot) return;
-            const labels = Array.from(svgRoot.querySelectorAll('.x-axis-label'));
-            const svgRect = svgRoot.getBoundingClientRect();
-            if (!svgRect.height) return;
-            const overflowPx = Math.max(...(labels.length ? labels.map(el => {
-                const r = el.getBoundingClientRect();
-                return r.bottom - svgRect.bottom;
-            }) : [0]), 0);
-            const svgUnitsPerPxY = height / svgRect.height;
-            const overflowSvg = Math.ceil(Math.max(0, overflowPx) * svgUnitsPerPxY);
-            const now = performance.now();
-            targetBottomPad = Math.max(0, overflowSvg + SAFETY);
-
-            if (targetBottomPad > autoBottomPad) {
-                autoBottomPad = targetBottomPad;
-                lastGrowAt = now;
-                stableZeroSince = null;
-                updatePlot(reflowPass + 1);
-                return;
-            }
-
-            if (overflowSvg > 0) {
-                stableZeroSince = null;
-                return;
-            }
-            if (NEVER_SHRINK) return;
-            if (lastGrowAt && (now - lastGrowAt) <= 300) {
-                stableZeroSince = null;
-                return;
-            }
-            if (!stableZeroSince) {
-                stableZeroSince = now;
-                return;
-            }
-            if ((now - stableZeroSince) < 300) return;
-
-            const newPad = Math.max(targetBottomPad, autoBottomPad - 8);
-            if (newPad !== autoBottomPad) {
-                autoBottomPad = newPad;
-                updatePlot(reflowPass + 1);
-            }
-        };
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                setTimeout(measure, 0);
-            });
-        });
-    }
     if (survivalMode) {
         const { groupConfigs, maxTime } = parseSurvivalData(document.getElementById('survivalData').value);
         const xMaxEl = document.getElementById('survivalXMax');
@@ -2657,7 +1311,7 @@ function updatePlot(reflowPass = 0) {
         if (xMaxEl && (isAutoX || xMaxInput <= 0 || Number.isNaN(xMaxInput))) {
             xMaxEl.value = safeXMax;
         }
-        const pL = fsY * 4.6, pB = fsX * 3 + 6 + autoBottomPad, pT = 30, pR = 30;
+        const pL = fsY * 4.6, pB = fsX * 3 + 6, pT = 30, pR = 30;
         const graphW = width - pL - pR, graphH = height - pB - pT;
         if (graphW <= 0 || graphH <= 0) {
             return;
@@ -2684,7 +1338,7 @@ function updatePlot(reflowPass = 0) {
             const val = (safeXMax / xTickCount) * i;
             const x = xScale(val);
             svgItems.push(`<line x1="${x}" y1="${height-pB}" x2="${x}" y2="${height-pB+5}" stroke="black" stroke-width="1.2"/>`);
-            svgItems.push(`<text class="x-axis-label" x="${x}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial">${Number(val.toFixed(2))}</text>`);
+            svgItems.push(`<text x="${x}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial">${Number(val.toFixed(2))}</text>`);
         }
 
         if (xAxisLabel) {
@@ -2743,8 +1397,6 @@ function updatePlot(reflowPass = 0) {
         }
 
         document.getElementById('svg-container').innerHTML = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="background:white;">${svgItems.join('')}</svg>`;
-        applyAutoRotateXLabels();
-        schedulePadCheck();
         const detailEl = document.getElementById('calcDetails');
         if (groupConfigs.length === 2) {
             const lr = logRankTestTwoGroups(groupConfigs[0].times, groupConfigs[1].times);
@@ -2784,15 +1436,8 @@ function updatePlot(reflowPass = 0) {
         data: parseData(card.querySelector('.group-data-input').value, timeLabels.length)
     }));
     const nGroups = groupConfigs.length;
-    ensureGroupOffsets(nGroups);
-    const getCompCenter = (gIdx) => pL + (gIdx + 0.5) * (graphW / nGroups) + (groupOffsetX[gIdx] || 0);
-    const getTimeCenter = (tIdx, gIdx, groupSpace) => {
-        const base = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
-        const offset = (gIdx - (nGroups - 1) / 2) * (groupSpace / nGroups);
-        return base + offset + (groupOffsetX[gIdx] || 0);
-    };
 
-    // 1. まず統計計算を行い、ブラケチEが忁Eな「階層数」を把握する
+    // 1. まず統計計算を行い、ブラケットが必要な「階層数」を把握する
     let maxBracketLayers = 0;
     timeLabels.forEach((_, tIdx) => {
         const d = groupConfigs.map(g => g.data[tIdx]).filter(x => x.length > 1);
@@ -2808,7 +1453,7 @@ function updatePlot(reflowPass = 0) {
         }
     });
 
-    // 2. Y軸の最大値を決宁E(ブラケチEがある場合E20-30%の余白を追加)
+    // 2. Y軸の最大値を決定 (ブラケットがある場合は20-30%の余白を追加)
     const allValues = groupConfigs.flatMap(g => g.data.flat());
     const statsAll = groupConfigs.flatMap(g => g.data.map(calcStats));
     const rawMax = Math.max(...allValues, ...statsAll.map(s => s.mean + (errorType === 'sd' ? s.sd : s.se)), 1);
@@ -2818,7 +1463,7 @@ function updatePlot(reflowPass = 0) {
     let yMax = yMaxManual > 0 ? yMaxManual : baseYMax;
     let yMin = Number.isFinite(yMinManual) && yMinManual !== 0 ? yMinManual : rawMin;
 
-    // 有意差マEクがある場合、強制皁E上限を押し上げめE
+    // 有意差マークがある場合、強制的に上限を押し上げる
     if (autoBrackets && maxBracketLayers > 0 && isAutoY) {
         const extraFactor = Math.min(0.1, 0.05 * maxBracketLayers);
         const expandedYMax = niceCeil(rawMax * (1 + extraFactor));
@@ -2830,7 +1475,7 @@ function updatePlot(reflowPass = 0) {
         if (yMinInputEl) yMinInputEl.value = yMin;
     }
 
-    const pL = fsY * 4.6, pB = fsX * 3 + 6 + autoBottomPad, pT = 30, pR = 30;
+    const pL = fsY * 4.6, pB = fsX * 3 + 6, pT = 30, pR = 30;
     const graphW = width - pL - pR, graphH = height - pB - pT;
     const yScale = (v) => height - pB - ((v - yMin) / (yMax - yMin) * graphH);
     plotMetrics = { pL, pT, graphW, graphH, width, height };
@@ -2838,7 +1483,7 @@ function updatePlot(reflowPass = 0) {
     let svgItems = [];
     const strokeW = 1.2;
 
-    function drawGroupContent(x, data, s, group, barWidth, baselineVal, gIdx) {
+    function drawGroupContent(x, data, s, group, barWidth, baselineVal) {
         const errVal = errorType === 'sd' ? s.sd : s.se;
         const yM = yScale(s.mean), yT = yScale(s.mean + errVal), yB = yScale(s.mean - errVal);
         const dotR = parseFloat(document.getElementById('dotSize').value);
@@ -2848,8 +1493,7 @@ function updatePlot(reflowPass = 0) {
             const baseY = yScale(baselineVal);
             const barY = Math.min(yM, baseY);
             const barH = Math.abs(baseY - yM);
-            const dragClass = (draggingBarIndex === gIdx) ? ' dragging' : '';
-            svgItems.push(`<rect class="bar-draggable${dragClass}" data-group-index="${gIdx}" x="${x - barWidth / 2}" y="${barY}" width="${barWidth}" height="${barH}" fill="${group.color}" fill-opacity="0.35" stroke="black" stroke-width="0.8"/>`);
+            svgItems.push(`<rect x="${x - barWidth / 2}" y="${barY}" width="${barWidth}" height="${barH}" fill="${group.color}" fill-opacity="0.35" stroke="black" stroke-width="0.8"/>`);
         }
         if (showErrorBars) {
             svgItems.push(`
@@ -2892,23 +1536,23 @@ function updatePlot(reflowPass = 0) {
         svgItems.push(`<text x="${yLabelX}" y="${yLabelY}" text-anchor="middle" font-size="${yAxisFontSize}" font-family="Arial" transform="rotate(-90 ${yLabelX} ${yLabelY})">${yAxisLabel}</text>`);
     }
 
-    // 吁EイムポイントE描画
+    // 各タイムポイントの描画
     if (isCompMode) {
-        const barWidth = Math.max(2, Math.min(barWidthState, graphW / Math.max(1, nGroups)));
         groupConfigs.forEach((group, gIdx) => {
-            const x = getCompCenter(gIdx);
+            const x = pL + (gIdx + 0.5) * (graphW / groupConfigs.length);
             const data = group.data[0] || [];
             const s = calcStats(data);
+            const barWidth = Math.min(30, graphW / (groupConfigs.length * 1.6));
             const baselineVal = yMin < 0 ? 0 : yMin;
 
             if (s.n > 0) {
-                drawGroupContent(x, data, s, group, barWidth, baselineVal, gIdx);
+                drawGroupContent(x, data, s, group, barWidth, baselineVal);
             }
-            svgItems.push(`<text class="x-axis-label" x="${x}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial">${group.name}</text>`);
+            svgItems.push(`<text x="${x}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial">${group.name}</text>`);
         });
     } else {
         if (showLines) {
-            groupConfigs.forEach((group, gIdx) => {
+            groupConfigs.forEach((group) => {
                 const points = [];
                 const lineColor = group.color === '#ffffff' ? 'black' : group.color;
                 if (showSampleLines) {
@@ -2922,7 +1566,7 @@ function updatePlot(reflowPass = 0) {
                         timeLabels.forEach((label, tIdx) => {
                             const data = group.data[tIdx] || [];
                             if (data[sIdx] === undefined) return;
-                const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length) + (groupOffsetX[gIdx] || 0);
+                            const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
                             const y = yScale(data[sIdx]);
                             samplePoints.push(`${xCenter},${y}`);
                         });
@@ -2943,7 +1587,7 @@ function updatePlot(reflowPass = 0) {
                     const data = group.data[tIdx] || [];
                     const s = calcStats(data);
                 if (s.n > 0) {
-                const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length) + (groupOffsetX[gIdx] || 0);
+                    const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
                     const y = yScale(s.mean);
                         const errVal = errorType === 'sd' ? s.sd : s.se;
                         const yT = yScale(s.mean + errVal);
@@ -2977,40 +1621,41 @@ function updatePlot(reflowPass = 0) {
             });
         } else {
             timeLabels.forEach((label, tIdx) => {
-                const xCenterBase = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
+                const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
                 const groupSpace = (graphW / timeLabels.length) * 0.85;
-                const barWidth = Math.max(2, Math.min(barWidthState, groupSpace / Math.max(1, groupConfigs.length)));
+                const barWidth = Math.min(20, groupSpace / (groupConfigs.length * 1.3));
                 const baselineVal = yMin < 0 ? 0 : yMin;
 
                 groupConfigs.forEach((group, gIdx) => {
                     const xOffset = (gIdx - (groupConfigs.length - 1) / 2) * (groupSpace / groupConfigs.length);
-                    const x = xCenterBase + xOffset + (groupOffsetX[gIdx] || 0);
+                    const x = xCenter + xOffset;
                     const data = group.data[tIdx] || [];
                     const s = calcStats(data);
 
                     if (s.n > 0) {
-                        drawGroupContent(x, data, s, group, barWidth, baselineVal, gIdx);
+                        drawGroupContent(x, data, s, group, barWidth, baselineVal);
                     }
                 });
+                svgItems.push(`<text x="${xCenter}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial">${label}</text>`);
             });
         }
         timeLabels.forEach((label, tIdx) => {
             const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
-                svgItems.push(`<text class="x-axis-label" x="${xCenter}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial">${label}</text>`);
+            svgItems.push(`<text x="${xCenter}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial">${label}</text>`);
         });
     }
 
-    // --- 有意差ブラケチEの描画 ---
+    // --- 有意差ブラケットの描画 ---
     if (autoBrackets) {
         timeLabels.forEach((label, tIdx) => {
             const groupsData = groupConfigs.map(g => g.data[tIdx]).filter(d => d.length > 1);
             if (groupsData.length < 2) return;
 
-            const baseCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
+            const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
             const groupSpace = (graphW / timeLabels.length) * 0.85;
             const ctrlX = isCompMode
-                ? getCompCenter(0)
-                : getTimeCenter(tIdx, 0, groupSpace);
+                ? pL + (0.5) * (graphW / nGroups)
+                : xCenter + (0 - (nGroups - 1) / 2) * (groupSpace / nGroups);
 
             const statsAtTime = groupsData.map(calcStats);
             const errorMaxY = Math.min(...statsAtTime.map(s => yScale(s.mean + (errorType === 'sd' ? s.sd : s.se))));
@@ -3023,14 +1668,14 @@ function updatePlot(reflowPass = 0) {
                         const s2 = calcStats(groupsData[1]);
                         const err2 = errorType === 'sd' ? s2.sd : s2.se;
                         const targetX = isCompMode
-                            ? getCompCenter(1)
-                            : baseCenter;
+                            ? pL + (1.5) * (graphW / nGroups)
+                            : xCenter;
                         const starY = yScale(s2.mean + err2) - 8 - bracketOffset;
                         svgItems.push(`<text x="${targetX}" y="${starY}" text-anchor="middle" font-size="${fsX * 1.2}" font-family="Arial" font-weight="bold">${getStars(res.p)}</text>`);
                     } else {
                         const targetX = isCompMode
-                            ? getCompCenter(1)
-                            : getTimeCenter(tIdx, 1, groupSpace);
+                            ? pL + (1.5) * (graphW / nGroups)
+                            : xCenter + (1 - (nGroups - 1) / 2) * (groupSpace / nGroups);
                         svgItems.push(drawBracket(ctrlX, targetX, bracketY, getStars(res.p), fsX));
                     }
                 }
@@ -3041,8 +1686,8 @@ function updatePlot(reflowPass = 0) {
                     dunnettRes.forEach((res, i) => {
                         if (res.isSig) {
                             const targetX = isCompMode
-                                ? getCompCenter(i + 1)
-                                : getTimeCenter(tIdx, i + 1, groupSpace);
+                                ? pL + ((i + 1) + 0.5) * (graphW / nGroups)
+                                : xCenter + ((i + 1) - (nGroups - 1) / 2) * (groupSpace / nGroups);
                             svgItems.push(drawBracket(ctrlX, targetX, bracketY, getStars(res.p), fsX));
                             bracketY -= 22;
                         }
@@ -3075,8 +1720,6 @@ function updatePlot(reflowPass = 0) {
     }
 
     document.getElementById('svg-container').innerHTML = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="background:white;">${svgItems.join('')}</svg>`;
-    applyAutoRotateXLabels();
-    schedulePadCheck();
     displayStats(timeLabels, groupConfigs);
 }
 
@@ -3290,18 +1933,14 @@ async function copySvgToClipboard() {
 }
 
 
-// 初期グループE作E
+// 初期グループの作成
+addNewGroup("WT", "#ffffff", "Day1\tDay3\tDay7\n100\t250\t400\n120\t280\t450\n90\t230\t380");
+addNewGroup("KO", "#ffcccc", "80\t150\t200\n70\t140\t220\n85\t160\t190");
+
 const resizer = document.getElementById("resizerHandle");
 const leftPanel = document.getElementById("leftPanel");
 const svgWrapper = document.getElementById("svg-wrapper");
 const sizeHandles = document.querySelectorAll('.resize-handle');
-
-if (svgWrapper && window.ResizeObserver) {
-    const ro = new ResizeObserver(() => {
-        scheduleUpdatePlot(true);
-    });
-    ro.observe(svgWrapper);
-}
 
 resizer.addEventListener("mousedown", function(e) {
     e.preventDefault();
@@ -3383,7 +2022,7 @@ window.addEventListener('mousemove', (e) => {
     if (handlePosLeft) {
         handlePosLeft.textContent = `L: ${Math.round(chartOffsetX)}`;
     }
-    scheduleUpdatePlot();
+    updatePlot();
 });
 
 window.addEventListener('mouseup', () => {
