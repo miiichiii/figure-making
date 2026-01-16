@@ -304,6 +304,18 @@
             display: grid;
             gap: 6px;
         }
+        .explorer-title-display {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #cdd6e3;
+        }
+        .explorer-title-display span:last-child {
+            color: #f8f9fa;
+            font-weight: 600;
+            word-break: break-word;
+        }
         .explorer-table {
             width: max-content;
             min-width: 100%;
@@ -567,6 +579,10 @@
         </div>
         <div class="explorer-staged">
             <h4>Staged Group Data</h4>
+            <div class="explorer-title-display">
+                <span>Title:</span>
+                <span id="explorerTitleDisplay">-</span>
+            </div>
             <div id="explorer-staged-area"></div>
             <div class="explorer-staged-actions">
                 <button type="button" class="explorer-apply" onclick="applyStagedGroups()">Send to Main</button>
@@ -1467,6 +1483,7 @@ function sendExplorerToTitle() {
     if (!text) return;
     const mainEl = document.getElementById('chartTitleInput');
     if (mainEl) mainEl.value = text;
+    updateExplorerTitleDisplay();
     updatePlot();
     hideExplorerMenu();
 }
@@ -1554,6 +1571,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('plotMode')) {
         setPlotMode();
     }
+    updateExplorerTitleDisplay();
     const svgContainer = document.getElementById('svg-container');
     let draggingLegend = false;
 
@@ -1899,6 +1917,7 @@ function applyProfile(profile) {
         if (profile.labels.title !== undefined) {
             const mainTitleEl = document.getElementById('chartTitleInput');
             if (mainTitleEl) mainTitleEl.value = profile.labels.title || '';
+            updateExplorerTitleDisplay();
         }
         document.getElementById('xAxisLabel').value = profile.labels.x || '';
         document.getElementById('yAxisLabel').value = profile.labels.y || '';
@@ -2207,32 +2226,32 @@ function brunnerMunzel(x, y) {
     const n1 = x.length, n2 = y.length;
     if (n1 < 2 || n2 < 2) return { p: 1.0, w: 0 };
 
-    // 1. 共通ランク R の計箁E
     const combined = [...x.map(v => ({ v, g: 1 })), ...y.map(v => ({ v, g: 2 }))].sort((a, b) => a.v - b.v);
-    combined.forEach((d, i) => d.r = i + 1); // 簡易ランクEタイ調整なし！E
+    for (let i = 0; i < combined.length; ) {
+        let j = i + 1;
+        while (j < combined.length && combined[j].v === combined[i].v) j += 1;
+        const rank = (i + 1 + j) / 2;
+        for (let k = i; k < j; k++) combined[k].r = rank;
+        i = j;
+    }
 
     const r1 = combined.filter(d => d.g === 1).map(d => d.r);
     const r2 = combined.filter(d => d.g === 2).map(d => d.r);
 
-    // 2. 冁Eランク S の計箁E
-    const s1 = x.slice().sort((a, b) => a - b).map((v, i) => i + 1);
-    const s2 = y.slice().sort((a, b) => a - b).map((v, i) => i + 1);
-
     const m1 = r1.reduce((a, b) => a + b, 0) / n1;
     const m2 = r2.reduce((a, b) => a + b, 0) / n2;
 
-    // 3. 不偏刁Eの推宁E
-    const v1 = r1.reduce((sum, ri, i) => sum + Math.pow(ri - s1[i] - m1 + (n1 + 1) / 2, 2), 0) / (n1 - 1);
-    const v2 = r2.reduce((sum, rj, i) => sum + Math.pow(rj - s2[i] - m2 + (n2 + 1) / 2, 2), 0) / (n2 - 1);
+    const v1 = r1.reduce((sum, ri) => sum + Math.pow(ri - m1, 2), 0) / (n1 - 1);
+    const v2 = r2.reduce((sum, rj) => sum + Math.pow(rj - m2, 2), 0) / (n2 - 1);
 
-    // 4. 統計量 W の算E
-    const w = (n1 * n2 * (m2 - m1)) / ((n1 + n2) * Math.sqrt(n1 * v1 + n2 * v2));
+    const denom = Math.sqrt(v1 / n1 + v2 / n2);
+    if (!Number.isFinite(denom) || denom === 0) return { p: 1.0, w: 0, df: 0 };
+    const w = (m1 - m2) / denom;
 
-    // 5. 自由度 df の推宁E
-    const df = Math.pow(n1 * v1 + n2 * v2, 2) / (Math.pow(n1 * v1, 2) / (n1 - 1) + Math.pow(n2 * v2, 2) / (n2 - 1));
+    const df = Math.pow(v1 / n1 + v2 / n2, 2)
+        / (Math.pow(v1 / n1, 2) / (n1 - 1) + Math.pow(v2 / n2, 2) / (n2 - 1));
 
-    // 6. P値の算E (正規E币E似 - サンプルサイズが小さくなぁE揁E
-    const p = 2 * (1 - normalCDF(Math.abs(w)));
+    const p = 2 * (1 - tDistributionCDF(Math.abs(w), df));
     return { p, w, df };
 }
 
@@ -2594,7 +2613,15 @@ function getChartTitle() {
 function syncChartTitle() {
     const mainEl = document.getElementById('chartTitleInput');
     if (!mainEl) return;
+    updateExplorerTitleDisplay();
     updatePlot();
+}
+
+function updateExplorerTitleDisplay() {
+    const displayEl = document.getElementById('explorerTitleDisplay');
+    if (!displayEl) return;
+    const title = getChartTitle();
+    displayEl.textContent = title || '-';
 }
 
 function updatePlot(reflowPass = 0) {
