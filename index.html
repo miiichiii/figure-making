@@ -722,15 +722,18 @@
                     <div class="resize-handle resize-bl" data-handle="bl"></div>
                     <div class="resize-handle resize-br" data-handle="br"></div>
                     <div class="handle-pos" id="handlePosLeft" style="left: 6px; top: -18px;">L: 0</div>
+                    <div style="position:absolute; right:-220px; top: 6px; width: 210px; font-size: 0.75rem; color: #666; line-height: 1.4;">
+                        Tip: Drag the title, Y-axis label, and legend to reposition.
+                    </div>
                 </div>
                 <div class="graph-controls-row">
                     <div class="panel legend-panel" id="lineOptionsCard">
                         <div class="option-list">
-                            <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines (??????)</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showBars" onchange="handleShowBarsToggle()" checked> Show Bars (????)</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showBars" onchange="handleShowBarsToggle()" checked> Show Bars</label>
                         </div>
                         <div class="option-list" id="lineOptionsBody">
-                            <label style="font-weight: normal;"><input type="checkbox" id="showSampleLines" onchange="updatePlot()"> Sample Lines (????)</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showSampleLines" onchange="updatePlot()"> Sample Lines</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="showMean" onchange="updatePlot()" checked> Mean Line / Dots</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="showMeanDots" onchange="updatePlot()" checked> Mean Dots (Line Mode)</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="showErrorBars" onchange="updatePlot()" checked> Error Bars</label>
@@ -777,7 +780,7 @@
                             <div class="control-item">
                                 <label for="jitter">Dot Jitter</label>
                                 <div class="compact-row">
-                                    <input type="number" id="jitter" min="0" max="40" value="15" oninput="updatePlot()">
+                                    <input type="number" id="jitter" min="0" max="40" value="8" oninput="updatePlot()">
                                 </div>
                             </div>
                         </div>
@@ -800,7 +803,7 @@
                             <input type="number" id="numTicks" value="5" min="2" max="12" oninput="updatePlot()">
                         </div>
                         <div class="control-item">
-                            <label>Error Bar</label>
+                            <label style="margin-bottom:2px;">Error Bar</label>
                             <input type="hidden" id="errorType" value="se">
                             <div class="error-toggle">
                                 <button type="button" id="err-sem" class="btn-mini active" style="width:auto;" onclick="setErrorType('se')">SEM</button>
@@ -1563,10 +1566,10 @@ function sendExplorerToTitle() {
 }
 
 function applyStagedGroups() {
-    // 1. UI???????????
+    // 1. Collect staged UI data
     collectStagedGroupsFromUI();
 
-    // 2. ??????????????????
+    // 2. Determine staged group indices
     const indices = Object.keys(stagedGroups)
         .map(n => parseInt(n, 10))
         .filter(n => !isNaN(n) && stagedGroups[n] && stagedGroups[n].trim() !== '');
@@ -1576,19 +1579,19 @@ function applyStagedGroups() {
         return;
     }
 
-    // A. ??Comparison???
+    // A. Force comparison mode
     const plotMode = document.getElementById('plotMode');
     if (plotMode) {
         plotMode.value = 'comparison';
         setPlotMode();
     }
 
-    // B. ????ID??????
+    // B. Ensure group IDs are contiguous
     renumberGroups();
 
-    // 3. ?????????
+    // 3. Apply staged data
     indices.sort((a, b) => a - b).forEach((groupNum) => {
-        // ???????????????????????
+        // Create missing groups up to target
         while (groupCount < groupNum) {
             const isTarget = (groupCount + 1) === groupNum;
             const initialData = isTarget ? (stagedGroups[groupNum] || "") : "";
@@ -1596,7 +1599,7 @@ function applyStagedGroups() {
             addNewGroup(initialName, "", initialData);
         }
 
-        // ????????
+        // Update group data
         const target = document.getElementById(`group_${groupNum}`);
         
         if (target) {
@@ -1613,7 +1616,7 @@ function applyStagedGroups() {
         }
     });
 
-    // 4. ??????????
+    // 4. Auto-reset Y max
     const yMaxInputEl = document.getElementById('yMaxInput');
     if (yMaxInputEl) {
         yMaxInputEl.dataset.auto = 'true';
@@ -2021,7 +2024,7 @@ function applyProfile(profile) {
         document.getElementById('fontSizeX').value = profile.style.fontX || '10';
         document.getElementById('fontSizeY').value = profile.style.fontY || '10';
         document.getElementById('dotSize').value = profile.style.dotSize || '3';
-        document.getElementById('jitter').value = profile.style.jitter || '15';
+        document.getElementById('jitter').value = profile.style.jitter || '8';
         if (profile.style.barWidth !== undefined) {
             barWidthState = parseFloat(profile.style.barWidth) || barWidthState;
         }
@@ -2123,7 +2126,7 @@ function resetProfile() {
         chartSize: { width: '300', height: '200' },
         yAxis: { min: '0', max: '0', ticks: '5', errorType: 'se' },
         labels: { x: '', y: '', titleItalic: false, titleSize: '10', xOffset: '25', yOffset: '25', xFont: '10', yFont: '10' },
-        style: { fontX: '10', fontY: '10', dotSize: '3', jitter: '15' },
+        style: { fontX: '10', fontY: '10', dotSize: '3', jitter: '8' },
         options: {
             showLines: false,
             showBars: false,
