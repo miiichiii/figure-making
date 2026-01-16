@@ -3675,10 +3675,14 @@ summary_stats <- df %>%
   )
 print(summary_stats)
 
-# Two-group Welch t-test per Time
+# Two-group Welch t-test + Brunner-Munzel per Time
 if (length(levels(df$Group)) == 2) {
+  if (!requireNamespace("lawstat", quietly = TRUE)) {
+    install.packages("lawstat")
+  }
   by(df, df$Time, function(sub) {
     print(t.test(Value ~ Group, data = sub))
+    print(lawstat::brunner.munzel.test(Value ~ Group, data = sub))
   })
 } else {
   # One-way ANOVA per Time
@@ -3698,7 +3702,18 @@ if (length(levels(df$Group)) == 2) {
 async function copySvgToClipboard() {
     const svgEl = document.querySelector('#svg-container svg');
     if (!svgEl) return;
-    const svgData = new XMLSerializer().serializeToString(svgEl);
+    let svgData = new XMLSerializer().serializeToString(svgEl);
+    const theme = document.documentElement.getAttribute('data-theme');
+    const lightSvgBg = '#F6F0E3';
+    const lightSvgInk = '#2B2A27';
+    if (theme === 'dark') {
+        const darkSvgBg = getCssVar('--svg-bg') || '#1C2226';
+        const darkSvgInk = getCssVar('--svg-ink') || '#E7E7E7';
+        svgData = svgData.split(darkSvgBg).join(lightSvgBg);
+        svgData = svgData.split(darkSvgInk).join(lightSvgInk);
+    }
+    svgData = svgData.replace(`background:${lightSvgBg};`, 'background:transparent;');
+    svgData = svgData.replace(/<rect x="0" y="0" width="[^"]+" height="[^"]+" fill="[^"]+" ?\\/>/, '');
     const svgBlob = new Blob([svgData], { type: "image/svg+xml" });
 
     try {
