@@ -508,6 +508,7 @@
         .bar-width-card .control-item { margin: 0; }
         .bar-draggable { cursor: grab; }
         .bar-draggable.dragging { cursor: grabbing; opacity: 0.8; stroke: #ff69b4; stroke-width: 2; }
+        .group-label { cursor: ns-resize; user-select: none; }
         .graph-controls-row {
             grid-column: 2;
             grid-row: 2;
@@ -866,11 +867,15 @@ let stagedGroupNames = {};
 let explorerTreeState = {};
 let barWidthState = 28;
 let groupOffsetX = [];
+let groupLabelOffsetY = [];
 let undoStack = [];
 let redoStack = [];
 let draggingBarIndex = null;
 let draggingStartOffset = 0;
 let draggingBarStartX = 0;
+let draggingGroupLabelIndex = null;
+let draggingGroupLabelStartY = 0;
+let draggingGroupLabelStartOffset = 0;
 let autoBottomPad = 0;
 let targetBottomPad = 0;
 let stableZeroSince = null;
@@ -1365,6 +1370,39 @@ function onBarPointerDown(e) {
     window.addEventListener('pointerup', onBarPointerUp, { once: true });
 }
 
+function onGroupLabelPointerDown(e) {
+    const label = e.target.closest('text.group-label');
+    if (!label) return false;
+    const idx = parseInt(label.dataset.groupIndex, 10);
+    if (isNaN(idx)) return true;
+    e.preventDefault();
+    draggingGroupLabelIndex = idx;
+    draggingGroupLabelStartY = e.clientY;
+    draggingGroupLabelStartOffset = groupLabelOffsetY[idx] || 0;
+    window.addEventListener('pointermove', onGroupLabelPointerMove);
+    window.addEventListener('pointerup', onGroupLabelPointerUp, { once: true });
+    return true;
+}
+
+function onGroupLabelPointerMove(e) {
+    if (draggingGroupLabelIndex === null) return;
+    const svgContainer = document.getElementById('svg-container');
+    const svg = svgContainer ? svgContainer.querySelector('svg') : null;
+    if (!svg || !plotMetrics) return;
+    const rect = svg.getBoundingClientRect();
+    if (!rect.height) return;
+    const dyPx = e.clientY - draggingGroupLabelStartY;
+    const scaleY = plotMetrics.height / rect.height;
+    groupLabelOffsetY[draggingGroupLabelIndex] = draggingGroupLabelStartOffset + (dyPx * scaleY);
+    updatePlot();
+}
+
+function onGroupLabelPointerUp() {
+    draggingGroupLabelIndex = null;
+    window.removeEventListener('pointermove', onGroupLabelPointerMove);
+    updatePlot();
+}
+
 function onBarPointerMove(e) {
     if (draggingBarIndex === null) return;
     const step = e.shiftKey ? 10 : (e.altKey ? 1 : 2);
@@ -1528,7 +1566,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('mouseup', () => {
             draggingLegend = false;
         });
-        svgContainer.addEventListener('pointerdown', onBarPointerDown);
+        svgContainer.addEventListener('pointerdown', (e) => {
+            if (onGroupLabelPointerDown(e)) return;
+            onBarPointerDown(e);
+        });
     }
 
     const explorerPanel = document.getElementById('explorer-panel');
@@ -1625,6 +1666,7 @@ function resetGroups() {
     container.innerHTML = '';
     groupCount = 0;
     groupOffsetX = [];
+    groupLabelOffsetY = [];
 }
 
 function loadSampleTimeline() {
@@ -1654,6 +1696,12 @@ function loadSampleComparison() {
 function ensureGroupOffsets(len) {
     for (let i = 0; i < len; i++) {
         if (groupOffsetX[i] === undefined || isNaN(groupOffsetX[i])) groupOffsetX[i] = 0;
+    }
+}
+
+function ensureGroupLabelOffsets(len) {
+    for (let i = 0; i < len; i++) {
+        if (groupLabelOffsetY[i] === undefined || isNaN(groupLabelOffsetY[i])) groupLabelOffsetY[i] = 0;
     }
 }
 
@@ -2843,6 +2891,7 @@ function updatePlot(reflowPass = 0) {
     }));
     const nGroups = groupConfigs.length;
     ensureGroupOffsets(nGroups);
+    ensureGroupLabelOffsets(nGroups);
     const getCompCenter = (gIdx) => pL + (gIdx + 0.5) * (graphW / nGroups) + (groupOffsetX[gIdx] || 0);
     const getTimeCenter = (tIdx, gIdx, groupSpace) => {
         const base = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
@@ -2910,11 +2959,12 @@ function updatePlot(reflowPass = 0) {
             svgItems.push(`<rect class="bar-draggable${dragClass}" data-group-index="${gIdx}" x="${x - barWidth / 2}" y="${barY}" width="${barWidth}" height="${barH}" fill="${group.color}" fill-opacity="0.35" stroke="black" stroke-width="0.8"/>`);
         }
         if (showErrorBars) {
+            const capHalf = Math.min(5, barWidth * 0.25);
             svgItems.push(`
     <g stroke="black" stroke-width="1.2">
         <line x1="${x}" y1="${yB}" x2="${x}" y2="${yT}" />
-        <line x1="${x-5}" y1="${yT}" x2="${x+5}" y2="${yT}" />
-        <line x1="${x-5}" y1="${yB}" x2="${x+5}" y2="${yB}" />
+        <line x1="${x-capHalf}" y1="${yT}" x2="${x+capHalf}" y2="${yT}" />
+        <line x1="${x-capHalf}" y1="${yB}" x2="${x+capHalf}" y2="${yB}" />
     </g>`);
             if (!showBars) {
                 svgItems.push(`<line x1="${x-12}" y1="${yM}" x2="${x+12}" y2="${yM}" stroke="black" stroke-width="3" />`);
@@ -2965,7 +3015,8 @@ function updatePlot(reflowPass = 0) {
             if (s.n > 0) {
                 drawGroupContent(x, data, s, group, barWidth, baselineVal, gIdx);
             }
-            svgItems.push(`<text class="x-axis-label" x="${x}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial">${group.name}</text>`);
+            const labelY = height - pB + fsX + 10 + (groupLabelOffsetY[gIdx] || 0);
+            svgItems.push(`<text class="x-axis-label group-label" data-group-index="${gIdx}" x="${x}" y="${labelY}" text-anchor="middle" font-size="${fsX}" font-family="Arial">${group.name}</text>`);
         });
     } else {
         if (showLines) {
