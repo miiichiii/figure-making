@@ -531,7 +531,11 @@
         <div class="explorer-header">
             <h3>Explorer</h3>
         </div>
-                <div class="explorer-controls">
+        <div class="explorer-controls">
+            <div>
+                <label for="chartTitleExplorer">Graph Title</label>
+                <input type="text" id="chartTitleExplorer" class="text-input" placeholder="Title" oninput="syncChartTitle('explorer')">
+            </div>
             <div class="explorer-top-row">
                 <div class="drop-zone" id="explorerDropZone">
                     <div class="drop-title">Drag & Drop local files or folders</div>
@@ -607,6 +611,10 @@
             <input type="text" id="timePointsInput" class="text-input" value="Day1 Day3 Day7" oninput="updatePlot()">
         </div>
 
+        <div class="master-label-card" style="background:#f8f9fb; border-color:#e6e9ef;">
+            <label>Graph Title</label>
+            <input type="text" id="chartTitleInput" class="text-input" placeholder="Title" oninput="syncChartTitle('main')">
+        </div>
         <div id="groupDataSection">
             <h3>2. Group Data</h3>
             <div id="groupsContainer">
@@ -1766,6 +1774,7 @@ function collectProfile() {
             errorType: document.getElementById('errorType').value
         },
         labels: {
+            title: document.getElementById('chartTitleInput')?.value || '',
             x: document.getElementById('xAxisLabel').value,
             y: document.getElementById('yAxisLabel').value,
             xOffset: document.getElementById('xLabelOffset').value,
@@ -1823,6 +1832,12 @@ function applyProfile(profile) {
         setErrorType(profile.yAxis.errorType || 'se');
     }
     if (profile.labels) {
+        if (profile.labels.title !== undefined) {
+            const mainTitleEl = document.getElementById('chartTitleInput');
+            const explorerTitleEl = document.getElementById('chartTitleExplorer');
+            if (mainTitleEl) mainTitleEl.value = profile.labels.title || '';
+            if (explorerTitleEl) explorerTitleEl.value = profile.labels.title || '';
+        }
         document.getElementById('xAxisLabel').value = profile.labels.x || '';
         document.getElementById('yAxisLabel').value = profile.labels.y || '';
         document.getElementById('xLabelOffset').value = profile.labels.xOffset || '25';
@@ -2509,6 +2524,23 @@ function scheduleUpdatePlot(resetPad = false) {
     });
 }
 
+function getChartTitle() {
+    const mainEl = document.getElementById('chartTitleInput');
+    const explorerEl = document.getElementById('chartTitleExplorer');
+    return (mainEl?.value || explorerEl?.value || '').trim();
+}
+
+function syncChartTitle(source) {
+    const mainEl = document.getElementById('chartTitleInput');
+    const explorerEl = document.getElementById('chartTitleExplorer');
+    const nextVal = source === 'explorer'
+        ? (explorerEl ? explorerEl.value : '')
+        : (mainEl ? mainEl.value : '');
+    if (mainEl && mainEl.value !== nextVal) mainEl.value = nextVal;
+    if (explorerEl && explorerEl.value !== nextVal) explorerEl.value = nextVal;
+    updatePlot();
+}
+
 function updatePlot(reflowPass = 0) {
     const mode = document.getElementById('plotMode').value;
     const survivalMode = mode === 'survival';
@@ -2573,6 +2605,9 @@ function updatePlot(reflowPass = 0) {
     }
     const xAxisLabel = document.getElementById('xAxisLabel').value.trim();
     const yAxisLabel = document.getElementById('yAxisLabel').value.trim();
+    const titleText = getChartTitle();
+    const titleFontSize = Math.max(16, fsY + 2);
+    const titlePad = titleText ? (titleFontSize + 12) : 0;
     const xLabelOffset = parseFloat(document.getElementById('xLabelOffset').value) || 0;
     const yLabelOffset = parseFloat(document.getElementById('yLabelOffset').value) || 0;
     const xAxisFontSize = parseFloat(document.getElementById('xAxisFontSize').value) || fsX;
@@ -2677,7 +2712,7 @@ function updatePlot(reflowPass = 0) {
         if (xMaxEl && (isAutoX || xMaxInput <= 0 || Number.isNaN(xMaxInput))) {
             xMaxEl.value = safeXMax;
         }
-        const pL = fsY * 4.6, pB = fsX * 3 + 6 + autoBottomPad, pT = 30, pR = 30;
+        const pL = fsY * 4.6, pB = fsX * 3 + 6 + autoBottomPad, pT = 30 + titlePad, pR = 30;
         const graphW = width - pL - pR, graphH = height - pB - pT;
         if (graphW <= 0 || graphH <= 0) {
             return;
@@ -2689,6 +2724,9 @@ function updatePlot(reflowPass = 0) {
         const yScale = (v) => height - pB - (v / yMax * graphH);
         plotMetrics = { pL, pT, graphW, graphH, width, height };
 
+        if (titleText) {
+            svgItems.push(`<text x="${width / 2}" y="${titleFontSize + 6}" text-anchor="middle" font-size="${titleFontSize}" font-family="Arial" font-weight="bold">${titleText}</text>`);
+        }
         svgItems.push(`<line x1="${pL}" y1="${height-pB}" x2="${pL}" y2="${pT}" stroke="black" stroke-width="1.2"/>`);
 
         for (let i = 0; i <= numTicks; i++) {
@@ -2850,7 +2888,7 @@ function updatePlot(reflowPass = 0) {
         if (yMinInputEl) yMinInputEl.value = yMin;
     }
 
-    const pL = fsY * 4.6, pB = fsX * 3 + 6 + autoBottomPad, pT = 30, pR = 30;
+    const pL = fsY * 4.6, pB = fsX * 3 + 6 + autoBottomPad, pT = 30 + titlePad, pR = 30;
     const graphW = width - pL - pR, graphH = height - pB - pT;
     const yScale = (v) => height - pB - ((v - yMin) / (yMax - yMin) * graphH);
     plotMetrics = { pL, pT, graphW, graphH, width, height };
@@ -2890,6 +2928,9 @@ function updatePlot(reflowPass = 0) {
         }
     }
 
+    if (titleText) {
+        svgItems.push(`<text x="${width / 2}" y="${titleFontSize + 6}" text-anchor="middle" font-size="${titleFontSize}" font-family="Arial" font-weight="bold">${titleText}</text>`);
+    }
     // 軸
     svgItems.push(`<line x1="${pL}" y1="${height-pB}" x2="${pL}" y2="${pT}" stroke="black" stroke-width="${strokeW}"/>`);
     svgItems.push(`<line x1="${pL}" y1="${height-pB}" x2="${width-pR}" y2="${height-pB}" stroke="black" stroke-width="${strokeW}"/>`);
