@@ -420,6 +420,9 @@
             padding: 4px 6px;
             text-align: left;
             user-select: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .explorer-table th {
             position: relative;
@@ -1093,12 +1096,22 @@ let explorerSelection = null;
 let explorerFiles = [];
 let stagedGroups = {};
 let explorerColWidths = [];
-const explorerColMinWidth = 8;
+let explorerColRecommendedWidths = [];
+let explorerColHardMinWidths = [];
+const explorerColMinWidth = 40;
 const explorerColMaxWidth = 800;
 const explorerColDefaultWidth = 120;
 const explorerColStorageKey = 'csvPreviewColWidths';
 const explorerHideDecimalsKey = 'csvPreviewHideDecimals';
 let explorerHideDecimals = null;
+const explorerMinBase = 40;
+const explorerMinCharPx = 7;
+const explorerMinFloor = 80;
+const explorerMinCeil = 380;
+const explorerMinFloorFirst = 120;
+const explorerHardMinWidth = 40;
+const explorerHardMinWidthFirst = 60;
+const explorerMinSampleRows = 30;
 let explorerOpenedOnce = false;
 let explorerWorkbook = null;
 let explorerSheetName = null;
@@ -1334,6 +1347,8 @@ function renderExplorerPreview() {
         return;
     }
     const hideDecimals = getExplorerHideDecimals();
+    explorerColRecommendedWidths = computeExplorerColRecommendedWidths(maxCols, maxRows);
+    explorerColHardMinWidths = computeExplorerColHardMinWidths(maxCols);
     const colWidths = normalizeExplorerColWidths(maxCols);
     const allWidth = Math.round(colWidths.reduce((a, b) => a + b, 0) / Math.max(1, colWidths.length));
     let html = `
@@ -1343,6 +1358,7 @@ function renderExplorerPreview() {
             <input type="number" id="explorerColWidthInput" min="${explorerColMinWidth}" max="${explorerColMaxWidth}" value="${allWidth}" style="width:80px;">
             <button type="button" id="explorerColWidthMinus">-20px</button>
             <button type="button" id="explorerColWidthPlus">+20px</button>
+            <button type="button" id="explorerColWidthReset">Reset</button>
             <label style="display:flex; align-items:center; gap:6px;">
                 <input type="checkbox" id="explorerHideDecimalsToggle"${hideDecimals ? ' checked' : ''}>
                 Hide decimals
@@ -1354,7 +1370,8 @@ function renderExplorerPreview() {
     }
     html += '</colgroup><thead><tr>';
     for (let c = 0; c < maxCols; c++) {
-        html += `<th data-col="${c}">Col ${c + 1}<span class="col-resizer" data-col="${c}"></span></th>`;
+        const headerLabel = `Col ${c + 1}`;
+        html += `<th data-col="${c}" title="${escapeHtml(headerLabel)}">${headerLabel}<span class="col-resizer" data-col="${c}"></span></th>`;
     }
     html += '</tr></thead><tbody>';
     for (let r = 0; r < maxRows; r++) {
@@ -1362,10 +1379,11 @@ function renderExplorerPreview() {
         for (let c = 0; c < maxCols; c++) {
             const val = explorerData[r] && explorerData[r][c] !== undefined ? explorerData[r][c] : '';
             const displayVal = formatExplorerCellValue(val);
+            const rawTitle = val === null || val === undefined ? '' : String(val);
             const cellClass = explorerSelection && r >= explorerSelection.r1 && r <= explorerSelection.r2 && c >= explorerSelection.c1 && c <= explorerSelection.c2
                 ? 'explorer-selected'
                 : '';
-            html += `<td class=\"${cellClass}\" data-row=\"${r}\" data-col=\"${c}\">${displayVal}</td>`;
+            html += `<td class=\"${cellClass}\" data-row=\"${r}\" data-col=\"${c}\" title="${escapeHtml(rawTitle)}">${escapeHtml(String(displayVal))}</td>`;
         }
         html += '</tr>';
     }
@@ -1382,9 +1400,19 @@ function renderExplorerPreview() {
     bindExplorerColumnResizers();
 }
 
-function clampExplorerColWidth(value) {
+function clampExplorerColWidth(value, minOverride) {
+    const minVal = Number.isFinite(minOverride) ? minOverride : explorerColMinWidth;
     const num = Math.round(Number(value) || explorerColDefaultWidth);
-    return Math.min(explorerColMaxWidth, Math.max(explorerColMinWidth, num));
+    return Math.min(explorerColMaxWidth, Math.max(minVal, num));
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 function getExplorerHideDecimals() {
@@ -1392,6 +1420,31 @@ function getExplorerHideDecimals() {
         explorerHideDecimals = localStorage.getItem(explorerHideDecimalsKey) === 'true';
     }
     return explorerHideDecimals;
+}
+
+function computeExplorerColRecommendedWidths(colCount, rowCount) {
+    if (!colCount) return [];
+    const rowsToCheck = Math.min(explorerMinSampleRows, rowCount || 0);
+    const recommended = [];
+    for (let c = 0; c < colCount; c++) {
+        let maxLen = `Col ${c + 1}`.length;
+        for (let r = 0; r < rowsToCheck; r++) {
+            const val = explorerData[r] && explorerData[r][c] !== undefined ? explorerData[r][c] : '';
+            const len = String(val ?? '').length;
+            if (len > maxLen) maxLen = len;
+        }
+        const estimate = explorerMinBase + maxLen * explorerMinCharPx;
+        const floor = c === 0 ? explorerMinFloorFirst : explorerMinFloor;
+        recommended[c] = clampExplorerColWidth(estimate, floor);
+        if (recommended[c] > explorerMinCeil) recommended[c] = explorerMinCeil;
+    }
+    return recommended;
+}
+
+function computeExplorerColHardMinWidths(colCount) {
+    return Array.from({ length: colCount }, (_, idx) =>
+        idx === 0 ? explorerHardMinWidthFirst : explorerHardMinWidth
+    );
 }
 
 function setExplorerHideDecimals(value) {
@@ -1417,7 +1470,7 @@ function loadExplorerColWidths() {
         const raw = localStorage.getItem(explorerColStorageKey);
         const parsed = raw ? JSON.parse(raw) : [];
         if (!Array.isArray(parsed)) return [];
-        return parsed.map(clampExplorerColWidth);
+        return parsed.map((w, idx) => clampExplorerColWidth(w, explorerColHardMinWidths[idx]));
     } catch (err) {
         return [];
     }
@@ -1439,17 +1492,24 @@ function normalizeExplorerColWidths(colCount) {
     if (!explorerColWidths.length) {
         explorerColWidths = loadExplorerColWidths();
     }
-    let sanitized = explorerColWidths.filter(n => Number.isFinite(n) && n > 0).map(clampExplorerColWidth);
+    let sanitized = explorerColWidths.filter(n => Number.isFinite(n) && n > 0)
+        .map((w, idx) => clampExplorerColWidth(w, explorerColHardMinWidths[idx]));
     if (!sanitized.length) {
-        sanitized = Array(colCount).fill(explorerColDefaultWidth);
+        sanitized = Array.from({ length: colCount }, (_, idx) => {
+            const recommended = explorerColRecommendedWidths[idx] || explorerColDefaultWidth;
+            return clampExplorerColWidth(recommended, explorerColHardMinWidths[idx]);
+        });
     }
     if (sanitized.length < colCount) {
-        const fillVal = sanitized[sanitized.length - 1] || explorerColDefaultWidth;
-        sanitized = sanitized.concat(Array(colCount - sanitized.length).fill(fillVal));
+        for (let i = sanitized.length; i < colCount; i++) {
+            const recommended = explorerColRecommendedWidths[i] || explorerColDefaultWidth;
+            sanitized.push(clampExplorerColWidth(recommended, explorerColHardMinWidths[i]));
+        }
     }
     if (sanitized.length > colCount) {
         sanitized = sanitized.slice(0, colCount);
     }
+    sanitized = sanitized.map((w, idx) => clampExplorerColWidth(w, explorerColHardMinWidths[idx]));
     explorerColWidths = sanitized;
     saveExplorerColWidths();
     return explorerColWidths;
@@ -1460,7 +1520,9 @@ function applyExplorerColWidths() {
     if (!table) return;
     const cols = table.querySelectorAll('colgroup col');
     cols.forEach((col, idx) => {
-        const width = explorerColWidths[idx] || explorerColDefaultWidth;
+        const minVal = explorerColHardMinWidths[idx];
+        const width = clampExplorerColWidth(explorerColWidths[idx] || explorerColDefaultWidth, minVal);
+        explorerColWidths[idx] = width;
         col.style.width = `${width}px`;
     });
 }
@@ -1475,15 +1537,21 @@ function updateExplorerColControlsValue() {
 }
 
 function setAllExplorerColWidths(value) {
-    const width = clampExplorerColWidth(value);
-    explorerColWidths = explorerColWidths.map(() => width);
+    const requested = Number(value) || explorerColDefaultWidth;
+    explorerColWidths = explorerColWidths.map((_, idx) => {
+        const minVal = explorerColHardMinWidths[idx];
+        return clampExplorerColWidth(Math.max(requested, minVal), minVal);
+    });
     applyExplorerColWidths();
     saveExplorerColWidths();
     updateExplorerColControlsValue();
 }
 
 function bumpAllExplorerColWidths(delta) {
-    explorerColWidths = explorerColWidths.map(w => clampExplorerColWidth(w + delta));
+    explorerColWidths = explorerColWidths.map((w, idx) => {
+        const minVal = explorerColHardMinWidths[idx];
+        return clampExplorerColWidth(w + delta, minVal);
+    });
     applyExplorerColWidths();
     saveExplorerColWidths();
     updateExplorerColControlsValue();
@@ -1495,6 +1563,7 @@ function bindExplorerColumnControls(maxCols) {
     const input = document.getElementById('explorerColWidthInput');
     const minus = document.getElementById('explorerColWidthMinus');
     const plus = document.getElementById('explorerColWidthPlus');
+    const reset = document.getElementById('explorerColWidthReset');
     const hideDecimalsToggle = document.getElementById('explorerHideDecimalsToggle');
     if (range) {
         range.addEventListener('input', () => setAllExplorerColWidths(range.value));
@@ -1508,6 +1577,14 @@ function bindExplorerColumnControls(maxCols) {
     }
     if (plus) {
         plus.addEventListener('click', () => bumpAllExplorerColWidths(20));
+    }
+    if (reset) {
+        reset.addEventListener('click', () => {
+            explorerColWidths = explorerColRecommendedWidths.slice();
+            applyExplorerColWidths();
+            saveExplorerColWidths();
+            updateExplorerColControlsValue();
+        });
     }
     if (hideDecimalsToggle) {
         hideDecimalsToggle.addEventListener('change', () => {
@@ -1523,7 +1600,8 @@ let explorerColResizeState = null;
 function handleExplorerColResizeMove(e) {
     if (!explorerColResizeState) return;
     const dx = e.clientX - explorerColResizeState.startX;
-    const next = clampExplorerColWidth(explorerColResizeState.startWidth + dx);
+    const minVal = explorerColHardMinWidths[explorerColResizeState.colIndex];
+    const next = clampExplorerColWidth(explorerColResizeState.startWidth + dx, minVal);
     explorerColWidths[explorerColResizeState.colIndex] = next;
     applyExplorerColWidths();
     saveExplorerColWidths();
@@ -1547,6 +1625,17 @@ function bindExplorerColumnResizers() {
             document.body.classList.add('no-select');
             window.addEventListener('pointermove', handleExplorerColResizeMove);
             window.addEventListener('pointerup', handleExplorerColResizeEnd, { once: true });
+        });
+        resizer.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const colIndex = parseInt(resizer.dataset.col || '0', 10);
+            const recVal = explorerColRecommendedWidths[colIndex] || explorerColDefaultWidth;
+            const hardMin = explorerColHardMinWidths[colIndex];
+            explorerColWidths[colIndex] = clampExplorerColWidth(recVal, hardMin);
+            applyExplorerColWidths();
+            saveExplorerColWidths();
+            updateExplorerColControlsValue();
         });
     });
 }
