@@ -401,8 +401,7 @@
             word-break: break-word;
         }
         .explorer-table {
-            width: max-content;
-            min-width: 100%;
+            width: auto;
             border-collapse: collapse;
             background: var(--explorer-card);
             color: var(--explorer-text);
@@ -427,15 +426,16 @@
         .explorer-table th {
             position: relative;
         }
-        .col-resizer {
-            position: absolute;
-            right: -2px;
-            top: 0;
-            width: 10px;
-            height: 100%;
-            cursor: col-resize;
-            background: transparent;
-        }
+.col-resizer {
+    position: absolute;
+    right: -5px;
+    top: 0;
+    width: 15px;
+    height: 100%;
+    cursor: col-resize;
+    background: transparent;
+    z-index: 2000;
+}
         .col-resizer::after {
             content: "";
             position: absolute;
@@ -1098,19 +1098,19 @@ let stagedGroups = {};
 let explorerColWidths = [];
 let explorerColRecommendedWidths = [];
 let explorerColHardMinWidths = [];
-const explorerColMinWidth = 40;
+const explorerColMinWidth = 10;
 const explorerColMaxWidth = 800;
 const explorerColDefaultWidth = 120;
 const explorerColStorageKey = 'csvPreviewColWidths';
 const explorerHideDecimalsKey = 'csvPreviewHideDecimals';
 let explorerHideDecimals = null;
-const explorerMinBase = 40;
+const explorerMinBase = 10;
 const explorerMinCharPx = 7;
-const explorerMinFloor = 80;
+const explorerMinFloor = 10;
 const explorerMinCeil = 380;
-const explorerMinFloorFirst = 120;
-const explorerHardMinWidth = 40;
-const explorerHardMinWidthFirst = 60;
+const explorerMinFloorFirst = 10;
+const explorerHardMinWidth = 10;
+const explorerHardMinWidthFirst = 10;
 const explorerMinSampleRows = 30;
 let explorerOpenedOnce = false;
 let explorerWorkbook = null;
@@ -1519,12 +1519,32 @@ function applyExplorerColWidths() {
     const table = document.querySelector('.explorer-table');
     if (!table) return;
     const cols = table.querySelectorAll('colgroup col');
+    const headers = table.querySelectorAll('thead th');
+    const rows = table.querySelectorAll('tbody tr');
+    let totalWidth = 0;
     cols.forEach((col, idx) => {
-        const minVal = explorerColHardMinWidths[idx];
+        const minVal = explorerColHardMinWidths[idx] ?? explorerColMinWidth;
         const width = clampExplorerColWidth(explorerColWidths[idx] || explorerColDefaultWidth, minVal);
         explorerColWidths[idx] = width;
         col.style.width = `${width}px`;
+        totalWidth += width;
     });
+    headers.forEach((th, idx) => {
+        const width = explorerColWidths[idx] || explorerColDefaultWidth;
+        th.style.width = `${width}px`;
+        th.style.maxWidth = `${width}px`;
+    });
+    rows.forEach((row) => {
+        const cells = row.children;
+        for (let i = 0; i < cells.length; i++) {
+            const width = explorerColWidths[i] || explorerColDefaultWidth;
+            cells[i].style.width = `${width}px`;
+            cells[i].style.maxWidth = `${width}px`;
+        }
+    });
+    if (totalWidth > 0) {
+        table.style.width = `${totalWidth}px`;
+    }
 }
 
 function updateExplorerColControlsValue() {
@@ -1537,10 +1557,15 @@ function updateExplorerColControlsValue() {
 }
 
 function setAllExplorerColWidths(value) {
-    const requested = Number(value) || explorerColDefaultWidth;
-    explorerColWidths = explorerColWidths.map((_, idx) => {
-        const minVal = explorerColHardMinWidths[idx];
-        return clampExplorerColWidth(Math.max(requested, minVal), minVal);
+    if (!explorerData || explorerData.length === 0) return;
+    const table = document.querySelector('.explorer-table');
+    const cols = table ? table.querySelectorAll('colgroup col') : [];
+    const colCount = cols.length;
+    if (colCount === 0) return;
+    const requested = Number(value) || 10;
+    explorerColWidths = Array.from({ length: colCount }, (_, idx) => {
+        const minVal = (explorerColHardMinWidths && explorerColHardMinWidths[idx]) ? explorerColHardMinWidths[idx] : 10;
+        return Math.max(requested, minVal);
     });
     applyExplorerColWidths();
     saveExplorerColWidths();
