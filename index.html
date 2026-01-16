@@ -411,11 +411,73 @@
             overflow: hidden;
             user-select: none;
         }
+        .explorer-table.fixed {
+            table-layout: fixed;
+        }
         .explorer-table th,
         .explorer-table td {
             border: 1px solid var(--explorer-border);
             padding: 4px 6px;
             text-align: left;
+            user-select: none;
+        }
+        .explorer-table th {
+            position: relative;
+        }
+        .col-resizer {
+            position: absolute;
+            right: -2px;
+            top: 0;
+            width: 10px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+        }
+        .col-resizer::after {
+            content: "";
+            position: absolute;
+            right: 4px;
+            top: 20%;
+            width: 2px;
+            height: 60%;
+            background: var(--explorer-border);
+            border-radius: 1px;
+            opacity: 0.7;
+        }
+        .col-resizer:hover::after {
+            background: var(--accent);
+            opacity: 1;
+        }
+        .explorer-col-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .explorer-col-controls label {
+            font-size: 0.75rem;
+            color: var(--explorer-muted);
+        }
+        .explorer-col-controls input[type="number"],
+        .explorer-col-controls input[type="range"] {
+            background: var(--explorer-input-bg);
+            color: var(--explorer-input-text);
+            border: 1px solid var(--explorer-border);
+            border-radius: 4px;
+        }
+        .explorer-col-controls button {
+            background: var(--accent);
+            color: var(--button-text);
+            border: 1px solid var(--explorer-border);
+            border-radius: 6px;
+            padding: 6px 8px;
+            cursor: pointer;
+        }
+        .explorer-col-controls button:hover {
+            background: var(--accent-2);
+        }
+        .no-select {
             user-select: none;
         }
         .explorer-table tr:hover td {
@@ -1030,6 +1092,11 @@ let explorerSelecting = false;
 let explorerSelection = null;
 let explorerFiles = [];
 let stagedGroups = {};
+let explorerColWidths = [];
+const explorerColMinWidth = 40;
+const explorerColMaxWidth = 800;
+const explorerColDefaultWidth = 120;
+const explorerColStorageKey = 'csvPreviewColWidths';
 let explorerOpenedOnce = false;
 let explorerWorkbook = null;
 let explorerSheetName = null;
@@ -1260,9 +1327,27 @@ function renderExplorerPreview() {
     }
     const maxRows = Math.min(200, explorerData.length);
     const maxCols = Math.max(...explorerData.slice(0, maxRows).map(r => r.length), 0);
-    let html = '<div class=\"explorer-preview-wrap\"><table class=\"explorer-table\"><thead><tr>';
+    if (maxCols === 0) {
+        area.innerHTML = '<p class="explorer-note">No preview available.</p>';
+        return;
+    }
+    const colWidths = normalizeExplorerColWidths(maxCols);
+    const allWidth = Math.round(colWidths.reduce((a, b) => a + b, 0) / Math.max(1, colWidths.length));
+    let html = `
+        <div class="explorer-col-controls">
+            <label>All columns width</label>
+            <input type="range" id="explorerColWidthRange" min="${explorerColMinWidth}" max="${explorerColMaxWidth}" value="${allWidth}">
+            <input type="number" id="explorerColWidthInput" min="${explorerColMinWidth}" max="${explorerColMaxWidth}" value="${allWidth}" style="width:80px;">
+            <button type="button" id="explorerColWidthMinus">-20px</button>
+            <button type="button" id="explorerColWidthPlus">+20px</button>
+        </div>
+        <div class="explorer-preview-wrap"><table class="explorer-table fixed"><colgroup>`;
     for (let c = 0; c < maxCols; c++) {
-        html += `<th>Col ${c + 1}</th>`;
+        html += `<col style="width:${colWidths[c]}px;">`;
+    }
+    html += '</colgroup><thead><tr>';
+    for (let c = 0; c < maxCols; c++) {
+        html += `<th data-col="${c}">Col ${c + 1}<span class="col-resizer" data-col="${c}"></span></th>`;
     }
     html += '</tr></thead><tbody>';
     for (let r = 0; r < maxRows; r++) {
@@ -1285,6 +1370,145 @@ function renderExplorerPreview() {
         wrap.scrollLeft = prevScrollLeft;
     }
     bindExplorerTable();
+    bindExplorerColumnControls(maxCols);
+    bindExplorerColumnResizers();
+}
+
+function clampExplorerColWidth(value) {
+    const num = Math.round(Number(value) || explorerColDefaultWidth);
+    return Math.min(explorerColMaxWidth, Math.max(explorerColMinWidth, num));
+}
+
+function loadExplorerColWidths() {
+    try {
+        const raw = localStorage.getItem(explorerColStorageKey);
+        const parsed = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(parsed)) return [];
+        return parsed.map(clampExplorerColWidth);
+    } catch (err) {
+        return [];
+    }
+}
+
+function saveExplorerColWidths() {
+    try {
+        localStorage.setItem(explorerColStorageKey, JSON.stringify(explorerColWidths));
+    } catch (err) {
+        // Ignore storage errors.
+    }
+}
+
+function normalizeExplorerColWidths(colCount) {
+    if (!colCount) {
+        explorerColWidths = [];
+        return explorerColWidths;
+    }
+    if (!explorerColWidths.length) {
+        explorerColWidths = loadExplorerColWidths();
+    }
+    let sanitized = explorerColWidths.filter(n => Number.isFinite(n) && n > 0).map(clampExplorerColWidth);
+    if (!sanitized.length) {
+        sanitized = Array(colCount).fill(explorerColDefaultWidth);
+    }
+    if (sanitized.length < colCount) {
+        const fillVal = sanitized[sanitized.length - 1] || explorerColDefaultWidth;
+        sanitized = sanitized.concat(Array(colCount - sanitized.length).fill(fillVal));
+    }
+    if (sanitized.length > colCount) {
+        sanitized = sanitized.slice(0, colCount);
+    }
+    explorerColWidths = sanitized;
+    saveExplorerColWidths();
+    return explorerColWidths;
+}
+
+function applyExplorerColWidths() {
+    const table = document.querySelector('.explorer-table');
+    if (!table) return;
+    const cols = table.querySelectorAll('colgroup col');
+    cols.forEach((col, idx) => {
+        const width = explorerColWidths[idx] || explorerColDefaultWidth;
+        col.style.width = `${width}px`;
+    });
+}
+
+function updateExplorerColControlsValue() {
+    const range = document.getElementById('explorerColWidthRange');
+    const input = document.getElementById('explorerColWidthInput');
+    if (!range || !input || !explorerColWidths.length) return;
+    const avg = Math.round(explorerColWidths.reduce((a, b) => a + b, 0) / explorerColWidths.length);
+    range.value = avg;
+    input.value = avg;
+}
+
+function setAllExplorerColWidths(value) {
+    const width = clampExplorerColWidth(value);
+    explorerColWidths = explorerColWidths.map(() => width);
+    applyExplorerColWidths();
+    saveExplorerColWidths();
+    updateExplorerColControlsValue();
+}
+
+function bumpAllExplorerColWidths(delta) {
+    explorerColWidths = explorerColWidths.map(w => clampExplorerColWidth(w + delta));
+    applyExplorerColWidths();
+    saveExplorerColWidths();
+    updateExplorerColControlsValue();
+}
+
+function bindExplorerColumnControls(maxCols) {
+    if (!maxCols) return;
+    const range = document.getElementById('explorerColWidthRange');
+    const input = document.getElementById('explorerColWidthInput');
+    const minus = document.getElementById('explorerColWidthMinus');
+    const plus = document.getElementById('explorerColWidthPlus');
+    if (range) {
+        range.addEventListener('input', () => setAllExplorerColWidths(range.value));
+    }
+    if (input) {
+        input.addEventListener('change', () => setAllExplorerColWidths(input.value));
+        input.addEventListener('input', () => setAllExplorerColWidths(input.value));
+    }
+    if (minus) {
+        minus.addEventListener('click', () => bumpAllExplorerColWidths(-20));
+    }
+    if (plus) {
+        plus.addEventListener('click', () => bumpAllExplorerColWidths(20));
+    }
+    updateExplorerColControlsValue();
+}
+
+let explorerColResizeState = null;
+
+function handleExplorerColResizeMove(e) {
+    if (!explorerColResizeState) return;
+    const dx = e.clientX - explorerColResizeState.startX;
+    const next = clampExplorerColWidth(explorerColResizeState.startWidth + dx);
+    explorerColWidths[explorerColResizeState.colIndex] = next;
+    applyExplorerColWidths();
+    saveExplorerColWidths();
+}
+
+function handleExplorerColResizeEnd() {
+    explorerColResizeState = null;
+    document.body.classList.remove('no-select');
+    window.removeEventListener('pointermove', handleExplorerColResizeMove);
+}
+
+function bindExplorerColumnResizers() {
+    const resizers = document.querySelectorAll('.col-resizer');
+    resizers.forEach((resizer) => {
+        resizer.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const colIndex = parseInt(resizer.dataset.col || '0', 10);
+            const startWidth = explorerColWidths[colIndex] || explorerColDefaultWidth;
+            explorerColResizeState = { colIndex, startX: e.clientX, startWidth };
+            document.body.classList.add('no-select');
+            window.addEventListener('pointermove', handleExplorerColResizeMove);
+            window.addEventListener('pointerup', handleExplorerColResizeEnd, { once: true });
+        });
+    });
 }
 
 function renderStagedGroups() {
