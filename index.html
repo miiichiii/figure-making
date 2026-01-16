@@ -1093,10 +1093,12 @@ let explorerSelection = null;
 let explorerFiles = [];
 let stagedGroups = {};
 let explorerColWidths = [];
-const explorerColMinWidth = 40;
+const explorerColMinWidth = 8;
 const explorerColMaxWidth = 800;
 const explorerColDefaultWidth = 120;
 const explorerColStorageKey = 'csvPreviewColWidths';
+const explorerHideDecimalsKey = 'csvPreviewHideDecimals';
+let explorerHideDecimals = null;
 let explorerOpenedOnce = false;
 let explorerWorkbook = null;
 let explorerSheetName = null;
@@ -1331,6 +1333,7 @@ function renderExplorerPreview() {
         area.innerHTML = '<p class="explorer-note">No preview available.</p>';
         return;
     }
+    const hideDecimals = getExplorerHideDecimals();
     const colWidths = normalizeExplorerColWidths(maxCols);
     const allWidth = Math.round(colWidths.reduce((a, b) => a + b, 0) / Math.max(1, colWidths.length));
     let html = `
@@ -1340,6 +1343,10 @@ function renderExplorerPreview() {
             <input type="number" id="explorerColWidthInput" min="${explorerColMinWidth}" max="${explorerColMaxWidth}" value="${allWidth}" style="width:80px;">
             <button type="button" id="explorerColWidthMinus">-20px</button>
             <button type="button" id="explorerColWidthPlus">+20px</button>
+            <label style="display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" id="explorerHideDecimalsToggle"${hideDecimals ? ' checked' : ''}>
+                Hide decimals
+            </label>
         </div>
         <div class="explorer-preview-wrap"><table class="explorer-table fixed"><colgroup>`;
     for (let c = 0; c < maxCols; c++) {
@@ -1354,10 +1361,11 @@ function renderExplorerPreview() {
         html += '<tr>';
         for (let c = 0; c < maxCols; c++) {
             const val = explorerData[r] && explorerData[r][c] !== undefined ? explorerData[r][c] : '';
+            const displayVal = formatExplorerCellValue(val);
             const cellClass = explorerSelection && r >= explorerSelection.r1 && r <= explorerSelection.r2 && c >= explorerSelection.c1 && c <= explorerSelection.c2
                 ? 'explorer-selected'
                 : '';
-            html += `<td class=\"${cellClass}\" data-row=\"${r}\" data-col=\"${c}\">${val}</td>`;
+            html += `<td class=\"${cellClass}\" data-row=\"${r}\" data-col=\"${c}\">${displayVal}</td>`;
         }
         html += '</tr>';
     }
@@ -1377,6 +1385,31 @@ function renderExplorerPreview() {
 function clampExplorerColWidth(value) {
     const num = Math.round(Number(value) || explorerColDefaultWidth);
     return Math.min(explorerColMaxWidth, Math.max(explorerColMinWidth, num));
+}
+
+function getExplorerHideDecimals() {
+    if (explorerHideDecimals === null) {
+        explorerHideDecimals = localStorage.getItem(explorerHideDecimalsKey) === 'true';
+    }
+    return explorerHideDecimals;
+}
+
+function setExplorerHideDecimals(value) {
+    explorerHideDecimals = !!value;
+    try {
+        localStorage.setItem(explorerHideDecimalsKey, explorerHideDecimals ? 'true' : 'false');
+    } catch (err) {
+        // Ignore storage errors.
+    }
+}
+
+function formatExplorerCellValue(value) {
+    if (!getExplorerHideDecimals()) return value ?? '';
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string' && value.trim() === '') return '';
+    const num = typeof value === 'number' ? value : Number(String(value).trim());
+    if (!Number.isFinite(num)) return value;
+    return Math.trunc(num);
 }
 
 function loadExplorerColWidths() {
@@ -1462,6 +1495,7 @@ function bindExplorerColumnControls(maxCols) {
     const input = document.getElementById('explorerColWidthInput');
     const minus = document.getElementById('explorerColWidthMinus');
     const plus = document.getElementById('explorerColWidthPlus');
+    const hideDecimalsToggle = document.getElementById('explorerHideDecimalsToggle');
     if (range) {
         range.addEventListener('input', () => setAllExplorerColWidths(range.value));
     }
@@ -1474,6 +1508,12 @@ function bindExplorerColumnControls(maxCols) {
     }
     if (plus) {
         plus.addEventListener('click', () => bumpAllExplorerColWidths(20));
+    }
+    if (hideDecimalsToggle) {
+        hideDecimalsToggle.addEventListener('change', () => {
+            setExplorerHideDecimals(hideDecimalsToggle.checked);
+            renderExplorerPreview();
+        });
     }
     updateExplorerColControlsValue();
 }
