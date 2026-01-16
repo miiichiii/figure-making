@@ -2085,8 +2085,7 @@ function welchTTest(a, b) {
     const v1 = Math.pow(s1.sd, 2), v2 = Math.pow(s2.sd, 2);
     const t = Math.abs(s1.mean - s2.mean) / Math.sqrt(v1 / s1.n + v2 / s2.n);
     const df = Math.pow(v1 / s1.n + v2 / s2.n, 2) / (Math.pow(v1 / s1.n, 2) / (s1.n - 1) + Math.pow(v2 / s2.n, 2) / (s2.n - 1));
-    // p-value 近似 (正規E币E似)
-    const p = 2 * (1 - normalCDF(Math.abs(t)));
+    const p = 2 * (1 - tDistributionCDF(Math.abs(t), df));
     return { t, p, df, method: "Welch's t-test" };
 }
 
@@ -2154,6 +2153,15 @@ function normalCDF(x) {
     const d = 0.3989423 * Math.exp(-x * x / 2);
     const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + 1.330274 * t))));
     return x > 0 ? 1 - p : p;
+}
+
+function tDistributionCDF(t, df) {
+    if (!Number.isFinite(t) || !Number.isFinite(df) || df <= 0) return NaN;
+    const x = df / (df + t * t);
+    const a = df / 2;
+    const b = 0.5;
+    const ib = ibeta(x, a, b);
+    return t >= 0 ? 1 - 0.5 * ib : 0.5 * ib;
 }
 
 function niceCeil(val) {
