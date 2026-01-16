@@ -305,7 +305,8 @@
             gap: 6px;
         }
         .explorer-table {
-            width: 100%;
+            width: max-content;
+            min-width: 100%;
             border-collapse: collapse;
             background: #ffffff;
             color: #333;
@@ -497,12 +498,14 @@
         .tree-name { color: #f8f9fa; }
         .tree-file .tree-name { color: #dce6f5; }
         .explorer-preview-wrap {
-            max-height: 50vh;
+            max-height: calc(100vh - 260px);
             overflow: auto;
             border: 1px solid #324355;
             border-radius: 6px;
             background: #ffffff;
             user-select: none;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
         }
         .bar-width-card { display: none; }
         .bar-width-card .control-item { margin: 0; }
@@ -533,10 +536,6 @@
             <h3>Explorer</h3>
         </div>
         <div class="explorer-controls">
-            <div>
-                <label for="chartTitleExplorer">Graph Title</label>
-                <input type="text" id="chartTitleExplorer" class="text-input" placeholder="Title" oninput="syncChartTitle('explorer')">
-            </div>
             <div class="explorer-top-row">
                 <div class="drop-zone" id="explorerDropZone">
                     <div class="drop-title">Drag & Drop local files or folders</div>
@@ -581,6 +580,7 @@
     <button type="button" onclick="sendExplorerToGroup(1)">Stage to Group 1</button>
     <button type="button" onclick="sendExplorerToGroup(2)">Stage to Group 2</button>
     <button type="button" onclick="sendExplorerToGroup(3)">Stage to Group 3</button>
+    <button type="button" onclick="sendExplorerToTitle()">Send to Title</button>
     <div class="explorer-menu-row">
         <span style="font-size:0.7rem; color:#555;">Group #</span>
         <input type="number" id="explorerGroupIndexMenu" min="1" value="4">
@@ -612,12 +612,12 @@
             <input type="text" id="timePointsInput" class="text-input" value="Day1 Day3 Day7" oninput="updatePlot()">
         </div>
 
-        <div class="master-label-card" style="background:#f8f9fb; border-color:#e6e9ef;">
-            <label>Graph Title</label>
-            <input type="text" id="chartTitleInput" class="text-input" placeholder="Title" oninput="syncChartTitle('main')">
-        </div>
         <div id="groupDataSection">
             <h3>2. Group Data</h3>
+            <div style="display:flex; align-items:center; gap:8px; margin: 6px 0 12px;">
+                <label style="margin:0;">Graph Title</label>
+                <input type="text" id="chartTitleInput" class="text-input" placeholder="Title" oninput="syncChartTitle()" style="width:100px;">
+            </div>
             <div id="groupsContainer">
                 </div>
             <button class="btn-add" onclick="addNewGroup()">+ Add New Group</button>
@@ -1455,6 +1455,22 @@ function sendExplorerToGroup(groupNumber) {
     hideExplorerMenu();
 }
 
+function sendExplorerToTitle() {
+    if (!explorerData || !explorerSelection) return;
+    if (explorerSelection.r1 !== explorerSelection.r2 || explorerSelection.c1 !== explorerSelection.c2) {
+        showToast('Select a single cell for title.');
+        return;
+    }
+    const value = explorerData[explorerSelection.r1]?.[explorerSelection.c1];
+    if (value === undefined || value === null) return;
+    const text = String(value).trim();
+    if (!text) return;
+    const mainEl = document.getElementById('chartTitleInput');
+    if (mainEl) mainEl.value = text;
+    updatePlot();
+    hideExplorerMenu();
+}
+
 function applyStagedGroups() {
     // 1. UI???????????
     collectStagedGroupsFromUI();
@@ -1882,9 +1898,7 @@ function applyProfile(profile) {
     if (profile.labels) {
         if (profile.labels.title !== undefined) {
             const mainTitleEl = document.getElementById('chartTitleInput');
-            const explorerTitleEl = document.getElementById('chartTitleExplorer');
             if (mainTitleEl) mainTitleEl.value = profile.labels.title || '';
-            if (explorerTitleEl) explorerTitleEl.value = profile.labels.title || '';
         }
         document.getElementById('xAxisLabel').value = profile.labels.x || '';
         document.getElementById('yAxisLabel').value = profile.labels.y || '';
@@ -2574,18 +2588,12 @@ function scheduleUpdatePlot(resetPad = false) {
 
 function getChartTitle() {
     const mainEl = document.getElementById('chartTitleInput');
-    const explorerEl = document.getElementById('chartTitleExplorer');
-    return (mainEl?.value || explorerEl?.value || '').trim();
+    return (mainEl?.value || '').trim();
 }
 
-function syncChartTitle(source) {
+function syncChartTitle() {
     const mainEl = document.getElementById('chartTitleInput');
-    const explorerEl = document.getElementById('chartTitleExplorer');
-    const nextVal = source === 'explorer'
-        ? (explorerEl ? explorerEl.value : '')
-        : (mainEl ? mainEl.value : '');
-    if (mainEl && mainEl.value !== nextVal) mainEl.value = nextVal;
-    if (explorerEl && explorerEl.value !== nextVal) explorerEl.value = nextVal;
+    if (!mainEl) return;
     updatePlot();
 }
 
