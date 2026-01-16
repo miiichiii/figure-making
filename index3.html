@@ -2003,8 +2003,20 @@ function handlePaste(id) {
 }
 
 function parseData(text, expectedCount) {
-    const lines = text.trim().split('\n');
-    if (lines.length === 0 || text === "") return [];
+    const trimmed = text.trim();
+    if (!trimmed) return [];
+
+    const lines = trimmed.split('\n');
+    if (expectedCount === 1) {
+        const values = [];
+        lines.forEach(line => {
+            line.split(/[\t, ]+/).forEach(cell => {
+                const v = parseFloat(cell);
+                if (!Number.isNaN(v)) values.push(v);
+            });
+        });
+        return [values];
+    }
 
     let startIdx = 0;
     const firstLineCells = lines[0].split('\t');
