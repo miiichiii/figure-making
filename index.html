@@ -537,6 +537,7 @@
             gap: 10px;
         }
         .graph-controls-row .legend-panel { margin: 0; width: 100%; box-shadow: none; }
+        .axis-label { cursor: move; user-select: none; }
     </style>
 </head>
 <body>
@@ -633,6 +634,11 @@
             <div style="display:flex; align-items:center; gap:8px; margin: 6px 0 12px;">
                 <label style="margin:0;">Graph Title</label>
                 <input type="text" id="chartTitleInput" class="text-input" placeholder="Title" oninput="syncChartTitle()" style="width:100px;">
+                <input type="number" id="titleFontSize" value="10" oninput="updatePlot()" style="width:50px;" aria-label="Title font size">
+                <label style="font-weight: normal; font-size: 0.75rem; color:#666; display:flex; align-items:center; gap:4px; margin:0;">
+                    <input type="checkbox" id="titleItalic" onchange="updatePlot()">
+                    Italic
+                </label>
             </div>
             <div id="groupsContainer">
                 </div>
@@ -648,7 +654,7 @@
                     <input type="number" id="xLabelOffset" value="25" oninput="updatePlot()" style="width:50px;">
                     <button type="button" class="btn-mini" onclick="adjustLabelOffset('xLabelOffset', 2)">→</button>
                     <span style="font-size:0.75rem; color:#666; margin-left:6px;">Font</span>
-                    <input type="number" id="xAxisFontSize" value="18" oninput="updatePlot()" style="width:50px;">
+                    <input type="number" id="xAxisFontSize" value="10" oninput="updatePlot()" style="width:50px;">
                 </div>
                 <input type="text" id="yAxisLabel" class="text-input" placeholder="Y-axis label" oninput="updatePlot()">
                 <div style="display:flex; gap:6px; align-items:center;">
@@ -657,7 +663,7 @@
                     <input type="number" id="yLabelOffset" value="25" oninput="updatePlot()" style="width:50px;">
                     <button type="button" class="btn-mini" onclick="adjustLabelOffset('yLabelOffset', 2)">→</button>
                     <span style="font-size:0.75rem; color:#666; margin-left:6px;">Font</span>
-                    <input type="number" id="yAxisFontSize" value="18" oninput="updatePlot()" style="width:50px;">
+                    <input type="number" id="yAxisFontSize" value="10" oninput="updatePlot()" style="width:50px;">
                 </div>
             </div>
         </div>
@@ -706,7 +712,7 @@
                 <div style="grid-column: 1; grid-row: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
                     <label style="font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 6px;">
                         H:
-                        <input type="number" id="chartHeightVal" value="400" min="200" max="800" oninput="syncChartSize('height')" style="width: 60px; padding: 2px 4px;">
+                        <input type="number" id="chartHeightVal" value="200" min="200" max="800" oninput="syncChartSize('height')" style="width: 60px; padding: 2px 4px;">
                     </label>
                 </div>
                 <div id="svg-wrapper">
@@ -756,17 +762,17 @@
                         <div class="card-grid-2">
                             <div class="control-item">
                                 <label for="fontSizeX">Font (X)</label>
-                                <input type="number" id="fontSizeX" value="14" oninput="updatePlot()">
+                                <input type="number" id="fontSizeX" value="10" oninput="updatePlot()">
                             </div>
                             <div class="control-item">
                                 <label for="dotSize">Dot Size</label>
                                 <div class="compact-row">
-                                    <input type="number" id="dotSize" min="1" max="15" value="4" oninput="updatePlot()">
+                                    <input type="number" id="dotSize" min="1" max="15" value="3" oninput="updatePlot()">
                                 </div>
                             </div>
                             <div class="control-item">
                                 <label for="fontSizeY">Font (Y)</label>
-                                <input type="number" id="fontSizeY" value="14" oninput="updatePlot()">
+                                <input type="number" id="fontSizeY" value="10" oninput="updatePlot()">
                             </div>
                             <div class="control-item">
                                 <label for="jitter">Dot Jitter</label>
@@ -809,14 +815,14 @@
                         <input type="hidden" id="legendState" value="95,10">
                         <div class="legend-row">
                             <label for="legendFontSize">Font</label>
-                            <input type="number" id="legendFontSize" value="14" oninput="updatePlot()" class="legend-input">
+                            <input type="number" id="legendFontSize" value="10" oninput="updatePlot()" class="legend-input">
                         </div>
                     </div>
                 </div>
                 <div style="grid-column: 2; grid-row: 3; display: flex; align-items: center; gap: 10px; justify-self: start;">
                     <label style="font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 6px;">
                         W:
-                        <input type="number" id="chartWidthVal" value="600" min="10" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
+                        <input type="number" id="chartWidthVal" value="300" min="10" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
                     </label>
                 </div>
                 <div style="grid-column: 2; grid-row: 4; width: 100%; display: flex; gap: 8px; justify-content: flex-start; justify-self: start;">
@@ -884,6 +890,12 @@ let explorerTreeState = {};
 let barWidthState = 28;
 let groupOffsetX = [];
 let groupLabelOffsetY = [];
+let titleOffsetX = 0;
+let titleOffsetY = 0;
+let xAxisLabelOffsetX = 0;
+let xAxisLabelOffsetY = 0;
+let yAxisLabelOffsetX = 0;
+let yAxisLabelOffsetY = 0;
 let undoStack = [];
 let redoStack = [];
 let draggingBarIndex = null;
@@ -892,6 +904,11 @@ let draggingBarStartX = 0;
 let draggingGroupLabelIndex = null;
 let draggingGroupLabelStartY = 0;
 let draggingGroupLabelStartOffset = 0;
+let draggingAxisLabel = null;
+let draggingAxisLabelStartX = 0;
+let draggingAxisLabelStartY = 0;
+let draggingAxisLabelStartOffsetX = 0;
+let draggingAxisLabelStartOffsetY = 0;
 let autoBottomPad = 0;
 let targetBottomPad = 0;
 let stableZeroSince = null;
@@ -1419,10 +1436,59 @@ function onGroupLabelPointerUp() {
     updatePlot();
 }
 
+function onAxisLabelPointerDown(e) {
+    const label = e.target.closest('text.axis-label');
+    if (!label) return false;
+    const type = label.dataset.label;
+    if (!type) return false;
+    e.preventDefault();
+    draggingAxisLabel = type;
+    draggingAxisLabelStartX = e.clientX;
+    draggingAxisLabelStartY = e.clientY;
+    if (type === 'title') {
+        draggingAxisLabelStartOffsetX = titleOffsetX;
+        draggingAxisLabelStartOffsetY = titleOffsetY;
+    } else if (type === 'x') {
+        draggingAxisLabelStartOffsetX = xAxisLabelOffsetX;
+        draggingAxisLabelStartOffsetY = xAxisLabelOffsetY;
+    } else if (type === 'y') {
+        draggingAxisLabelStartOffsetX = yAxisLabelOffsetX;
+        draggingAxisLabelStartOffsetY = yAxisLabelOffsetY;
+    }
+    window.addEventListener('pointermove', onAxisLabelPointerMove);
+    window.addEventListener('pointerup', onAxisLabelPointerUp, { once: true });
+    return true;
+}
+
+function onAxisLabelPointerMove(e) {
+    if (!draggingAxisLabel) return;
+    const scale = getDisplayScale();
+    const dx = (e.clientX - draggingAxisLabelStartX) / scale;
+    const dy = (e.clientY - draggingAxisLabelStartY) / scale;
+    if (draggingAxisLabel === 'title') {
+        titleOffsetX = draggingAxisLabelStartOffsetX + dx;
+        titleOffsetY = draggingAxisLabelStartOffsetY + dy;
+    } else if (draggingAxisLabel === 'x') {
+        xAxisLabelOffsetX = draggingAxisLabelStartOffsetX + dx;
+        xAxisLabelOffsetY = draggingAxisLabelStartOffsetY + dy;
+    } else if (draggingAxisLabel === 'y') {
+        yAxisLabelOffsetX = draggingAxisLabelStartOffsetX + dx;
+        yAxisLabelOffsetY = draggingAxisLabelStartOffsetY + dy;
+    }
+    updatePlot();
+}
+
+function onAxisLabelPointerUp() {
+    draggingAxisLabel = null;
+    window.removeEventListener('pointermove', onAxisLabelPointerMove);
+    updatePlot();
+}
+
 function onBarPointerMove(e) {
     if (draggingBarIndex === null) return;
     const step = e.shiftKey ? 10 : (e.altKey ? 1 : 2);
-    const dx = e.clientX - draggingBarStartX;
+    const scale = getDisplayScale();
+    const dx = (e.clientX - draggingBarStartX) / scale;
     const snapped = Math.round(dx / step) * step;
     groupOffsetX[draggingBarIndex] = draggingStartOffset + snapped;
     updatePlot();
@@ -1432,6 +1498,14 @@ function onBarPointerUp() {
     draggingBarIndex = null;
     window.removeEventListener('pointermove', onBarPointerMove);
     updatePlot();
+}
+
+function getDisplayScale() {
+    const svg = document.querySelector('#svg-container svg');
+    if (!svg || !plotMetrics) return 1;
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width || !plotMetrics.width) return 1;
+    return rect.width / plotMetrics.width;
 }
 
 function showExplorerMenu(x, y) {
@@ -1540,6 +1614,11 @@ function applyStagedGroups() {
     });
 
     // 4. ??????????
+    const yMaxInputEl = document.getElementById('yMaxInput');
+    if (yMaxInputEl) {
+        yMaxInputEl.dataset.auto = 'true';
+        yMaxInputEl.value = '0';
+    }
     updatePlot();
 
     const explorerPanel = document.getElementById('explorer-panel');
@@ -1590,8 +1669,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const svg = svgContainer.querySelector('svg');
             if (!legendState || !svg) return;
             const rect = svg.getBoundingClientRect();
-            const x = e.clientX - rect.left - plotMetrics.pL;
-            const y = e.clientY - rect.top - plotMetrics.pT;
+            const scale = rect.width && plotMetrics.width ? (rect.width / plotMetrics.width) : 1;
+            const x = (e.clientX - rect.left) / scale - plotMetrics.pL;
+            const y = (e.clientY - rect.top) / scale - plotMetrics.pT;
             const xPercent = Math.max(0, Math.min(100, (x / plotMetrics.graphW) * 100));
             const yPercent = Math.max(0, Math.min(100, (y / plotMetrics.graphH) * 100));
             legendState.value = `${xPercent.toFixed(2)},${yPercent.toFixed(2)}`;
@@ -1601,6 +1681,7 @@ document.addEventListener('DOMContentLoaded', () => {
             draggingLegend = false;
         });
         svgContainer.addEventListener('pointerdown', (e) => {
+            if (onAxisLabelPointerDown(e)) return;
             if (onGroupLabelPointerDown(e)) return;
             onBarPointerDown(e);
         });
@@ -1857,6 +1938,8 @@ function collectProfile() {
         },
         labels: {
             title: document.getElementById('chartTitleInput')?.value || '',
+            titleItalic: document.getElementById('titleItalic')?.checked || false,
+            titleSize: document.getElementById('titleFontSize')?.value || '10',
             x: document.getElementById('xAxisLabel').value,
             y: document.getElementById('yAxisLabel').value,
             xOffset: document.getElementById('xLabelOffset').value,
@@ -1903,8 +1986,8 @@ function applyProfile(profile) {
         document.getElementById('survivalYAxisPercent').checked = !!profile.survival.yPercent;
     }
     if (profile.chartSize) {
-        document.getElementById('chartWidthVal').value = profile.chartSize.width || 600;
-        document.getElementById('chartHeightVal').value = profile.chartSize.height || 400;
+        document.getElementById('chartWidthVal').value = profile.chartSize.width || 300;
+        document.getElementById('chartHeightVal').value = profile.chartSize.height || 200;
     }
     if (profile.yAxis) {
         document.getElementById('yMinInput').value = profile.yAxis.min ?? '0';
@@ -1919,17 +2002,25 @@ function applyProfile(profile) {
             if (mainTitleEl) mainTitleEl.value = profile.labels.title || '';
             updateExplorerTitleDisplay();
         }
+        if (profile.labels.titleItalic !== undefined) {
+            const italicEl = document.getElementById('titleItalic');
+            if (italicEl) italicEl.checked = !!profile.labels.titleItalic;
+        }
+        if (profile.labels.titleSize !== undefined) {
+            const titleSizeEl = document.getElementById('titleFontSize');
+            if (titleSizeEl) titleSizeEl.value = profile.labels.titleSize || '10';
+        }
         document.getElementById('xAxisLabel').value = profile.labels.x || '';
         document.getElementById('yAxisLabel').value = profile.labels.y || '';
         document.getElementById('xLabelOffset').value = profile.labels.xOffset || '25';
         document.getElementById('yLabelOffset').value = profile.labels.yOffset || '25';
-        document.getElementById('xAxisFontSize').value = profile.labels.xFont || '18';
-        document.getElementById('yAxisFontSize').value = profile.labels.yFont || '18';
+        document.getElementById('xAxisFontSize').value = profile.labels.xFont || '10';
+        document.getElementById('yAxisFontSize').value = profile.labels.yFont || '10';
     }
     if (profile.style) {
-        document.getElementById('fontSizeX').value = profile.style.fontX || '14';
-        document.getElementById('fontSizeY').value = profile.style.fontY || '14';
-        document.getElementById('dotSize').value = profile.style.dotSize || '4';
+        document.getElementById('fontSizeX').value = profile.style.fontX || '10';
+        document.getElementById('fontSizeY').value = profile.style.fontY || '10';
+        document.getElementById('dotSize').value = profile.style.dotSize || '3';
         document.getElementById('jitter').value = profile.style.jitter || '15';
         if (profile.style.barWidth !== undefined) {
             barWidthState = parseFloat(profile.style.barWidth) || barWidthState;
@@ -2029,10 +2120,10 @@ function resetProfile() {
     const defaultProfile = {
         timeLabels: 'Day1 Day3 Day7',
         survival: { xMax: '0', yPercent: false },
-        chartSize: { width: '600', height: '400' },
+        chartSize: { width: '300', height: '200' },
         yAxis: { min: '0', max: '0', ticks: '5', errorType: 'se' },
-        labels: { x: '', y: '', xOffset: '25', yOffset: '25', xFont: '18', yFont: '18' },
-        style: { fontX: '14', fontY: '14', dotSize: '4', jitter: '15' },
+        labels: { x: '', y: '', titleItalic: false, titleSize: '10', xOffset: '25', yOffset: '25', xFont: '10', yFont: '10' },
+        style: { fontX: '10', fontY: '10', dotSize: '3', jitter: '15' },
         options: {
             showLines: false,
             showBars: false,
@@ -2053,7 +2144,17 @@ function resetProfile() {
         if (colorEl) colorEl.value = defaultColors[idx % defaultColors.length];
     });
     document.getElementById('showLegend').checked = true;
-    document.getElementById('legendFontSize').value = '14';
+    document.getElementById('legendFontSize').value = '10';
+    const italicEl = document.getElementById('titleItalic');
+    if (italicEl) italicEl.checked = false;
+    const titleSizeEl = document.getElementById('titleFontSize');
+    if (titleSizeEl) titleSizeEl.value = '10';
+    titleOffsetX = 0;
+    titleOffsetY = 0;
+    xAxisLabelOffsetX = 0;
+    xAxisLabelOffsetY = 0;
+    yAxisLabelOffsetX = 0;
+    yAxisLabelOffsetY = 0;
     document.getElementById('legendState').value = '95,10';
     updatePlot();
 }
@@ -2647,12 +2748,25 @@ function updatePlot(reflowPass = 0) {
     const heightVal = document.getElementById('chartHeightVal');
     const widthRaw = parseInt(widthVal?.value, 10);
     const heightRaw = parseInt(heightVal?.value, 10);
-    const width = Number.isFinite(widthRaw) && widthRaw > 0 ? widthRaw : 600;
-    const height = Number.isFinite(heightRaw) && heightRaw > 0 ? heightRaw : 400;
+    const width = Number.isFinite(widthRaw) && widthRaw > 0 ? widthRaw : 300;
+    const height = Number.isFinite(heightRaw) && heightRaw > 0 ? heightRaw : 200;
     if (widthVal) widthVal.value = width;
     if (heightVal) heightVal.value = height;
     if (widthVal) widthVal.value = width;
     if (heightVal) heightVal.value = height;
+    const displayScale = 2;
+    const svgWrapper = document.getElementById('svg-wrapper');
+    const svgContainer = document.getElementById('svg-container');
+    if (svgWrapper) {
+        svgWrapper.style.width = `${width * displayScale}px`;
+        svgWrapper.style.height = `${height * displayScale}px`;
+    }
+    if (svgContainer) {
+        svgContainer.style.transform = `scale(${displayScale})`;
+        svgContainer.style.transformOrigin = 'top left';
+        svgContainer.style.width = `${width}px`;
+        svgContainer.style.height = `${height}px`;
+    }
     const handlePosLeft = document.getElementById('handlePosLeft');
     if (handlePosLeft) {
         handlePosLeft.textContent = `L: ${Math.round(chartOffsetX)}`;
@@ -2689,7 +2803,8 @@ function updatePlot(reflowPass = 0) {
     const xAxisLabel = document.getElementById('xAxisLabel').value.trim();
     const yAxisLabel = document.getElementById('yAxisLabel').value.trim();
     const titleText = getChartTitle();
-    const titleFontSize = Math.max(16, fsY + 2);
+    const titleFontSize = parseFloat(document.getElementById('titleFontSize')?.value) || 10;
+    const titleFontStyle = document.getElementById('titleItalic')?.checked ? 'italic' : 'normal';
     const titlePad = titleText ? (titleFontSize + 12) : 0;
     const xLabelOffset = parseFloat(document.getElementById('xLabelOffset').value) || 0;
     const yLabelOffset = parseFloat(document.getElementById('yLabelOffset').value) || 0;
@@ -2808,7 +2923,9 @@ function updatePlot(reflowPass = 0) {
         plotMetrics = { pL, pT, graphW, graphH, width, height };
 
         if (titleText) {
-            svgItems.push(`<text x="${width / 2}" y="${titleFontSize + 6}" text-anchor="middle" font-size="${titleFontSize}" font-family="Arial" font-weight="bold">${titleText}</text>`);
+            const titleX = width / 2 + titleOffsetX;
+            const titleY = titleFontSize + 6 + titleOffsetY;
+            svgItems.push(`<text class="axis-label" data-label="title" x="${titleX}" y="${titleY}" text-anchor="middle" font-size="${titleFontSize}" font-family="Arial" font-style="${titleFontStyle}">${titleText}</text>`);
         }
         svgItems.push(`<line x1="${pL}" y1="${height-pB}" x2="${pL}" y2="${pT}" stroke="black" stroke-width="1.2"/>`);
 
@@ -2829,14 +2946,14 @@ function updatePlot(reflowPass = 0) {
         }
 
         if (xAxisLabel) {
-            const xLabelY = height - pB + xAxisFontSize + xLabelOffset;
-            const xLabelX = pL + (graphW / 2);
-            svgItems.push(`<text x="${xLabelX}" y="${xLabelY}" text-anchor="middle" font-size="${xAxisFontSize}" font-family="Arial">${xAxisLabel}</text>`);
+            const xLabelY = height - pB + xAxisFontSize + xLabelOffset + xAxisLabelOffsetY;
+            const xLabelX = pL + (graphW / 2) + xAxisLabelOffsetX;
+            svgItems.push(`<text class="axis-label" data-label="x" x="${xLabelX}" y="${xLabelY}" text-anchor="middle" font-size="${xAxisFontSize}" font-family="Arial">${xAxisLabel}</text>`);
         }
         if (yAxisLabel) {
-            const yLabelX = pL - yAxisFontSize - yLabelOffset;
-            const yLabelY = pT + (graphH / 2);
-            svgItems.push(`<text x="${yLabelX}" y="${yLabelY}" text-anchor="middle" font-size="${yAxisFontSize}" font-family="Arial" transform="rotate(-90 ${yLabelX} ${yLabelY})">${yAxisLabel}</text>`);
+            const yLabelX = pL - yAxisFontSize - yLabelOffset + yAxisLabelOffsetX;
+            const yLabelY = pT + (graphH / 2) + yAxisLabelOffsetY;
+            svgItems.push(`<text class="axis-label" data-label="y" x="${yLabelX}" y="${yLabelY}" text-anchor="middle" font-size="${yAxisFontSize}" font-family="Arial" transform="rotate(-90 ${yLabelX} ${yLabelY})">${yAxisLabel}</text>`);
         }
 
         groupConfigs.forEach((group) => {
@@ -2883,7 +3000,7 @@ function updatePlot(reflowPass = 0) {
             svgItems.push(`</g>`);
         }
 
-        document.getElementById('svg-container').innerHTML = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="background:white;">${svgItems.join('')}</svg>`;
+        document.getElementById('svg-container').innerHTML = `<svg width="${width}px" height="${height}px" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="background:white; overflow:visible;">${svgItems.join('')}</svg>`;
         applyAutoRotateXLabels();
         schedulePadCheck();
         const detailEl = document.getElementById('calcDetails');
@@ -2953,12 +3070,15 @@ function updatePlot(reflowPass = 0) {
     // 2. Y軸の最大値を決宁E(ブラケチEがある場合E20-30%の余白を追加)
     const allValues = groupConfigs.flatMap(g => g.data.flat());
     const statsAll = groupConfigs.flatMap(g => g.data.map(calcStats));
-    const rawMax = Math.max(...allValues, ...statsAll.map(s => s.mean + (errorType === 'sd' ? s.sd : s.se)), 1);
-    const rawMin = Math.min(...allValues, ...statsAll.map(s => s.mean - (errorType === 'sd' ? s.sd : s.se)), 0);
+    const maxCandidates = [...allValues, ...statsAll.map(s => s.mean + (errorType === 'sd' ? s.sd : s.se))];
+    const minCandidates = [...allValues, ...statsAll.map(s => s.mean - (errorType === 'sd' ? s.sd : s.se))];
+    const rawMax = maxCandidates.length ? Math.max(...maxCandidates) : 1;
+    const rawMin = minCandidates.length ? Math.min(...minCandidates) : 0;
 
     const baseYMax = niceCeil(rawMax);
     let yMax = yMaxManual > 0 ? yMaxManual : baseYMax;
-    let yMin = Number.isFinite(yMinManual) && yMinManual !== 0 ? yMinManual : rawMin;
+    const yMinIsManual = yMinInputEl.dataset.auto === 'false' && Number.isFinite(yMinManual);
+    let yMin = yMinIsManual ? yMinManual : Math.min(0, rawMin);
 
     // 有意差マEクがある場合、強制皁E上限を押し上げめE
     if (autoBrackets && maxBracketLayers > 0 && isAutoY) {
@@ -3002,7 +3122,7 @@ function updatePlot(reflowPass = 0) {
         <line x1="${x-capHalf}" y1="${yB}" x2="${x+capHalf}" y2="${yB}" />
     </g>`);
             if (!showBars) {
-                svgItems.push(`<line x1="${x-12}" y1="${yM}" x2="${x+12}" y2="${yM}" stroke="black" stroke-width="3" />`);
+                svgItems.push(`<line x1="${x-12}" y1="${yM}" x2="${x+12}" y2="${yM}" stroke="black" stroke-width="1.5" />`);
             }
         }
         if (showMean) {
@@ -3014,7 +3134,9 @@ function updatePlot(reflowPass = 0) {
     }
 
     if (titleText) {
-        svgItems.push(`<text x="${width / 2}" y="${titleFontSize + 6}" text-anchor="middle" font-size="${titleFontSize}" font-family="Arial" font-weight="bold">${titleText}</text>`);
+        const titleX = width / 2 + titleOffsetX;
+        const titleY = titleFontSize + 6 + titleOffsetY;
+        svgItems.push(`<text class="axis-label" data-label="title" x="${titleX}" y="${titleY}" text-anchor="middle" font-size="${titleFontSize}" font-family="Arial" font-style="${titleFontStyle}">${titleText}</text>`);
     }
     // 軸
     svgItems.push(`<line x1="${pL}" y1="${height-pB}" x2="${pL}" y2="${pT}" stroke="black" stroke-width="${strokeW}"/>`);
@@ -3028,14 +3150,14 @@ function updatePlot(reflowPass = 0) {
         svgItems.push(`<text x="${pL-8}" y="${y}" text-anchor="end" dominant-baseline="central" font-size="${fsY}" font-family="Arial">${val}</text>`);
     }
     if (xAxisLabel) {
-        const xLabelY = height - pB + xAxisFontSize + xLabelOffset;
-        const xLabelX = pL + (graphW / 2);
-        svgItems.push(`<text x="${xLabelX}" y="${xLabelY}" text-anchor="middle" font-size="${xAxisFontSize}" font-family="Arial">${xAxisLabel}</text>`);
+        const xLabelY = height - pB + xAxisFontSize + xLabelOffset + xAxisLabelOffsetY;
+        const xLabelX = pL + (graphW / 2) + xAxisLabelOffsetX;
+        svgItems.push(`<text class="axis-label" data-label="x" x="${xLabelX}" y="${xLabelY}" text-anchor="middle" font-size="${xAxisFontSize}" font-family="Arial">${xAxisLabel}</text>`);
     }
     if (yAxisLabel) {
-        const yLabelX = pL - yAxisFontSize - yLabelOffset;
-        const yLabelY = pT + (graphH / 2);
-        svgItems.push(`<text x="${yLabelX}" y="${yLabelY}" text-anchor="middle" font-size="${yAxisFontSize}" font-family="Arial" transform="rotate(-90 ${yLabelX} ${yLabelY})">${yAxisLabel}</text>`);
+        const yLabelX = pL - yAxisFontSize - yLabelOffset + yAxisLabelOffsetX;
+        const yLabelY = pT + (graphH / 2) + yAxisLabelOffsetY;
+        svgItems.push(`<text class="axis-label" data-label="y" x="${yLabelX}" y="${yLabelY}" text-anchor="middle" font-size="${yAxisFontSize}" font-family="Arial" transform="rotate(-90 ${yLabelX} ${yLabelY})">${yAxisLabel}</text>`);
     }
 
     // 吁EイムポイントE描画
@@ -3221,7 +3343,7 @@ function updatePlot(reflowPass = 0) {
         svgItems.push(`</g>`);
     }
 
-    document.getElementById('svg-container').innerHTML = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="background:white;">${svgItems.join('')}</svg>`;
+    document.getElementById('svg-container').innerHTML = `<svg width="${width}px" height="${height}px" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="background:white; overflow:visible;">${svgItems.join('')}</svg>`;
     applyAutoRotateXLabels();
     schedulePadCheck();
     displayStats(timeLabels, groupConfigs);
@@ -3502,8 +3624,9 @@ sizeHandles.forEach(handle => {
 
 window.addEventListener('mousemove', (e) => {
     if (!resizingChart) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
+    const scale = getDisplayScale();
+    const dx = (e.clientX - startX) / scale;
+    const dy = (e.clientY - startY) / scale;
     let newW = startW;
     let newH = startH;
 
@@ -3519,7 +3642,7 @@ window.addEventListener('mousemove', (e) => {
     }
 
     newW = Math.max(10, Math.round(newW));
-    newH = Math.max(200, Math.round(newH));
+    newH = Math.max(10, Math.round(newH));
 
     document.getElementById('chartWidthVal').value = newW;
     document.getElementById('chartHeightVal').value = newH;
