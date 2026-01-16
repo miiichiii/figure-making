@@ -3085,7 +3085,7 @@ function updatePlot(reflowPass = 0) {
         const yAxisPercent = document.getElementById('survivalYAxisPercent').checked;
         const xMax = xMaxInput > 0 ? xMaxInput : maxTime;
         const svgItems = [];
-        svgItems.push(`<rect x="0" y="0" width="${width}" height="${height}" fill="${svgBg}" />`);
+        svgItems.push(`<rect class="svg-bg" x="0" y="0" width="${width}" height="${height}" fill="${svgBg}" />`);
         const safeXMax = (isAutoX || xMaxInput <= 0 || Number.isNaN(xMaxInput)) ? (maxTime || 1) : (xMax > 0 ? xMax : maxTime || 1);
         let yMax = yAxisPercent ? 100 : 1;
         yMaxInputEl.dataset.auto = 'true';
@@ -3281,7 +3281,7 @@ function updatePlot(reflowPass = 0) {
     plotMetrics = { pL, pT, graphW, graphH, width, height };
 
     let svgItems = [];
-    svgItems.push(`<rect x="0" y="0" width="${width}" height="${height}" fill="${svgBg}" />`);
+    svgItems.push(`<rect class="svg-bg" x="0" y="0" width="${width}" height="${height}" fill="${svgBg}" />`);
     const strokeW = 1.2;
 
     function drawGroupContent(x, data, s, group, barWidth, baselineVal, gIdx) {
@@ -3713,7 +3713,7 @@ async function copySvgToClipboard() {
         svgData = svgData.split(darkSvgInk).join(lightSvgInk);
     }
     svgData = svgData.replace(`background:${lightSvgBg};`, 'background:transparent;');
-    svgData = svgData.replace(/<rect x="0" y="0" width="[^"]+" height="[^"]+" fill="[^"]+" ?\\/>/, '');
+    svgData = svgData.replace(/<rect class="svg-bg"[^>]*?>/, '');
     const svgBlob = new Blob([svgData], { type: "image/svg+xml" });
 
     try {
