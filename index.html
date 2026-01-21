@@ -822,6 +822,11 @@
     <button type="button" onclick="sendExplorerToGroup(1)">Stage to Group 1</button>
     <button type="button" onclick="sendExplorerToGroup(2)">Stage to Group 2</button>
     <button type="button" onclick="sendExplorerToGroup(3)">Stage to Group 3</button>
+    <hr style="border:none; border-top:1px solid var(--border); margin:4px 0;">
+    <button type="button" onclick="sendExplorerToGroupName(1)">Set Group 1 Name</button>
+    <button type="button" onclick="sendExplorerToGroupName(2)">Set Group 2 Name</button>
+    <button type="button" onclick="sendExplorerToGroupName(3)">Set Group 3 Name</button>
+    <hr style="border:none; border-top:1px solid var(--border); margin:4px 0;">
     <button type="button" onclick="sendExplorerToTitle()">Send to Title</button>
     <div class="explorer-menu-row">
         <span style="font-size:0.7rem; color: var(--muted);">Group #</span>
@@ -2131,6 +2136,24 @@ function sendExplorerToGroup(groupNumber) {
     renderStagedGroups();
     renderExplorerTree(explorerFiles);
     hideExplorerMenu();
+}
+
+function sendExplorerToGroupName(groupNumber) {
+    if (!explorerData || !explorerSelection) return;
+    if (explorerSelection.r1 !== explorerSelection.r2 || explorerSelection.c1 !== explorerSelection.c2) {
+        showToast('Select a single cell for group name.');
+        hideExplorerMenu();
+        return;
+    }
+    const value = explorerData[explorerSelection.r1]?.[explorerSelection.c1];
+    if (value === undefined || value === null) return;
+    const name = String(value).trim();
+    if (!name) return;
+    stagedGroupNames[groupNumber] = name;
+    renderStagedGroups();
+    renderExplorerTree(explorerFiles);
+    hideExplorerMenu();
+    showToast(`Group ${groupNumber} name set to "${name}"`);
 }
 
 function sendExplorerToTitle() {
