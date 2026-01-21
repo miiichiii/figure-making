@@ -2383,10 +2383,21 @@ document.addEventListener('DOMContentLoaded', () => {
         explorerDropZone.addEventListener('drop', async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            const dropped = await collectDroppedFiles(e.dataTransfer);
-            if (dropped.length === 0 && e.dataTransfer.files.length > 0) {
+            console.log('Drop event fired', e.dataTransfer);
+            console.log('Files:', e.dataTransfer.files);
+            console.log('Items:', e.dataTransfer.items);
+
+            // Try direct files first (simpler approach)
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                console.log('Using dataTransfer.files directly');
                 handleExplorerFiles(Array.from(e.dataTransfer.files));
-            } else {
+                return;
+            }
+
+            // Fallback to collectDroppedFiles for folder support
+            const dropped = await collectDroppedFiles(e.dataTransfer);
+            console.log('Collected files:', dropped);
+            if (dropped.length > 0) {
                 handleExplorerFiles(dropped);
             }
         });
