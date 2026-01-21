@@ -73,6 +73,27 @@
                     <p class="mt-4 text-sm text-warm-muted">
                         ダウンロード・アカウント登録不要
                     </p>
+                    <!-- Share Buttons -->
+                    <div class="mt-6 flex items-center gap-3 justify-center lg:justify-start">
+                        <span class="text-sm text-warm-muted">Share:</span>
+                        <a href="https://twitter.com/intent/tweet?url=https://miiichiii.github.io/figure-making/help.html&text=SVG%20Plotter%20-%20%E3%83%96%E3%83%A9%E3%82%A6%E3%82%B6%E3%81%A7%E5%AE%8C%E7%B5%90%E3%81%99%E3%82%8B%E8%AB%96%E6%96%87%E5%93%81%E8%B3%AA%E3%81%AE%E3%82%B0%E3%83%A9%E3%83%95%E4%BD%9C%E6%88%90%E3%83%84%E3%83%BC%E3%83%AB"
+                           target="_blank" rel="noopener noreferrer"
+                           class="w-10 h-10 bg-warm-card hover:bg-warm-accent text-warm-text hover:text-white rounded-full flex items-center justify-center transition-colors border border-warm-border"
+                           title="X (Twitter) でシェア">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        </a>
+                        <a href="https://www.facebook.com/sharer/sharer.php?u=https://miiichiii.github.io/figure-making/help.html"
+                           target="_blank" rel="noopener noreferrer"
+                           class="w-10 h-10 bg-warm-card hover:bg-warm-accent text-warm-text hover:text-white rounded-full flex items-center justify-center transition-colors border border-warm-border"
+                           title="Facebook でシェア">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                        </a>
+                        <button onclick="copyShareLink()"
+                                class="w-10 h-10 bg-warm-card hover:bg-warm-accent text-warm-text hover:text-white rounded-full flex items-center justify-center transition-colors border border-warm-border"
+                                title="リンクをコピー">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="lg:w-1/2">
                     <div class="card-hover rounded-2xl overflow-hidden shadow-2xl border border-warm-border">
@@ -313,5 +334,24 @@
         </div>
     </footer>
 
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-warm-text text-warm-bg px-6 py-3 rounded-lg shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+        リンクをコピーしました
+    </div>
+
+    <script>
+        function copyShareLink() {
+            const url = 'https://miiichiii.github.io/figure-making/help.html';
+            navigator.clipboard.writeText(url).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.remove('opacity-0');
+                toast.classList.add('opacity-100');
+                setTimeout(() => {
+                    toast.classList.remove('opacity-100');
+                    toast.classList.add('opacity-0');
+                }, 2000);
+            });
+        }
+    </script>
 </body>
 </html>
