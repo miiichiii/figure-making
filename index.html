@@ -695,7 +695,7 @@
         .bar-width-card .control-item { margin: 0; }
         .bar-draggable { cursor: grab; }
         .bar-draggable.dragging { cursor: grabbing; opacity: 0.8; stroke: #ff69b4; stroke-width: 2; }
-        .group-label { cursor: ns-resize; user-select: none; }
+        .group-label, .time-label { cursor: ns-resize; user-select: none; }
         .graph-controls-row {
             grid-column: 2;
             grid-row: 2;
@@ -1145,6 +1145,7 @@ let explorerTreeState = {};
 let barWidthState = 28;
 let groupOffsetX = [];
 let groupLabelOffsetY = [];
+let timeLabelOffsetY = [];
 let titleOffsetX = 0;
 let titleOffsetY = 0;
 let xAxisLabelOffsetX = 0;
@@ -1159,6 +1160,9 @@ let draggingBarStartX = 0;
 let draggingGroupLabelIndex = null;
 let draggingGroupLabelStartY = 0;
 let draggingGroupLabelStartOffset = 0;
+let draggingTimeLabelIndex = null;
+let draggingTimeLabelStartY = 0;
+let draggingTimeLabelStartOffset = 0;
 let draggingAxisLabel = null;
 let draggingAxisLabelStartX = 0;
 let draggingAxisLabelStartY = 0;
@@ -1991,6 +1995,39 @@ function onGroupLabelPointerUp() {
     updatePlot();
 }
 
+function onTimeLabelPointerDown(e) {
+    const label = e.target.closest('text.time-label');
+    if (!label) return false;
+    const idx = parseInt(label.dataset.timeIndex, 10);
+    if (isNaN(idx)) return false;
+    e.preventDefault();
+    draggingTimeLabelIndex = idx;
+    draggingTimeLabelStartY = e.clientY;
+    draggingTimeLabelStartOffset = timeLabelOffsetY[idx] || 0;
+    window.addEventListener('pointermove', onTimeLabelPointerMove);
+    window.addEventListener('pointerup', onTimeLabelPointerUp, { once: true });
+    return true;
+}
+
+function onTimeLabelPointerMove(e) {
+    if (draggingTimeLabelIndex === null) return;
+    const svgContainer = document.getElementById('svg-container');
+    const svg = svgContainer ? svgContainer.querySelector('svg') : null;
+    if (!svg || !plotMetrics) return;
+    const rect = svg.getBoundingClientRect();
+    if (!rect.height) return;
+    const dyPx = e.clientY - draggingTimeLabelStartY;
+    const scaleY = plotMetrics.height / rect.height;
+    timeLabelOffsetY[draggingTimeLabelIndex] = draggingTimeLabelStartOffset + (dyPx * scaleY);
+    updatePlot();
+}
+
+function onTimeLabelPointerUp() {
+    draggingTimeLabelIndex = null;
+    window.removeEventListener('pointermove', onTimeLabelPointerMove);
+    updatePlot();
+}
+
 function onAxisLabelPointerDown(e) {
     const label = e.target.closest('text.axis-label');
     if (!label) return false;
@@ -2258,6 +2295,7 @@ document.addEventListener('DOMContentLoaded', () => {
         svgContainer.addEventListener('pointerdown', (e) => {
             if (onAxisLabelPointerDown(e)) return;
             if (onGroupLabelPointerDown(e)) return;
+            if (onTimeLabelPointerDown(e)) return;
             onBarPointerDown(e);
         });
     }
@@ -2357,6 +2395,7 @@ function resetGroups() {
     groupCount = 0;
     groupOffsetX = [];
     groupLabelOffsetY = [];
+    timeLabelOffsetY = [];
 }
 
 function loadSampleTimeline() {
@@ -2392,6 +2431,12 @@ function ensureGroupOffsets(len) {
 function ensureGroupLabelOffsets(len) {
     for (let i = 0; i < len; i++) {
         if (groupLabelOffsetY[i] === undefined || isNaN(groupLabelOffsetY[i])) groupLabelOffsetY[i] = 0;
+    }
+}
+
+function ensureTimeLabelOffsets(len) {
+    for (let i = 0; i < len; i++) {
+        if (timeLabelOffsetY[i] === undefined || isNaN(timeLabelOffsetY[i])) timeLabelOffsetY[i] = 0;
     }
 }
 
@@ -3632,6 +3677,7 @@ function updatePlot(reflowPass = 0) {
     const nGroups = groupConfigs.length;
     ensureGroupOffsets(nGroups);
     ensureGroupLabelOffsets(nGroups);
+    ensureTimeLabelOffsets(timeLabels.length);
     const getCompCenter = (gIdx) => pL + (gIdx + 0.5) * (graphW / nGroups) + (groupOffsetX[gIdx] || 0);
     const getTimeCenter = (tIdx, gIdx, groupSpace) => {
         const base = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
@@ -3893,7 +3939,8 @@ function updatePlot(reflowPass = 0) {
         }
         timeLabels.forEach((label, tIdx) => {
             const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
-                svgItems.push(`<text class="x-axis-label" x="${xCenter}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" fill="${axisColor}">${label}</text>`);
+            const labelY = height - pB + fsX + 10 + (timeLabelOffsetY[tIdx] || 0);
+            svgItems.push(`<text class="x-axis-label time-label" data-time-index="${tIdx}" x="${xCenter}" y="${labelY}" text-anchor="middle" font-size="${fsX}" font-family="Arial" fill="${axisColor}">${label}</text>`);
         });
     }
 
