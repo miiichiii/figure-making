@@ -2,13 +2,15 @@
 
 論文品質のグラフを作成するためのブラウザベースツール。データはローカルで処理され、外部送信されません。
 
+## リンク
+
+- **アプリ**: https://miiichiii.github.io/figure-making/
+- **ヘルプ (日本語)**: https://miiichiii.github.io/figure-making/help.html
+- **Help (English)**: https://miiichiii.github.io/figure-making/help_en.html
+
 ## 使い方
 
 `index.html` をブラウザで開くだけで使用できます。
-
-## ヘルプページ
-
-`help.html` をブラウザで開くと、機能紹介ページを確認できます。
 
 ## スクリーンショット再生成
 
@@ -17,11 +19,12 @@ npm install
 node capture_assets.js
 ```
 
-`assets/` フォルダに4枚の画像が生成されます:
+`assets/` フォルダに5枚の画像が生成されます:
 - `hero_shot.png` - Time Series モード
 - `comparison_shot.png` - Comparison モード + 統計
 - `survival_shot.png` - Survival モード（Kaplan-Meier）
 - `dark_mode.png` - ダークテーマ
+- `explorer_shot.png` - Explorer パネル
 
 ## 開発者
 
