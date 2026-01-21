@@ -1144,8 +1144,8 @@ let stagedGroupNames = {};
 let explorerTreeState = {};
 let barWidthState = 28;
 let groupOffsetX = [];
-let groupLabelOffsetY = [];
-let timeLabelOffsetY = [];
+let groupLabelOffsetY = 0;
+let timeLabelOffsetY = 0;
 let titleOffsetX = 0;
 let titleOffsetY = 0;
 let xAxisLabelOffsetX = 0;
@@ -1965,12 +1965,10 @@ function onBarPointerDown(e) {
 function onGroupLabelPointerDown(e) {
     const label = e.target.closest('text.group-label');
     if (!label) return false;
-    const idx = parseInt(label.dataset.groupIndex, 10);
-    if (isNaN(idx)) return true;
     e.preventDefault();
-    draggingGroupLabelIndex = idx;
+    draggingGroupLabelIndex = 0; // Use as flag
     draggingGroupLabelStartY = e.clientY;
-    draggingGroupLabelStartOffset = groupLabelOffsetY[idx] || 0;
+    draggingGroupLabelStartOffset = groupLabelOffsetY || 0;
     window.addEventListener('pointermove', onGroupLabelPointerMove);
     window.addEventListener('pointerup', onGroupLabelPointerUp, { once: true });
     return true;
@@ -1985,7 +1983,7 @@ function onGroupLabelPointerMove(e) {
     if (!rect.height) return;
     const dyPx = e.clientY - draggingGroupLabelStartY;
     const scaleY = plotMetrics.height / rect.height;
-    groupLabelOffsetY[draggingGroupLabelIndex] = draggingGroupLabelStartOffset + (dyPx * scaleY);
+    groupLabelOffsetY = draggingGroupLabelStartOffset + (dyPx * scaleY);
     updatePlot();
 }
 
@@ -1998,12 +1996,10 @@ function onGroupLabelPointerUp() {
 function onTimeLabelPointerDown(e) {
     const label = e.target.closest('text.time-label');
     if (!label) return false;
-    const idx = parseInt(label.dataset.timeIndex, 10);
-    if (isNaN(idx)) return false;
     e.preventDefault();
-    draggingTimeLabelIndex = idx;
+    draggingTimeLabelIndex = 0; // Use as flag
     draggingTimeLabelStartY = e.clientY;
-    draggingTimeLabelStartOffset = timeLabelOffsetY[idx] || 0;
+    draggingTimeLabelStartOffset = timeLabelOffsetY || 0;
     window.addEventListener('pointermove', onTimeLabelPointerMove);
     window.addEventListener('pointerup', onTimeLabelPointerUp, { once: true });
     return true;
@@ -2018,7 +2014,7 @@ function onTimeLabelPointerMove(e) {
     if (!rect.height) return;
     const dyPx = e.clientY - draggingTimeLabelStartY;
     const scaleY = plotMetrics.height / rect.height;
-    timeLabelOffsetY[draggingTimeLabelIndex] = draggingTimeLabelStartOffset + (dyPx * scaleY);
+    timeLabelOffsetY = draggingTimeLabelStartOffset + (dyPx * scaleY);
     updatePlot();
 }
 
@@ -2394,8 +2390,8 @@ function resetGroups() {
     container.innerHTML = '';
     groupCount = 0;
     groupOffsetX = [];
-    groupLabelOffsetY = [];
-    timeLabelOffsetY = [];
+    groupLabelOffsetY = 0;
+    timeLabelOffsetY = 0;
 }
 
 function loadSampleTimeline() {
@@ -2428,16 +2424,12 @@ function ensureGroupOffsets(len) {
     }
 }
 
-function ensureGroupLabelOffsets(len) {
-    for (let i = 0; i < len; i++) {
-        if (groupLabelOffsetY[i] === undefined || isNaN(groupLabelOffsetY[i])) groupLabelOffsetY[i] = 0;
-    }
+function ensureGroupLabelOffsets() {
+    if (groupLabelOffsetY === undefined || isNaN(groupLabelOffsetY)) groupLabelOffsetY = 0;
 }
 
-function ensureTimeLabelOffsets(len) {
-    for (let i = 0; i < len; i++) {
-        if (timeLabelOffsetY[i] === undefined || isNaN(timeLabelOffsetY[i])) timeLabelOffsetY[i] = 0;
-    }
+function ensureTimeLabelOffsets() {
+    if (timeLabelOffsetY === undefined || isNaN(timeLabelOffsetY)) timeLabelOffsetY = 0;
 }
 
 function snapshotBarState() {
@@ -3676,8 +3668,8 @@ function updatePlot(reflowPass = 0) {
     }));
     const nGroups = groupConfigs.length;
     ensureGroupOffsets(nGroups);
-    ensureGroupLabelOffsets(nGroups);
-    ensureTimeLabelOffsets(timeLabels.length);
+    ensureGroupLabelOffsets();
+    ensureTimeLabelOffsets();
     const getCompCenter = (gIdx) => pL + (gIdx + 0.5) * (graphW / nGroups) + (groupOffsetX[gIdx] || 0);
     const getTimeCenter = (tIdx, gIdx, groupSpace) => {
         const base = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
@@ -3846,7 +3838,7 @@ function updatePlot(reflowPass = 0) {
             if (s.n > 0) {
                 drawGroupContent(x, data, s, group, barWidth, baselineVal, gIdx);
             }
-            const labelY = height - pB + fsX + 10 + (groupLabelOffsetY[gIdx] || 0);
+            const labelY = height - pB + fsX + 10 + (groupLabelOffsetY || 0);
             svgItems.push(`<text class="x-axis-label group-label" data-group-index="${gIdx}" x="${x}" y="${labelY}" text-anchor="middle" font-size="${fsX}" font-family="Arial" fill="${axisColor}">${group.name}</text>`);
         });
     } else {
@@ -3939,7 +3931,7 @@ function updatePlot(reflowPass = 0) {
         }
         timeLabels.forEach((label, tIdx) => {
             const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
-            const labelY = height - pB + fsX + 10 + (timeLabelOffsetY[tIdx] || 0);
+            const labelY = height - pB + fsX + 10 + (timeLabelOffsetY || 0);
             svgItems.push(`<text class="x-axis-label time-label" data-time-index="${tIdx}" x="${xCenter}" y="${labelY}" text-anchor="middle" font-size="${fsX}" font-family="Arial" fill="${axisColor}">${label}</text>`);
         });
     }
