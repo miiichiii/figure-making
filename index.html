@@ -3788,7 +3788,9 @@ function updatePlot(reflowPass = 0) {
         <line x1="${x-capHalf}" y1="${yB}" x2="${x+capHalf}" y2="${yB}" />
     </g>`);
             if (!showBars) {
-                svgItems.push(`<line x1="${x-12}" y1="${yM}" x2="${x+12}" y2="${yM}" stroke="${axisColor}" stroke-width="1.5" />`);
+                const meanLineHalf = barWidth / 2;
+                const meanLineStroke = Math.max(0.8, Math.min(2, barWidth * 0.06));
+                svgItems.push(`<line x1="${x-meanLineHalf}" y1="${yM}" x2="${x+meanLineHalf}" y2="${yM}" stroke="${axisColor}" stroke-width="${meanLineStroke}" />`);
             }
         }
         if (showMean) {
