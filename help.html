@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Plotter - 論文品質のグラフ作成ツール</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'warm-bg': '#F3EFE6',
+                        'warm-panel': '#E7D7B8',
+                        'warm-card': '#F6F0E3',
+                        'warm-border': '#CBB489',
+                        'warm-text': '#2B2A27',
+                        'warm-muted': '#5D574C',
+                        'warm-accent': '#7B5A2B',
+                        'warm-accent-2': '#B07D2B',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hero-gradient {
+            background: linear-gradient(135deg, #F3EFE6 0%, #E7D7B8 50%, #D9C7A4 100%);
+        }
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+        }
+        .img-card {
+            transition: transform 0.2s ease;
+        }
+        .img-card:hover {
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="bg-warm-bg text-warm-text">
+
+    <!-- Hero Section -->
+    <section class="hero-gradient min-h-screen flex items-center">
+        <div class="container mx-auto px-6 py-16">
+            <div class="flex flex-col lg:flex-row items-center gap-12">
+                <div class="lg:w-1/2 text-center lg:text-left">
+                    <h1 class="text-4xl md:text-5xl font-bold text-warm-text mb-6 leading-tight">
+                        インストール不要。<br>
+                        ブラウザで完結する、<br>
+                        <span class="text-warm-accent">論文執筆のための</span><br>
+                        グラフ作成・統計ツール
+                    </h1>
+                    <p class="text-xl text-warm-muted mb-8 leading-relaxed">
+                        データは外部に送信されません。<br>
+                        機密データも安心してプロット可能。
+                    </p>
+                    <a href="./index.html"
+                       class="inline-block bg-warm-accent hover:bg-warm-accent-2 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-lg hover:shadow-xl">
+                        今すぐ SVG Plotter を開く
+                    </a>
+                    <p class="mt-4 text-sm text-warm-muted">
+                        ダウンロード・アカウント登録不要
+                    </p>
+                </div>
+                <div class="lg:w-1/2">
+                    <div class="card-hover rounded-2xl overflow-hidden shadow-2xl border border-warm-border">
+                        <img src="./assets/hero_shot.png" alt="SVG Plotter メイン画面" class="w-full h-auto">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-20 bg-warm-card">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-16">3つの強み</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+
+                <!-- Feature 1: Security -->
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border border-warm-border">
+                    <div class="w-16 h-16 bg-warm-panel rounded-full flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">安心のセキュリティ</h3>
+                    <p class="text-warm-muted leading-relaxed">
+                        すべての処理はブラウザ内で完結。<br>
+                        <strong>サーバーへのデータ送信は一切ありません。</strong><br>
+                        機密性の高い実験データも安心して扱えます。
+                    </p>
+                </div>
+
+                <!-- Feature 2: Statistics -->
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border border-warm-border">
+                    <div class="w-16 h-16 bg-warm-panel rounded-full flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">瞬時の統計解析</h3>
+                    <p class="text-warm-muted leading-relaxed">
+                        Welch's t-test, ANOVA, Tukey, Dunnett など主要な検定を自動計算。<br>
+                        p値と有意性が即座に表示されます。
+                    </p>
+                    <p class="text-sm text-warm-accent mt-3">
+                        ※最終確認は GraphPad Prism / R 等で行うことを推奨
+                    </p>
+                </div>
+
+                <!-- Feature 3: Output -->
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border border-warm-border">
+                    <div class="w-16 h-16 bg-warm-panel rounded-full flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">論文クオリティ出力</h3>
+                    <p class="text-warm-muted leading-relaxed">
+                        SVG形式で出力するため、<br>
+                        <strong>PowerPoint / Illustrator で自由に編集可能。</strong><br>
+                        拡大しても劣化しないベクター画像です。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section class="py-20 bg-warm-bg">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-6">機能紹介</h2>
+            <p class="text-center text-warm-muted mb-12 max-w-2xl mx-auto">
+                3つのモードで多様な研究データに対応。<br>
+                ドラッグ操作で直感的にレイアウト調整が可能です。
+            </p>
+            <div class="grid md:grid-cols-2 gap-8">
+
+                <!-- Comparison Mode -->
+                <div class="group">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
+                        <img src="./assets/comparison_shot.png" alt="比較モード" class="w-full h-auto">
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Comparison Mode（群間比較）</h3>
+                    <p class="text-warm-muted">
+                        2群〜多群の比較に対応。散布図＋エラーバーと統計検定結果を同時表示。<br>
+                        Welch's t-test / ANOVA / Tukey / Dunnett などを自動選択。
+                    </p>
+                </div>
+
+                <!-- Survival Mode -->
+                <div class="group">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
+                        <img src="./assets/survival_shot.png" alt="生存曲線モード" class="w-full h-auto">
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Survival Mode（生存曲線）</h3>
+                    <p class="text-warm-muted">
+                        Kaplan-Meier曲線を描画。打ち切りデータにも対応。<br>
+                        Log-rank検定の結果も表示されます。
+                    </p>
+                </div>
+
+                <!-- Dark Mode -->
+                <div class="group">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
+                        <img src="./assets/dark_mode.png" alt="ダークモード" class="w-full h-auto">
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Dark Mode（ダークテーマ）</h3>
+                    <p class="text-warm-muted">
+                        目に優しいダークモードを搭載。長時間の作業でも疲れにくい配色です。
+                    </p>
+                </div>
+
+                <!-- Time Series -->
+                <div class="group">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
+                        <img src="./assets/hero_shot.png" alt="時系列モード" class="w-full h-auto">
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Time Series Mode（時系列）</h3>
+                    <p class="text-warm-muted">
+                        経時変化データの可視化に最適。折れ線グラフ＋散布図で推移を表現。<br>
+                        各時点での群間比較も自動計算。
+                    </p>
+                </div>
+
+                <!-- Explorer Mode -->
+                <div class="group md:col-span-2">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
+                        <img src="./assets/explorer_shot.png" alt="Explorerモード" class="w-full h-auto">
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Explorer（ファイルエクスプローラー）</h3>
+                    <p class="text-warm-muted">
+                        CSV / TSV / Excel ファイルをドラッグ&ドロップで読み込み。フォルダごと読み込んでツリー表示も可能。<br>
+                        データのプレビュー、列の選択、グループ分けまでGUIで完結。<strong>ファイルはローカルで読み込まれ、外部には送信されません。</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section class="py-20 bg-warm-panel">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-12">30秒で使い始める</h2>
+            <div class="max-w-3xl mx-auto">
+                <div class="flex flex-col md:flex-row gap-6 justify-center items-stretch">
+
+                    <!-- Step 1 -->
+                    <div class="flex-1 bg-white rounded-xl p-6 shadow-lg border border-warm-border text-center">
+                        <div class="w-12 h-12 bg-warm-accent text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">1</div>
+                        <h3 class="font-bold mb-2">データを入力</h3>
+                        <p class="text-warm-muted text-sm">
+                            Excel/スプレッドシートからコピー&ペースト、またはサンプルデータをロード
+                        </p>
+                    </div>
+
+                    <!-- Arrow -->
+                    <div class="hidden md:flex items-center text-warm-accent text-2xl">
+                        →
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="flex-1 bg-white rounded-xl p-6 shadow-lg border border-warm-border text-center">
+                        <div class="w-12 h-12 bg-warm-accent text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">2</div>
+                        <h3 class="font-bold mb-2">見た目を調整</h3>
+                        <p class="text-warm-muted text-sm">
+                            ドラッグでラベル位置を調整、カラーやサイズを変更
+                        </p>
+                    </div>
+
+                    <!-- Arrow -->
+                    <div class="hidden md:flex items-center text-warm-accent text-2xl">
+                        →
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="flex-1 bg-white rounded-xl p-6 shadow-lg border border-warm-border text-center">
+                        <div class="w-12 h-12 bg-warm-accent text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">3</div>
+                        <h3 class="font-bold mb-2">SVGダウンロード</h3>
+                        <p class="text-warm-muted text-sm">
+                            ベクター画像としてダウンロード。PowerPoint等で編集可能
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-12 text-center">
+                    <div class="inline-flex items-center gap-2 bg-white/80 rounded-lg px-6 py-3 border border-warm-border">
+                        <svg class="w-5 h-5 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                        <span class="text-warm-text font-medium">すべてローカルで処理。データは外部に送信されません。</span>
+                    </div>
+                </div>
+
+                <div class="mt-8 text-center">
+                    <a href="./index.html"
+                       class="inline-block bg-warm-accent hover:bg-warm-accent-2 text-white font-bold py-4 px-10 rounded-lg text-lg transition-colors shadow-lg hover:shadow-xl">
+                        SVG Plotter を開く
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer / Developer Info -->
+    <footer class="py-12 bg-warm-text text-warm-bg">
+        <div class="container mx-auto px-6">
+            <div class="max-w-3xl mx-auto">
+
+                <!-- Developer -->
+                <div class="mb-8 text-center">
+                    <h3 class="text-lg font-bold mb-2">開発者</h3>
+                    <p class="text-warm-panel">
+                        Michito Hamada<br>
+                        <span class="text-sm opacity-80">Ibaraki Prefectural University of Health Sciences</span>
+                    </p>
+                </div>
+
+                <!-- Disclaimer -->
+                <div class="bg-warm-muted/20 rounded-xl p-6 border border-warm-muted/30">
+                    <h3 class="text-lg font-bold mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        免責事項
+                    </h3>
+                    <p class="text-warm-panel leading-relaxed">
+                        本ツールは可視化支援を目的としています。<br>
+                        <strong>統計結果（p値等）は近似計算のため、論文・学位論文・学会発表等での最終的な統計確認は、GraphPad Prism / R 等の専門ソフトウェアで必ず実施してください。</strong>
+                    </p>
+                    <p class="text-sm text-warm-panel/70 mt-3">
+                        本ツールの出力に基づく判断について、開発者は一切の責任を負いません。最終的な科学的判断は利用者の責任において行ってください。
+                    </p>
+                </div>
+
+                <div class="mt-8 text-center text-sm text-warm-panel/60">
+                    <p>SVG Plotter v10 | Made with care for researchers</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

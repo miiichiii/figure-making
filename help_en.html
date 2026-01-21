@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Plotter - Publication-Quality Graph Creation Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'warm-bg': '#F3EFE6',
+                        'warm-panel': '#E7D7B8',
+                        'warm-card': '#F6F0E3',
+                        'warm-border': '#CBB489',
+                        'warm-text': '#2B2A27',
+                        'warm-muted': '#5D574C',
+                        'warm-accent': '#7B5A2B',
+                        'warm-accent-2': '#B07D2B',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hero-gradient {
+            background: linear-gradient(135deg, #F3EFE6 0%, #E7D7B8 50%, #D9C7A4 100%);
+        }
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+        }
+        .img-card {
+            transition: transform 0.2s ease;
+        }
+        .img-card:hover {
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="bg-warm-bg text-warm-text">
+
+    <!-- Hero Section -->
+    <section class="hero-gradient min-h-screen flex items-center">
+        <div class="container mx-auto px-6 py-16">
+            <div class="flex flex-col lg:flex-row items-center gap-12">
+                <div class="lg:w-1/2 text-center lg:text-left">
+                    <h1 class="text-4xl md:text-5xl font-bold text-warm-text mb-6 leading-tight">
+                        No Installation Required.<br>
+                        Browser-Based<br>
+                        <span class="text-warm-accent">Graph Creation &</span><br>
+                        <span class="text-warm-accent">Statistics Tool</span><br>
+                        for Research Papers
+                    </h1>
+                    <p class="text-xl text-warm-muted mb-8 leading-relaxed">
+                        Your data never leaves your computer.<br>
+                        Safe for confidential research data.
+                    </p>
+                    <a href="./index.html"
+                       class="inline-block bg-warm-accent hover:bg-warm-accent-2 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-lg hover:shadow-xl">
+                        Open SVG Plotter Now
+                    </a>
+                    <p class="mt-4 text-sm text-warm-muted">
+                        No download or account required
+                    </p>
+                </div>
+                <div class="lg:w-1/2">
+                    <div class="card-hover rounded-2xl overflow-hidden shadow-2xl border border-warm-border">
+                        <img src="./assets/hero_shot.png" alt="SVG Plotter Main Screen" class="w-full h-auto">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-20 bg-warm-card">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-16">Three Key Advantages</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+
+                <!-- Feature 1: Security -->
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border border-warm-border">
+                    <div class="w-16 h-16 bg-warm-panel rounded-full flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Complete Privacy</h3>
+                    <p class="text-warm-muted leading-relaxed">
+                        All processing happens in your browser.<br>
+                        <strong>No data is ever sent to any server.</strong><br>
+                        Perfect for sensitive experimental data.
+                    </p>
+                </div>
+
+                <!-- Feature 2: Statistics -->
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border border-warm-border">
+                    <div class="w-16 h-16 bg-warm-panel rounded-full flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Instant Statistics</h3>
+                    <p class="text-warm-muted leading-relaxed">
+                        Automatically calculates Welch's t-test, ANOVA, Tukey, Dunnett, and more.<br>
+                        P-values and significance displayed instantly.
+                    </p>
+                    <p class="text-sm text-warm-accent mt-3">
+                        *Final verification with GraphPad Prism / R recommended
+                    </p>
+                </div>
+
+                <!-- Feature 3: Output -->
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border border-warm-border">
+                    <div class="w-16 h-16 bg-warm-panel rounded-full flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Publication-Quality Output</h3>
+                    <p class="text-warm-muted leading-relaxed">
+                        Export as SVG format for<br>
+                        <strong>easy editing in PowerPoint / Illustrator.</strong><br>
+                        Vector graphics that never pixelate.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section class="py-20 bg-warm-bg">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-6">Features Overview</h2>
+            <p class="text-center text-warm-muted mb-12 max-w-2xl mx-auto">
+                Three modes for diverse research data.<br>
+                Intuitive drag-and-drop layout adjustment.
+            </p>
+            <div class="grid md:grid-cols-2 gap-8">
+
+                <!-- Comparison Mode -->
+                <div class="group">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
+                        <img src="./assets/comparison_shot.png" alt="Comparison Mode" class="w-full h-auto">
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Comparison Mode</h3>
+                    <p class="text-warm-muted">
+                        Supports 2-group to multi-group comparisons. Displays scatter plots with error bars and statistical test results simultaneously.<br>
+                        Auto-selects Welch's t-test / ANOVA / Tukey / Dunnett.
+                    </p>
+                </div>
+
+                <!-- Survival Mode -->
+                <div class="group">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
+                        <img src="./assets/survival_shot.png" alt="Survival Curve Mode" class="w-full h-auto">
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Survival Mode</h3>
+                    <p class="text-warm-muted">
+                        Draws Kaplan-Meier curves with censored data support.<br>
+                        Log-rank test results included.
+                    </p>
+                </div>
+
+                <!-- Dark Mode -->
+                <div class="group">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
+                        <img src="./assets/dark_mode.png" alt="Dark Mode" class="w-full h-auto">
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Dark Mode</h3>
+                    <p class="text-warm-muted">
+                        Eye-friendly dark theme included. Reduces strain during long working sessions.
+                    </p>
+                </div>
+
+                <!-- Time Series -->
+                <div class="group">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
+                        <img src="./assets/hero_shot.png" alt="Time Series Mode" class="w-full h-auto">
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Time Series Mode</h3>
+                    <p class="text-warm-muted">
+                        Ideal for longitudinal data visualization. Line graphs with scatter plots show trends over time.<br>
+                        Between-group comparisons calculated at each time point.
+                    </p>
+                </div>
+
+                <!-- Explorer Mode -->
+                <div class="group md:col-span-2">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
+                        <img src="./assets/explorer_shot.png" alt="Explorer Mode" class="w-full h-auto">
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Explorer (File Browser)</h3>
+                    <p class="text-warm-muted">
+                        Drag & drop CSV / TSV / Excel files to load. You can also drop entire folders to browse as a tree.<br>
+                        Preview data, select columns, and configure groups all through the GUI. <strong>Files are loaded locally and never sent to any server.</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section class="py-20 bg-warm-panel">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-12">Get Started in 30 Seconds</h2>
+            <div class="max-w-3xl mx-auto">
+                <div class="flex flex-col md:flex-row gap-6 justify-center items-stretch">
+
+                    <!-- Step 1 -->
+                    <div class="flex-1 bg-white rounded-xl p-6 shadow-lg border border-warm-border text-center">
+                        <div class="w-12 h-12 bg-warm-accent text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">1</div>
+                        <h3 class="font-bold mb-2">Enter Data</h3>
+                        <p class="text-warm-muted text-sm">
+                            Copy & paste from Excel/Sheets, or load sample data
+                        </p>
+                    </div>
+
+                    <!-- Arrow -->
+                    <div class="hidden md:flex items-center text-warm-accent text-2xl">
+                        →
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="flex-1 bg-white rounded-xl p-6 shadow-lg border border-warm-border text-center">
+                        <div class="w-12 h-12 bg-warm-accent text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">2</div>
+                        <h3 class="font-bold mb-2">Adjust Layout</h3>
+                        <p class="text-warm-muted text-sm">
+                            Drag labels to reposition, customize colors and sizes
+                        </p>
+                    </div>
+
+                    <!-- Arrow -->
+                    <div class="hidden md:flex items-center text-warm-accent text-2xl">
+                        →
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="flex-1 bg-white rounded-xl p-6 shadow-lg border border-warm-border text-center">
+                        <div class="w-12 h-12 bg-warm-accent text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">3</div>
+                        <h3 class="font-bold mb-2">Download SVG</h3>
+                        <p class="text-warm-muted text-sm">
+                            Export as vector graphics, editable in PowerPoint
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-12 text-center">
+                    <div class="inline-flex items-center gap-2 bg-white/80 rounded-lg px-6 py-3 border border-warm-border">
+                        <svg class="w-5 h-5 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                        <span class="text-warm-text font-medium">100% Local Processing. Your data never leaves your computer.</span>
+                    </div>
+                </div>
+
+                <div class="mt-8 text-center">
+                    <a href="./index.html"
+                       class="inline-block bg-warm-accent hover:bg-warm-accent-2 text-white font-bold py-4 px-10 rounded-lg text-lg transition-colors shadow-lg hover:shadow-xl">
+                        Open SVG Plotter
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer / Developer Info -->
+    <footer class="py-12 bg-warm-text text-warm-bg">
+        <div class="container mx-auto px-6">
+            <div class="max-w-3xl mx-auto">
+
+                <!-- Developer -->
+                <div class="mb-8 text-center">
+                    <h3 class="text-lg font-bold mb-2">Developer</h3>
+                    <p class="text-warm-panel">
+                        Michito Hamada<br>
+                        <span class="text-sm opacity-80">Ibaraki Prefectural University of Health Sciences</span>
+                    </p>
+                </div>
+
+                <!-- Disclaimer -->
+                <div class="bg-warm-muted/20 rounded-xl p-6 border border-warm-muted/30">
+                    <h3 class="text-lg font-bold mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        Disclaimer
+                    </h3>
+                    <p class="text-warm-panel leading-relaxed">
+                        This tool is intended for visualization assistance.<br>
+                        <strong>Statistical results (p-values, etc.) are approximations. For publications, theses, or conference presentations, always verify final statistics using professional software such as GraphPad Prism or R.</strong>
+                    </p>
+                    <p class="text-sm text-warm-panel/70 mt-3">
+                        The developer assumes no liability for decisions made based on this tool's output. Final scientific judgment remains the user's responsibility.
+                    </p>
+                </div>
+
+                <div class="mt-8 text-center text-sm text-warm-panel/60">
+                    <p>SVG Plotter v10 | Made with care for researchers</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

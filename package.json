@@ -1,0 +1,24 @@
+{
+  "name": "figure-making",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/miiichiii/figure-making.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/miiichiii/figure-making/issues"
+  },
+  "homepage": "https://github.com/miiichiii/figure-making#readme",
+  "dependencies": {
+    "puppeteer": "^24.35.0"
+  }
+}
