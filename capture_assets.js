@@ -207,7 +207,44 @@ async function capture() {
         console.log('  -> dark_mode.png saved');
 
         // ============================================
-        // (5) explorer_shot.png - Explorer Mode
+        // (5) controls_shot.png - Visual Controls
+        // ============================================
+        console.log('Capturing controls_shot.png (Visual Controls)...');
+
+        // Make sure we're in light mode with comparison data
+        await page.select('#themeSelect', 'light');
+        await page.select('#plotMode', 'comparison');
+        await wait(500);
+
+        await page.evaluate(() => {
+            const buttons = document.querySelectorAll('button');
+            for (const btn of buttons) {
+                if (btn.textContent.includes('Two-Group Sample')) {
+                    btn.click();
+                    break;
+                }
+            }
+        });
+        await wait(1500);
+        await waitForGraphRender(page);
+
+        // Scroll to show the visual controls area (below the graph)
+        await page.evaluate(() => {
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.scrollTop = 450;
+            }
+        });
+        await wait(500);
+
+        await page.screenshot({
+            path: path.join(ASSETS_DIR, 'controls_shot.png'),
+            fullPage: false
+        });
+        console.log('  -> controls_shot.png saved');
+
+        // ============================================
+        // (6) explorer_shot.png - Explorer Mode
         // ============================================
         console.log('Capturing explorer_shot.png (Explorer Panel)...');
 
@@ -233,7 +270,7 @@ async function capture() {
         console.log('\n=== All screenshots captured successfully! ===');
 
         // Verify all files exist
-        const files = ['hero_shot.png', 'comparison_shot.png', 'survival_shot.png', 'dark_mode.png', 'explorer_shot.png'];
+        const files = ['hero_shot.png', 'comparison_shot.png', 'survival_shot.png', 'dark_mode.png', 'controls_shot.png', 'explorer_shot.png'];
         let allExist = true;
         for (const file of files) {
             const filePath = path.join(ASSETS_DIR, file);

@@ -19,11 +19,12 @@ npm install
 node capture_assets.js
 ```
 
-`assets/` フォルダに5枚の画像が生成されます:
+`assets/` フォルダに6枚の画像が生成されます:
 - `hero_shot.png` - Time Series モード
 - `comparison_shot.png` - Comparison モード + 統計
 - `survival_shot.png` - Survival モード（Kaplan-Meier）
 - `dark_mode.png` - ダークテーマ
+- `controls_shot.png` - Visual Controls
 - `explorer_shot.png` - Explorer パネル
 
 ## 開発者
