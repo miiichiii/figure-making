@@ -2475,15 +2475,10 @@ function resetBarPositions() {
 }
 
 function syncBarControlsUI() {
-    const showBars = document.getElementById('showBars');
-    const card = document.getElementById('barWidthCard');
     const slider = document.getElementById('barWidthSlider');
     const val = document.getElementById('barWidthValue');
     if (slider) slider.value = barWidthState;
     if (val) val.textContent = Math.round(barWidthState);
-    if (card && showBars) {
-        card.style.display = showBars.checked ? 'block' : 'none';
-    }
 }
 
 function handleShowBarsToggle() {
