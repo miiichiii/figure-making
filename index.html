@@ -2381,8 +2381,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         explorerDropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const dropped = await collectDroppedFiles(e.dataTransfer);
-            handleExplorerFiles(dropped);
+            if (dropped.length === 0 && e.dataTransfer.files.length > 0) {
+                handleExplorerFiles(Array.from(e.dataTransfer.files));
+            } else {
+                handleExplorerFiles(dropped);
+            }
         });
     }
     document.addEventListener('click', (e) => {
