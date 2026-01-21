@@ -943,6 +943,7 @@
                         <div class="option-list">
                             <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="showBars" onchange="handleShowBarsToggle()" checked> Show Bars</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showViolin" onchange="updatePlot()"> Show Violin</label>
                         </div>
                         <div class="option-list" id="lineOptionsBody">
                             <label style="font-weight: normal;"><input type="checkbox" id="showSampleLines" onchange="updatePlot()"> Sample Lines</label>
@@ -2513,6 +2514,7 @@ function collectProfile() {
             showSampleLines: document.getElementById('showSampleLines').checked,
             showMean: document.getElementById('showMean').checked,
             showMeanDots: document.getElementById('showMeanDots').checked,
+            showViolin: document.getElementById('showViolin').checked,
             showErrorBars: document.getElementById('showErrorBars').checked,
             showPostHoc: document.getElementById('showPostHoc').checked,
             autoBrackets: document.getElementById('autoBrackets').checked,
@@ -2584,6 +2586,7 @@ function applyProfile(profile) {
         document.getElementById('showSampleLines').checked = !!profile.options.showSampleLines;
         document.getElementById('showMean').checked = !!profile.options.showMean;
         document.getElementById('showMeanDots').checked = !!profile.options.showMeanDots;
+        document.getElementById('showViolin').checked = !!profile.options.showViolin;
         document.getElementById('showErrorBars').checked = !!profile.options.showErrorBars;
         document.getElementById('showPostHoc').checked = !!profile.options.showPostHoc;
         document.getElementById('autoBrackets').checked = !!profile.options.autoBrackets;
@@ -2682,6 +2685,7 @@ function resetProfile() {
             showSampleLines: false,
             showMean: true,
             showMeanDots: true,
+            showViolin: false,
             showErrorBars: true,
             showPostHoc: false,
             autoBrackets: true,
@@ -3342,6 +3346,7 @@ function updatePlot(reflowPass = 0) {
     const showSampleLines = document.getElementById('showSampleLines').checked;
     const showMean = document.getElementById('showMean').checked;
     const showMeanDots = document.getElementById('showMeanDots').checked;
+    const showViolin = document.getElementById('showViolin').checked;
     const showErrorBars = document.getElementById('showErrorBars').checked;
     const errorType = document.getElementById('errorType')?.value || 'se';
     const bracketOffset = parseFloat(document.getElementById('bracketOffset').value);
@@ -3662,12 +3667,51 @@ function updatePlot(reflowPass = 0) {
     svgItems.push(`<rect class="svg-bg" x="0" y="0" width="${width}" height="${height}" fill="${svgBg}" />`);
     const strokeW = 1.2;
 
+    function buildViolinPath(data, x, maxWidth) {
+        const values = data.filter(v => Number.isFinite(v));
+        if (values.length < 2) return '';
+        let minVal = Math.min(...values);
+        let maxVal = Math.max(...values);
+        if (minVal === maxVal) {
+            minVal -= 0.5;
+            maxVal += 0.5;
+        }
+        const stats = calcStats(values);
+        const bandwidth = Math.max((maxVal - minVal) / 6, stats.sd * 0.9, 1e-6);
+        const steps = 40;
+        const pts = [];
+        let maxDensity = 0;
+        for (let i = 0; i <= steps; i++) {
+            const y = minVal + ((maxVal - minVal) * i) / steps;
+            let density = 0;
+            for (const v of values) {
+                const z = (y - v) / bandwidth;
+                density += Math.exp(-0.5 * z * z);
+            }
+            density = density / (values.length * bandwidth);
+            pts.push({ y, density });
+            if (density > maxDensity) maxDensity = density;
+        }
+        if (maxDensity <= 0) return '';
+        const half = maxWidth / 2;
+        const left = pts.map(p => `${x - (p.density / maxDensity) * half} ${yScale(p.y)}`);
+        const right = pts.slice().reverse().map(p => `${x + (p.density / maxDensity) * half} ${yScale(p.y)}`);
+        return `M ${left[0]} L ${left.slice(1).join(' ')} L ${right.join(' ')} Z`;
+    }
+
     function drawGroupContent(x, data, s, group, barWidth, baselineVal, gIdx) {
         const errVal = errorType === 'sd' ? s.sd : s.se;
         const yM = yScale(s.mean), yT = yScale(s.mean + errVal), yB = yScale(s.mean - errVal);
         const dotR = parseFloat(document.getElementById('dotSize').value);
         const jitter = parseFloat(document.getElementById('jitter').value);
 
+        if (showViolin && !showLines) {
+            const violinWidth = Math.max(10, barWidth * 1.4);
+            const path = buildViolinPath(data, x, violinWidth);
+            if (path) {
+                svgItems.push(`<path d="${path}" fill="${group.color}" fill-opacity="0.22" stroke="${axisColor}" stroke-width="0.6" />`);
+            }
+        }
         if (showBars) {
             const baseY = yScale(baselineVal);
             const barY = Math.min(yM, baseY);
