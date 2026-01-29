@@ -47,6 +47,7 @@
             --explorer-card: #F6F0E3;
             --explorer-hover: #E5D1A9;
             --explorer-selected: #D9BF8C;
+            --explorer-handle-width: 28px;
         }
         html[data-theme="dark"] {
             --bg: #101214;
@@ -260,6 +261,13 @@
         .group-header { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; padding-right: 30px; }
         .btn-remove { position: absolute; top: 8px; right: 8px; background: var(--danger); color: white; border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; font-size: 12px; }
         textarea { width: 100%; height: 70px; font-family: "SF Mono", monospace; font-size: 11px; padding: 8px; border: 1px solid var(--input-border); border-radius: 4px; box-sizing: border-box; background: var(--input-bg); color: var(--input-text); }
+        .group-data-input {
+            white-space: pre;
+            overflow-x: auto;
+            overflow-y: auto;
+            resize: vertical;
+            tab-size: 4;
+        }
         .paste-preview { margin-top: 6px; max-height: 140px; overflow: auto; border: 1px solid var(--border); border-radius: 4px; background: var(--card); }
         .paste-preview table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
         .paste-preview th, .paste-preview td { border: 1px solid var(--border); padding: 2px 4px; text-align: center; color: var(--text); }
@@ -330,23 +338,49 @@
             width: 100vw;
             background: var(--explorer-bg);
             color: var(--explorer-text);
-            transform: translateX(calc(-100% + 16px));
+            transform: translateX(-100%);
             transition: transform 0.25s ease;
             z-index: 2000;
             display: flex;
+            flex-direction: row-reverse;
+            pointer-events: none;
+        }
+        #explorer-panel.peek {
+            transform: translateX(calc(-100% + var(--explorer-handle-width)));
+            pointer-events: auto;
         }
         #explorer-panel.pinned {
             transform: translateX(0);
+            pointer-events: auto;
         }
         #explorer-handle {
-            width: 16px;
-            background: var(--explorer-handle);
+            width: var(--explorer-handle-width);
+            background: linear-gradient(180deg, #5b7d36 0%, #3f5a22 100%);
+            color: #f3f1e5;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.25em;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
             user-select: none;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.25);
+            border-left: 1px solid #2b3d18;
+            position: relative;
+        }
+        #explorer-handle::after {
+            content: "";
+            position: absolute;
+            right: -10px;
+            top: 30%;
+            width: 10px;
+            height: 90px;
+            background: #354c1f;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 1px 0 6px rgba(0, 0, 0, 0.2);
         }
         #explorer-content {
             flex: 1;
@@ -779,7 +813,7 @@
 " onmouseover="this.style.background='var(--accent-2)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='var(--accent)'; this.style.transform='scale(1)';">?</a>
 
 <div id="explorer-panel">
-    <div id="explorer-handle" title="Explorer">⋮</div>
+    <div id="explorer-handle" title="Explorer">EXPLORER</div>
     <div id="explorer-content">
         <div class="explorer-header">
             <h3>Explorer</h3>
@@ -1214,7 +1248,7 @@ function addNewGroup(name = "", color = "", data = "") {
             <input type="text" class="group-name-input" value="${nameVal}" style="width:100px" oninput="updatePlot()">
             <input type="color" class="group-color-input" value="${colorVal}" oninput="updatePlot()">
         </div>
-        <textarea class="group-data-input" placeholder="Paste data here..." oninput="handlePaste('${id}')">${data}</textarea>
+        <textarea class="group-data-input" wrap="off" placeholder="Paste data here..." oninput="handlePaste('${id}')">${data}</textarea>
         <div class="paste-preview"></div>
     `;
     container.appendChild(card);
@@ -2340,24 +2374,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const explorerPanel = document.getElementById('explorer-panel');
     const explorerHandle = document.getElementById('explorer-handle');
     const explorerHideBtn = document.getElementById('explorerHideBtn');
+    const explorerEdgeThreshold = 32;
     if (explorerHandle && explorerPanel) {
         explorerHandle.addEventListener('click', () => {
             explorerPanel.classList.toggle('pinned');
-        });
-    }
-    if (explorerPanel) {
-        explorerPanel.addEventListener('mouseenter', () => {
-            explorerPanel.classList.add('pinned');
-            const explorerMode = document.getElementById('explorerMode');
-            const plotMode = document.getElementById('plotMode');
-            if (explorerMode && plotMode) {
-                explorerMode.value = plotMode.value;
+            if (explorerPanel.classList.contains('pinned')) {
+                explorerPanel.classList.remove('peek');
+                const explorerMode = document.getElementById('explorerMode');
+                const plotMode = document.getElementById('plotMode');
+                if (explorerMode && plotMode) {
+                    explorerMode.value = plotMode.value;
+                }
+            } else {
+                explorerPanel.classList.add('peek');
             }
         });
     }
+    document.addEventListener('mousemove', (e) => {
+        if (!explorerPanel) return;
+        if (explorerPanel.classList.contains('pinned')) {
+            explorerPanel.classList.remove('peek');
+            return;
+        }
+        let inHandle = false;
+        if (explorerHandle) {
+            const rect = explorerHandle.getBoundingClientRect();
+            inHandle = e.clientX >= rect.left && e.clientX <= rect.right
+                && e.clientY >= rect.top && e.clientY <= rect.bottom;
+        }
+        if (e.clientX <= explorerEdgeThreshold || inHandle) {
+            explorerPanel.classList.add('peek');
+        } else {
+            explorerPanel.classList.remove('peek');
+        }
+    });
     if (explorerHideBtn && explorerPanel) {
         explorerHideBtn.addEventListener('click', () => {
             explorerPanel.classList.remove('pinned');
+            explorerPanel.classList.remove('peek');
         });
     }
     const explorerDirInput = document.getElementById('explorerDirInput');
