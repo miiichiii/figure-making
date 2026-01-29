@@ -923,6 +923,13 @@
                 <input type="number" id="survivalXMax" value="0" min="0" oninput="this.dataset.auto='false'; updatePlot()" style="width:70px;">
                 <small style="color: var(--muted);">0=Auto</small>
             </div>
+            <div style="display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap: wrap;">
+                <span style="font-size:0.75rem; color: var(--muted);">X ticks</span>
+                <input type="number" id="survivalXTickCount" value="5" min="2" oninput="updatePlot()" style="width:60px;">
+                <span style="font-size:0.75rem; color: var(--muted);">Step</span>
+                <input type="number" id="survivalXTickStep" value="0" min="0" oninput="updatePlot()" style="width:60px;">
+                <small style="color: var(--muted);">Step &gt; 0 overrides tick count</small>
+            </div>
             <div style="display:flex; gap:12px; align-items:center; margin-top:6px; flex-wrap: wrap;">
                 <label style="font-size:0.75rem; color: var(--muted);"><input type="checkbox" id="survivalYAxisPercent" onchange="updatePlot()"> Y-axis %</label>
             </div>
@@ -2574,7 +2581,9 @@ function collectProfile() {
         timeLabels: document.getElementById('timePointsInput').value,
         survival: {
             xMax: document.getElementById('survivalXMax').value,
-            yPercent: document.getElementById('survivalYAxisPercent').checked
+            yPercent: document.getElementById('survivalYAxisPercent').checked,
+            xTickCount: document.getElementById('survivalXTickCount').value,
+            xTickStep: document.getElementById('survivalXTickStep').value
         },
         chartSize: {
             width: document.getElementById('chartWidthVal').value,
@@ -2635,6 +2644,8 @@ function applyProfile(profile) {
     if (profile.survival) {
         document.getElementById('survivalXMax').value = profile.survival.xMax || '0';
         document.getElementById('survivalYAxisPercent').checked = !!profile.survival.yPercent;
+        document.getElementById('survivalXTickCount').value = profile.survival.xTickCount || '5';
+        document.getElementById('survivalXTickStep').value = profile.survival.xTickStep || '0';
     }
     if (profile.chartSize) {
         document.getElementById('chartWidthVal').value = profile.chartSize.width || 300;
@@ -2771,7 +2782,7 @@ function resetProfile() {
     activeProfile = null;
     const defaultProfile = {
         timeLabels: 'Day1 Day3 Day7',
-        survival: { xMax: '0', yPercent: false },
+        survival: { xMax: '0', yPercent: false, xTickCount: '5', xTickStep: '0' },
         chartSize: { width: '300', height: '200' },
         yAxis: { min: '0', max: '0', ticks: '5', errorType: 'se' },
         labels: { x: '', y: '', titleItalic: false, titleSize: '10', xOffset: '25', yOffset: '25', xFont: '10', yFont: '10' },
@@ -3181,9 +3192,35 @@ function setPlotMode() {
     updatePlot();
 }
 
+function parseSurvivalDateToken(token) {
+    const ymd = token.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$/);
+    if (ymd) {
+        const year = Number(ymd[1]);
+        const month = Number(ymd[2]) - 1;
+        const day = Number(ymd[3]);
+        const ms = Date.UTC(year, month, day);
+        if (Number.isFinite(ms)) return ms;
+    }
+    if (!/[-/]|[A-Za-z]/.test(token)) return null;
+    const parsed = Date.parse(token);
+    if (Number.isFinite(parsed)) return parsed;
+    return null;
+}
+
+function formatSurvivalDateLabel(offsetDays, originMs) {
+    if (!Number.isFinite(originMs)) return '';
+    const ms = originMs + (offsetDays * 24 * 60 * 60 * 1000);
+    const d = new Date(ms);
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 function parseSurvivalData(text) {
     const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
     const groups = new Map();
+    const parsedRows = [];
     lines.forEach(line => {
         let parts = line.split(/\t|,/).map(p => p.trim());
         if (parts.length < 3) {
@@ -3191,25 +3228,49 @@ function parseSurvivalData(text) {
         }
         if (parts.length < 2) return;
         const group = parts[0];
-        let day = NaN;
+        let value = NaN;
+        let valueType = null;
         for (let i = parts.length - 1; i >= 0; i--) {
-            const val = parseFloat(parts[i]);
-            if (Number.isFinite(val)) {
-                day = val;
+            const token = parts[i];
+            if (!token) continue;
+            const dateMs = parseSurvivalDateToken(token);
+            if (Number.isFinite(dateMs)) {
+                value = dateMs;
+                valueType = 'date';
                 break;
             }
+            if (/^[+-]?\d*\.?\d+$/.test(token)) {
+                const numeric = parseFloat(token);
+                if (Number.isFinite(numeric)) {
+                    value = numeric;
+                    valueType = 'number';
+                    break;
+                }
+            }
         }
-        if (!group || !Number.isFinite(day)) return;
-        if (!groups.has(group)) groups.set(group, []);
-        groups.get(group).push(day);
+        if (!group || !Number.isFinite(value)) return;
+        parsedRows.push({ group, value, valueType });
     });
+
+    const dateValues = parsedRows.filter(r => r.valueType === 'date').map(r => r.value);
+    const dateMode = dateValues.length > 0;
+    const dateOriginMs = dateMode ? Math.min(...dateValues) : null;
+
+    parsedRows.forEach(({ group, value, valueType }) => {
+        if (!groups.has(group)) groups.set(group, []);
+        const timeVal = (valueType === 'date' && Number.isFinite(dateOriginMs))
+            ? ((value - dateOriginMs) / (24 * 60 * 60 * 1000))
+            : value;
+        groups.get(group).push(timeVal);
+    });
+
     const groupConfigs = Array.from(groups.entries()).map(([name, times], idx) => ({
         name,
         color: defaultColors[idx % defaultColors.length],
         times
     }));
     const maxTime = groupConfigs.reduce((max, g) => Math.max(max, ...g.times), 0);
-    return { groupConfigs, maxTime };
+    return { groupConfigs, maxTime, dateMode, dateOriginMs };
 }
 
 function computeSurvivalCurve(times) {
@@ -3558,7 +3619,7 @@ function updatePlot(reflowPass = 0) {
         });
     }
     if (survivalMode) {
-        const { groupConfigs, maxTime } = parseSurvivalData(document.getElementById('survivalData').value);
+        const { groupConfigs, maxTime, dateMode, dateOriginMs } = parseSurvivalData(document.getElementById('survivalData').value);
         const xMaxEl = document.getElementById('survivalXMax');
         const xMaxInput = parseFloat(xMaxEl.value);
         const isAutoX = xMaxEl.dataset.auto !== 'false';
@@ -3600,12 +3661,30 @@ function updatePlot(reflowPass = 0) {
             svgItems.push(`<text x="${pL-8}" y="${y}" text-anchor="end" dominant-baseline="central" font-size="${fsY}" font-family="Arial" fill="${axisColor}">${labelVal}</text>`);
         }
 
-        const xTickCount = 5;
-        for (let i = 0; i <= xTickCount; i++) {
-            const val = (safeXMax / xTickCount) * i;
+        const xTickCountInput = parseInt(document.getElementById('survivalXTickCount').value, 10);
+        const xTickStepInput = parseFloat(document.getElementById('survivalXTickStep').value);
+        const xTickCount = Number.isFinite(xTickCountInput) && xTickCountInput >= 2 ? xTickCountInput : 5;
+        const xTicks = [];
+        if (Number.isFinite(xTickStepInput) && xTickStepInput > 0) {
+            for (let v = 0; v <= safeXMax + 1e-9; v += xTickStepInput) {
+                xTicks.push(v);
+            }
+            if (xTicks.length === 0 || xTicks[xTicks.length - 1] < safeXMax) {
+                xTicks.push(safeXMax);
+            }
+        } else {
+            for (let i = 0; i <= xTickCount; i++) {
+                xTicks.push((safeXMax / xTickCount) * i);
+            }
+        }
+        for (let i = 0; i < xTicks.length; i++) {
+            const val = xTicks[i];
             const x = xScale(val);
+            let labelText = Number.isFinite(val) ? Number(val.toFixed(2)) : '';
+            if (Number.isFinite(val) && Number.isInteger(val)) labelText = val;
+            if (dateMode) labelText = formatSurvivalDateLabel(val, dateOriginMs);
             svgItems.push(`<line x1="${x}" y1="${height-pB}" x2="${x}" y2="${height-pB+5}" stroke="${axisColor}" stroke-width="1.2"/>`);
-            svgItems.push(`<text class="x-axis-label" x="${x}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" fill="${axisColor}">${Number(val.toFixed(2))}</text>`);
+            svgItems.push(`<text class="x-axis-label" x="${x}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" fill="${axisColor}">${labelText}</text>`);
         }
 
         if (xAxisLabel) {
