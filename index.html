@@ -3975,6 +3975,7 @@ function updatePlot(reflowPass = 0) {
         }
         if (showMean) {
             data.forEach(v => {
+                if (v === null || v === undefined || !Number.isFinite(v)) return;
                 const j = (Math.random() - 0.5) * jitter;
                 svgItems.push(`<circle cx="${x + j}" cy="${yScale(v)}" r="${dotR}" fill="${group.color}" stroke="${axisColor}" stroke-width="0.8" />`);
             });
@@ -4038,9 +4039,10 @@ function updatePlot(reflowPass = 0) {
                         const samplePoints = [];
                         timeLabels.forEach((label, tIdx) => {
                             const data = group.data[tIdx] || [];
-                            if (data[sIdx] === undefined) return;
-                const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length) + (groupOffsetX[gIdx] || 0);
-                            const y = yScale(data[sIdx]);
+                            const val = data[sIdx];
+                            if (val === undefined || val === null || !Number.isFinite(val)) return;
+                            const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length) + (groupOffsetX[gIdx] || 0);
+                            const y = yScale(val);
                             samplePoints.push(`${xCenter},${y}`);
                         });
                         if (samplePoints.length > 1) {
