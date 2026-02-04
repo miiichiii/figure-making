@@ -3759,21 +3759,17 @@ function updatePlot(reflowPass = 0) {
             const lineColor = group.color === '#ffffff' ? axisColor : group.color;
             const steps = computeSurvivalCurve(group.times || []);
             if (steps.length < 2) return;
+            const groupMaxTime = Math.max(...(group.times || [0]));
             let path = `M ${xScale(0)} ${yScale(yAxisPercent ? 100 : 1)}`;
             let prevS = 1;
-            let reachedMax = false;
             for (const step of steps.slice(1)) {
                 if (step.t > safeXMax) {
                     path += ` L ${xScale(safeXMax)} ${yScale(yAxisPercent ? prevS * 100 : prevS)}`;
-                    reachedMax = true;
                     break;
                 }
                 const x = xScale(step.t);
                 path += ` L ${x} ${yScale(yAxisPercent ? prevS * 100 : prevS)} L ${x} ${yScale(yAxisPercent ? step.s * 100 : step.s)}`;
                 prevS = step.s;
-            }
-            if (!reachedMax) {
-                path += ` L ${xScale(safeXMax)} ${yScale(yAxisPercent ? prevS * 100 : prevS)}`;
             }
             svgItems.push(`<path d="${path}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
         });
@@ -4075,7 +4071,7 @@ function updatePlot(reflowPass = 0) {
                     }
                 });
 
-                if (showMean && !showBars && points.length > 1) {
+                if (showMean && points.length > 1) {
                     svgItems.push(`
                 <polyline points="${points.join(' ')}"
                           fill="none"
