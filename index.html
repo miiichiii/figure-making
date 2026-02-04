@@ -384,6 +384,45 @@
         .paste-preview { margin-top: 6px; max-height: 140px; overflow: auto; border: 1px solid var(--border); border-radius: 4px; background: var(--card); }
         .paste-preview table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
         .paste-preview th, .paste-preview td { border: 1px solid var(--border); padding: 2px 4px; text-align: center; color: var(--text); }
+        .paste-field {
+            position: relative;
+        }
+        .paste-target {
+            background: #ffffff !important;
+            border-width: 2px !important;
+            border-color: var(--border) !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            transition: border-color 0.12s ease, box-shadow 0.12s ease;
+            padding-right: 140px !important;
+        }
+        .paste-target:focus,
+        .paste-target:focus-visible {
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+        }
+        .paste-target.paste-textarea {
+            padding-top: 26px !important;
+            padding-right: 160px !important;
+        }
+        .paste-watermark {
+            position: absolute;
+            right: 12px;
+            top: 6px;
+            width: calc(100% - 24px);
+            text-align: right;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--muted);
+            opacity: 0.1;
+            pointer-events: none;
+            letter-spacing: 0.02em;
+            user-select: none;
+            mix-blend-mode: multiply;
+        }
+        .paste-watermark.compact {
+            font-size: 12px;
+            top: 6px;
+        }
 
         .master-label-card { background: var(--card) !important; border: 1px solid var(--border) !important; padding: 12px; border-radius: 8px; margin-bottom: 15px; color: var(--text); }
         .control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; font-size: 0.85rem; }
@@ -1143,7 +1182,10 @@
         </div>
         <div class="master-label-card" id="timeSeriesSection">
             <label>Shared X-Labels (Space separated)</label>
-            <input type="text" id="timePointsInput" class="text-input" value="Day1 Day3 Day7" oninput="updatePlot()">
+            <div class="paste-field">
+                <input type="text" id="timePointsInput" class="text-input paste-target" value="Day1 Day3 Day7" placeholder="" oninput="updatePlot()">
+                <span class="paste-watermark compact">Paste or type labels here</span>
+            </div>
         </div>
 
         <div id="groupDataSection">
@@ -1157,8 +1199,7 @@
                     Italic
                 </label>
             </div>
-            <div id="groupsContainer">
-                </div>
+            <div id="groupsContainer"></div>
             <button class="btn-add" onclick="addNewGroup()">+ Add New Group</button>
         </div>
         <div class="master-label-card" style="margin-top: 15px;">
@@ -1477,7 +1518,10 @@ function addNewGroup(name = "", color = "", data = "") {
             <input type="text" class="group-name-input" value="${nameVal}" style="width:100px" oninput="updatePlot()">
             <input type="color" class="group-color-input" value="${colorVal}" oninput="updatePlot()">
         </div>
-        <textarea class="group-data-input" wrap="off" placeholder="Paste data here..." oninput="handlePaste('${id}')">${data}</textarea>
+        <div class="paste-field">
+            <textarea class="group-data-input paste-target paste-textarea" wrap="off" placeholder="" oninput="handlePaste('${id}')">${data}</textarea>
+            <div class="paste-watermark">Paste or type here</div>
+        </div>
         <div class="paste-preview"></div>
     `;
     container.appendChild(card);
