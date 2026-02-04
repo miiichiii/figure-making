@@ -4439,6 +4439,12 @@ function showToast(message) {
     toastTimer = setTimeout(() => toast.classList.remove('show'), 1200);
 }
 
+function trackAnalyticsEvent(name, params = {}) {
+    if (typeof window.gtag === 'function') {
+        window.gtag('event', name, params);
+    }
+}
+
 function downloadSVG() {
     const svg = document.getElementById('svg-container').innerHTML;
     const blob = new Blob([svg], {type: "image/svg+xml"});
@@ -4446,6 +4452,7 @@ function downloadSVG() {
     link.href = URL.createObjectURL(blob);
     link.download = `MultiGroup_Figure_${new Date().getTime()}.svg`;
     link.click();
+    trackAnalyticsEvent('export_download_svg', { method: 'button', format: 'svg' });
 }
 
 function setAutoYMax() {
@@ -4595,7 +4602,7 @@ if (length(levels(df$Group)) == 2) {
     link.click();
 }
 
-async function copySvgToClipboard() {
+async function copySvgToClipboard(source = 'button') {
     const svgEl = document.querySelector('#svg-container svg');
     if (!svgEl) return;
     let svgData = new XMLSerializer().serializeToString(svgEl);
@@ -4641,14 +4648,17 @@ async function copySvgToClipboard() {
             });
             await navigator.clipboard.write([item]);
             showToast('Copied');
+            trackAnalyticsEvent('export_copy_svg', { method: source, format: 'svg' });
         } else if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(svgData);
             showToast('Copied');
+            trackAnalyticsEvent('export_copy_svg', { method: source, format: 'svg' });
         }
     } catch (err) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(svgData);
             showToast('Copied');
+            trackAnalyticsEvent('export_copy_svg', { method: source, format: 'svg' });
         }
     }
 }
@@ -4687,7 +4697,7 @@ function stopResize() {
 }
 
 function handleContextMenu() {
-    copySvgToClipboard();
+    copySvgToClipboard('contextmenu');
 }
 
 if (svgWrapper) {
