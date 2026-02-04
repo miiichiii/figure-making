@@ -152,6 +152,50 @@
             justify-items: center;
             position: relative;
         }
+        .tip-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            font-weight: 700;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: help;
+            box-shadow: var(--shadow-soft);
+            z-index: 6;
+        }
+        .tip-bubble {
+            position: absolute;
+            top: 42px;
+            right: 10px;
+            max-width: 240px;
+            font-size: 0.75rem;
+            line-height: 1.45;
+            color: var(--text);
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 10px;
+            padding: 8px 10px;
+            box-shadow: var(--shadow-soft);
+            opacity: 0;
+            transform: translateY(-4px);
+            pointer-events: none;
+            transition: opacity 0.12s ease, transform 0.12s ease;
+            z-index: 6;
+        }
+        .tip-icon:hover + .tip-bubble,
+        .tip-icon:focus-visible + .tip-bubble {
+            opacity: 1;
+            transform: translateY(0);
+        }
         .slider-v { grid-column: 1; grid-row: 1; width: 12px; height: 400px; writing-mode: vertical-lr; direction: rtl; }
         .slider-h { grid-column: 2; grid-row: 2; width: 100%; height: 12px; }
         #svg-wrapper { grid-column: 2; grid-row: 1; background: var(--svg-bg); box-shadow: var(--shadow-strong); position: relative; justify-self: start; }
@@ -1203,9 +1247,8 @@
                     <div class="resize-handle resize-bl" data-handle="bl"></div>
                     <div class="resize-handle resize-br" data-handle="br"></div>
                     <div class="handle-pos" id="handlePosLeft" style="left: 6px; top: -18px;">L: 0</div>
-                    <div style="position:absolute; right:-220px; top: 6px; width: 210px; font-size: 0.75rem; color: var(--muted); line-height: 1.4;">
-                        Tip: Drag the title, Y-axis label, and legend to reposition.
-                    </div>
+                    <button type="button" class="tip-icon" aria-label="Drag tips">i</button>
+                    <div class="tip-bubble">Tip: Drag title, Y-axis label, legend, bars, and sample labels (↑↓) to reposition.</div>
                 </div>
                 <div class="graph-controls-row">
                     <div class="panel legend-panel" id="lineOptionsCard">
