@@ -2948,6 +2948,8 @@ function parseData(text, expectedCount) {
         for (let j = 0; j < expectedCount; j++) {
             if (values[j] !== undefined && values[j].trim() !== "" && !isNaN(values[j])) {
                 result[j].push(parseFloat(values[j]));
+            } else {
+                result[j].push(null);
             }
         }
     }
@@ -2989,7 +2991,7 @@ function renderGroupTable(card) {
         html += '<tr>';
         for (let c = 0; c < colCount; c++) {
             const val = data[c][r];
-            html += `<td>${val !== undefined ? val : ''}</td>`;
+            html += `<td>${val !== undefined && val !== null ? val : ''}</td>`;
         }
         html += '</tr>';
     }
@@ -2998,10 +3000,11 @@ function renderGroupTable(card) {
 }
 
 function calcStats(arr) {
-    const n = arr.length;
+    const filtered = arr.filter(v => v !== null && v !== undefined && Number.isFinite(v));
+    const n = filtered.length;
     if (n === 0) return { mean: 0, sd: 0, se: 0, n: 0 };
-    const mean = arr.reduce((a, b) => a + b, 0) / n;
-    const variance = n > 1 ? arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1) : 0;
+    const mean = filtered.reduce((a, b) => a + b, 0) / n;
+    const variance = n > 1 ? filtered.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1) : 0;
     const sd = Math.sqrt(variance);
     return { mean, sd, se: sd / Math.sqrt(n), n };
 }
@@ -3021,7 +3024,8 @@ function welchTTest(a, b) {
 
 // 2. One-way ANOVA (3群以上E比輁E
 function oneWayANOVA(groupsData) {
-    const validGroups = groupsData.filter(g => g.length > 1);
+    const filteredGroups = groupsData.map(g => g.filter(v => v !== null && Number.isFinite(v)));
+    const validGroups = filteredGroups.filter(g => g.length > 1);
     if (validGroups.length < 3) return null;
 
     const allData = validGroups.flat();
@@ -3413,8 +3417,8 @@ function displayStats(timeLabels, groupConfigs) {
         <tbody>`;
 
     timeLabels.forEach((label, tIdx) => {
-        const filteredGroups = groupConfigs.filter(g => (g.data[tIdx] || []).length > 1);
-        const groupsData = filteredGroups.map(g => g.data[tIdx]);
+        const filteredGroups = groupConfigs.filter(g => (g.data[tIdx] || []).filter(v => v !== null && Number.isFinite(v)).length > 1);
+        const groupsData = filteredGroups.map(g => (g.data[tIdx] || []).filter(v => v !== null && Number.isFinite(v)));
         if (groupsData.length < 2) return;
 
         let pMain = 1;
@@ -3762,14 +3766,20 @@ function updatePlot(reflowPass = 0) {
             const groupMaxTime = Math.max(...(group.times || [0]));
             let path = `M ${xScale(0)} ${yScale(yAxisPercent ? 100 : 1)}`;
             let prevS = 1;
+            let lastDrawnT = 0;
             for (const step of steps.slice(1)) {
                 if (step.t > safeXMax) {
+                    // X軸の最大を超えた場合、最大位置まで水平線を引いて、その位置で下降
                     path += ` L ${xScale(safeXMax)} ${yScale(yAxisPercent ? prevS * 100 : prevS)}`;
+                    path += ` L ${xScale(safeXMax)} ${yScale(yAxisPercent ? step.s * 100 : step.s)}`;
+                    prevS = step.s;
+                    lastDrawnT = safeXMax;
                     break;
                 }
                 const x = xScale(step.t);
                 path += ` L ${x} ${yScale(yAxisPercent ? prevS * 100 : prevS)} L ${x} ${yScale(yAxisPercent ? step.s * 100 : step.s)}`;
                 prevS = step.s;
+                lastDrawnT = step.t;
             }
             svgItems.push(`<path d="${path}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
         });
@@ -3850,7 +3860,7 @@ function updatePlot(reflowPass = 0) {
     // 1. まず統計計算を行い、ブラケチEが忁Eな「階層数」を把握する
     let maxBracketLayers = 0;
     timeLabels.forEach((_, tIdx) => {
-        const d = groupConfigs.map(g => g.data[tIdx]).filter(x => x.length > 1);
+        const d = groupConfigs.map(g => (g.data[tIdx] || []).filter(v => v !== null && Number.isFinite(v))).filter(x => x.length > 1);
         if (d.length === 2) {
             const res = welchTTest(d[0], d[1]);
             if (res && res.p < 0.05) maxBracketLayers = Math.max(maxBracketLayers, 1);
@@ -3864,7 +3874,7 @@ function updatePlot(reflowPass = 0) {
     });
 
     // 2. Y軸の最大値を決宁E(ブラケチEがある場合E20-30%の余白を追加)
-    const allValues = groupConfigs.flatMap(g => g.data.flat());
+    const allValues = groupConfigs.flatMap(g => g.data.flat()).filter(v => v !== null && Number.isFinite(v));
     const statsAll = groupConfigs.flatMap(g => g.data.map(calcStats));
     const maxCandidates = [...allValues, ...statsAll.map(s => s.mean + (errorType === 'sd' ? s.sd : s.se))];
     const minCandidates = [...allValues, ...statsAll.map(s => s.mean - (errorType === 'sd' ? s.sd : s.se))];
@@ -4111,7 +4121,7 @@ function updatePlot(reflowPass = 0) {
     // --- 有意差ブラケチEの描画 ---
     if (autoBrackets) {
         timeLabels.forEach((label, tIdx) => {
-            const groupsData = groupConfigs.map(g => g.data[tIdx]).filter(d => d.length > 1);
+            const groupsData = groupConfigs.map(g => (g.data[tIdx] || []).filter(v => v !== null && Number.isFinite(v))).filter(d => d.length > 1);
             if (groupsData.length < 2) return;
 
             const baseCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
