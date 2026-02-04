@@ -23,7 +23,7 @@
             --accent: #7B5A2B;
             --accent-2: #B07D2B;
             --danger: #B84A3A;
-            --focus: #2F6FED;
+            --focus: #5a8fc7;
             --input-bg: #F6F0E3;
             --input-text: #2B2A27;
             --input-border: #CBB489;
@@ -59,7 +59,7 @@
             --accent: #D2A24C;
             --accent-2: #F0C66B;
             --danger: #FF6B5B;
-            --focus: #7AA2F7;
+            --focus: #7ab3e0;
             --input-bg: #1C2226;
             --input-text: #E7E7E7;
             --input-border: #2A3238;
@@ -84,7 +84,7 @@
             --explorer-hover: #2a3c52;
             --explorer-selected: #36506c;
         }
-        body { font-family: -apple-system, sans-serif; margin: 20px; background: var(--bg); color: var(--text); }
+        body { font-family: -apple-system, sans-serif; margin: 20px; background: var(--bg); color: var(--text); accent-color: #5a8fc7; }
         .container {
             display: flex;
             gap: 0;
@@ -259,7 +259,19 @@
         /* グループカード関連 */
         .group-card { border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin-bottom: 15px; position: relative; background: var(--card); }
         .group-header { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; padding-right: 30px; }
-        .btn-remove { position: absolute; top: 8px; right: 8px; background: var(--danger); color: white; border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; font-size: 12px; }
+        .btn-remove {
+            position: absolute; top: 10px; right: 10px;
+            background: linear-gradient(180deg, #c75a5a 0%, #a33a3a 100%);
+            color: white; border: none; border-radius: 5px;
+            width: 26px; height: 26px; padding: 0; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2);
+            border-top: 1px solid rgba(255,255,255,0.15);
+        }
+        .btn-remove:hover { background: linear-gradient(180deg, #d66a6a 0%, #b34a4a 100%); transform: translateY(-1px); box-shadow: 0 3px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2); }
+        .btn-remove:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1); }
+        .btn-remove svg { width: 18px; height: 18px; fill: white; }
         textarea { width: 100%; height: 70px; font-family: "SF Mono", monospace; font-size: 11px; padding: 8px; border: 1px solid var(--input-border); border-radius: 4px; box-sizing: border-box; background: var(--input-bg); color: var(--input-text); }
         .group-data-input {
             white-space: pre;
@@ -374,13 +386,20 @@
         #explorer-handle::after {
             content: "";
             position: absolute;
-            right: -10px;
+            right: -12px;
             top: 30%;
-            width: 10px;
+            width: 12px;
             height: 90px;
-            background: #354c1f;
+            background: linear-gradient(90deg, #3a5522 0%, #4a6a2d 40%, #5b7d36 100%);
             border-radius: 0 8px 8px 0;
-            box-shadow: 1px 0 6px rgba(0, 0, 0, 0.2);
+            box-shadow:
+                2px 0 4px rgba(0, 0, 0, 0.3),
+                inset -2px 0 3px rgba(255, 255, 255, 0.15),
+                inset 0 2px 3px rgba(255, 255, 255, 0.1),
+                inset 0 -2px 3px rgba(0, 0, 0, 0.15);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            border-right: 1px solid rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
         }
         #explorer-content {
             flex: 1;
@@ -791,6 +810,41 @@
 </head>
 <body>
 
+<!-- Top Right Buttons -->
+<div id="top-right-buttons" style="
+    position: fixed;
+    top: 12px;
+    right: 60px;
+    z-index: 9998;
+    display: flex;
+    gap: 8px;
+">
+    <button onclick="downloadSVG()" style="
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        background: linear-gradient(180deg, #6a994e 0%, #4a7c3b 100%);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        transition: transform 0.15s, box-shadow 0.15s;
+    " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3px 8px rgba(0,0,0,0.25)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 6px rgba(0,0,0,0.2)';">Download for PPT</button>
+    <button onclick="copySvgToClipboard()" style="
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        background: linear-gradient(180deg, #5a8fc7 0%, #3d6fa3 100%);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        transition: transform 0.15s, box-shadow 0.15s;
+    " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3px 8px rgba(0,0,0,0.25)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 6px rgba(0,0,0,0.2)';">Copy SVG</button>
+</div>
+
 <!-- Help Button -->
 <a href="./help.html" target="_blank" title="ヘルプ / Help" style="
     position: fixed;
@@ -1120,10 +1174,6 @@
                         <input type="number" id="chartWidthVal" value="300" min="10" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
                     </label>
                 </div>
-                <div style="grid-column: 2; grid-row: 4; width: 100%; display: flex; gap: 8px; justify-content: flex-start; justify-self: start;">
-                    <button class="btn-dl btn-small" onclick="downloadSVG()">Download for PPT</button>
-                    <button class="btn-dl btn-small" onclick="copySvgToClipboard()" style="background:#007bff;">Copy SVG (for Illustrator or Affinity)</button>
-                </div>
                 <div style="grid-column: 2; grid-row: 5; width: 100%; justify-self: start;">
                     <div class="config-profile">
                         <div class="config-title">Configuration Profile</div>
@@ -1243,7 +1293,7 @@ function addNewGroup(name = "", color = "", data = "") {
     card.className = 'group-card';
     card.id = id;
     card.innerHTML = `
-        <button class="btn-remove" onclick="removeGroup('${id}')">×</button>
+        <button class="btn-remove" onclick="removeGroup('${id}')" title="Delete group"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5l-1-1h-5l-1 1H5v2h14V4h-3.5z"/></svg></button>
         <div class="group-header">
             <input type="text" class="group-name-input" value="${nameVal}" style="width:100px" oninput="updatePlot()">
             <input type="color" class="group-color-input" value="${colorVal}" oninput="updatePlot()">
@@ -4442,7 +4492,7 @@ resizer.addEventListener("mousedown", function(e) {
     e.preventDefault();
     document.addEventListener("mousemove", resize);
     document.addEventListener("mouseup", stopResize);
-    resizer.style.background = "#007bff";
+    resizer.style.background = "#5a8fc7";
 });
 
 function resize(e) {
