@@ -63,8 +63,8 @@
                         グラフ作成・統計ツール
                     </h1>
                     <p class="text-xl text-warm-muted mb-8 leading-relaxed">
-                        データは外部に送信されません。<br>
-                        機密データも安心してプロット可能。
+                        入力データはブラウザ内で処理され、グラフ作成に必要なデータ内容はサーバーへ送信しません。<br>
+                        ※このページは Tailwind CDN を読み込み、アクセス解析が動作する場合があります。
                     </p>
                     <a href="./index.html"
                        class="inline-block bg-warm-accent hover:bg-warm-accent-2 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-lg hover:shadow-xl">
@@ -76,10 +76,10 @@
                     <!-- Share Buttons -->
                     <div class="mt-6 flex items-center gap-3 justify-center lg:justify-start">
                         <span class="text-sm text-warm-muted">Share:</span>
-                        <a href="https://twitter.com/intent/tweet?url=https://miiichiii.github.io/figure-making/help.html&text=SVG%20Plotter%20-%20%E3%83%96%E3%83%A9%E3%82%A6%E3%82%B6%E3%81%A7%E5%AE%8C%E7%B5%90%E3%81%99%E3%82%8B%E8%AB%96%E6%96%87%E5%93%81%E8%B3%AA%E3%81%AE%E3%82%B0%E3%83%A9%E3%83%95%E4%BD%9C%E6%88%90%E3%83%84%E3%83%BC%E3%83%AB"
+                        <a href="https://x.com/intent/tweet?url=https://miiichiii.github.io/figure-making/help.html&text=SVG%20Plotter%20-%20%E3%83%96%E3%83%A9%E3%82%A6%E3%82%B6%E3%81%A7%E5%AE%8C%E7%B5%90%E3%81%99%E3%82%8B%E8%AB%96%E6%96%87%E5%93%81%E8%B3%AA%E3%81%AE%E3%82%B0%E3%83%A9%E3%83%95%E4%BD%9C%E6%88%90%E3%83%84%E3%83%BC%E3%83%AB"
                            target="_blank" rel="noopener noreferrer"
                            class="w-10 h-10 bg-warm-card hover:bg-warm-accent text-warm-text hover:text-white rounded-full flex items-center justify-center transition-colors border border-warm-border"
-                           title="X (Twitter) でシェア">
+                           title="X でシェア">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                         </a>
                         <a href="https://www.facebook.com/sharer/sharer.php?u=https://miiichiii.github.io/figure-making/help.html"
@@ -97,7 +97,7 @@
                 </div>
                 <div class="lg:w-1/2">
                     <div class="card-hover rounded-2xl overflow-hidden shadow-2xl border border-warm-border">
-                        <img src="./assets/hero_shot.png" alt="SVG Plotter メイン画面" class="w-full h-auto">
+                        <img src="./docs/assets/help_ui_top.png" alt="SVG Plotter 最新UI" class="w-full h-auto">
                     </div>
                 </div>
             </div>
@@ -120,8 +120,8 @@
                     <h3 class="text-xl font-bold mb-4">安心のセキュリティ</h3>
                     <p class="text-warm-muted leading-relaxed">
                         すべての処理はブラウザ内で完結。<br>
-                        <strong>サーバーへのデータ送信は一切ありません。</strong><br>
-                        機密性の高い実験データも安心して扱えます。
+                        <strong>入力データやファイル内容はサーバーへ送信しません。</strong><br>
+                        ※ページ表示や解析のための通信（CDN / アクセス解析）は発生します。
                     </p>
                 </div>
 
@@ -160,73 +160,40 @@
         </div>
     </section>
 
-    <!-- Gallery Section -->
-    <section class="py-20 bg-warm-bg">
+    <!-- Overview Section -->
+    <section class="py-20 bg-warm-bg" id="overview">
         <div class="container mx-auto px-6">
             <h2 class="text-3xl font-bold text-center mb-6">機能紹介</h2>
             <p class="text-center text-warm-muted mb-12 max-w-2xl mx-auto">
-                3つのモードで多様な研究データに対応。<br>
-                ドラッグ操作で直感的にレイアウト調整が可能です。
+                3つのモードと Explorer により、多様な研究データに対応。<br>
+                ドラッグと数値入力で直感的にレイアウト調整が可能です。
             </p>
-            <div class="grid md:grid-cols-2 gap-8">
-
-                <!-- Comparison Mode -->
-                <div class="group">
-                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
-                        <img src="./assets/comparison_shot.png" alt="比較モード" class="w-full h-auto">
-                    </div>
-                    <h3 class="text-lg font-bold mb-2">Comparison Mode（群間比較）</h3>
-                    <p class="text-warm-muted">
-                        2群〜多群の比較に対応。散布図＋エラーバーと統計検定結果を同時表示。<br>
-                        Welch's t-test / ANOVA / Tukey / Dunnett などを自動選択。
-                    </p>
+            <div class="grid lg:grid-cols-2 gap-10 items-start">
+                <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border">
+                    <img src="./docs/assets/help_ui_top.png" alt="SVG Plotter 最新UI" class="w-full h-auto">
                 </div>
-
-                <!-- Survival Mode -->
-                <div class="group">
-                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
-                        <img src="./assets/survival_shot.png" alt="生存曲線モード" class="w-full h-auto">
+                <div class="space-y-6">
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3">対応モード</h3>
+                        <ul class="list-disc list-inside text-warm-muted space-y-1">
+                            <li>Comparison：群間比較（散布＋エラーバー＋統計）</li>
+                            <li>Time Series：経時変化（折れ線＋散布）</li>
+                            <li>Survival：Kaplan-Meier + Log-rank</li>
+                        </ul>
                     </div>
-                    <h3 class="text-lg font-bold mb-2">Survival Mode（生存曲線）</h3>
-                    <p class="text-warm-muted">
-                        Kaplan-Meier曲線を描画。打ち切りデータにも対応。<br>
-                        Log-rank検定の結果も表示されます。
-                    </p>
-                </div>
-
-                <!-- Dark Mode -->
-                <div class="group">
-                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
-                        <img src="./assets/dark_mode.png" alt="ダークモード" class="w-full h-auto">
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3">Explorer（ローカル読み込み）</h3>
+                        <p class="text-warm-muted">
+                            CSV / TSV / Excel をドラッグ&ドロップで読み込み。フォルダツリー、プレビュー、列選択、グループへのステージまでGUIで完結。<br>
+                            <strong>ファイル内容はブラウザ内で処理され、外部送信しません。</strong>
+                        </p>
                     </div>
-                    <h3 class="text-lg font-bold mb-2">Dark Mode（ダークテーマ）</h3>
-                    <p class="text-warm-muted">
-                        目に優しいダークモードを搭載。長時間の作業でも疲れにくい配色です。
-                    </p>
-                </div>
-
-                <!-- Time Series -->
-                <div class="group">
-                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
-                        <img src="./assets/hero_shot.png" alt="時系列モード" class="w-full h-auto">
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3">操作ヒント</h3>
+                        <p class="text-warm-muted">
+                            グラフ右上の「i」アイコンから、ドラッグ可能な要素と操作手順を確認できます。
+                        </p>
                     </div>
-                    <h3 class="text-lg font-bold mb-2">Time Series Mode（時系列）</h3>
-                    <p class="text-warm-muted">
-                        経時変化データの可視化に最適。折れ線グラフ＋散布図で推移を表現。<br>
-                        各時点での群間比較も自動計算。
-                    </p>
-                </div>
-
-                <!-- Explorer Mode -->
-                <div class="group md:col-span-2">
-                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
-                        <img src="./assets/explorer_shot.png" alt="Explorerモード" class="w-full h-auto">
-                    </div>
-                    <h3 class="text-lg font-bold mb-2">Explorer（ファイルエクスプローラー）</h3>
-                    <p class="text-warm-muted">
-                        CSV / TSV / Excel ファイルをドラッグ&ドロップで読み込み。フォルダごと読み込んでツリー表示も可能。<br>
-                        データのプレビュー、列の選択、グループ分けまでGUIで完結。<strong>ファイルはローカルで読み込まれ、外部には送信されません。</strong>
-                    </p>
                 </div>
             </div>
         </div>
@@ -241,9 +208,17 @@
             </p>
 
             <div class="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-                <!-- Screenshot -->
-                <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border">
-                    <img src="./assets/controls_shot.png" alt="Visual Controls" class="w-full h-auto">
+                <!-- Demo GIFs -->
+                <div class="space-y-6">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border">
+                        <img src="./docs/assets/help_zoom.gif" alt="ズーム/縮尺変更の操作" class="w-full h-auto">
+                    </div>
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border">
+                        <img src="./docs/assets/help_drag.gif" alt="ドラッグでバーやラベルを移動" class="w-full h-auto">
+                    </div>
+                    <p class="text-xs text-warm-muted">
+                        GIFは実UIの操作を記録したものです。表示内容はサンプルデータです。
+                    </p>
                 </div>
 
                 <!-- Controls Explanation -->
@@ -254,8 +229,8 @@
                             ドラッグで位置調整
                         </h3>
                         <p class="text-warm-muted">
-                            グラフ内のラベル（軸ラベル、タイトル、凡例など）はドラッグで自由に移動可能。<br>
-                            グラフ自体のサイズもコーナーをドラッグして調整できます。
+                            タイトル・軸ラベル・凡例に加えて、<strong>バー</strong>と<strong>サンプル名</strong>もドラッグで移動可能。<br>
+                            サンプル名は上下移動、バーは左右移動に対応。右上の「i」アイコンで対象を確認できます。
                         </p>
                     </div>
 
@@ -266,7 +241,7 @@
                         </h3>
                         <p class="text-warm-muted">
                             Y軸の最大値・最小値、目盛り間隔を数値で指定。<br>
-                            小数点以下の桁数やフォントサイズも細かく調整できます。
+                            W/H入力やコーナーハンドルで縮尺（描画領域）も調整できます。
                         </p>
                     </div>
 
@@ -276,8 +251,8 @@
                             見た目のカスタマイズ
                         </h3>
                         <p class="text-warm-muted">
-                            ドットサイズ、エラーバーの太さ、線の太さ、グループ間の距離など。<br>
-                            色もグループごとに自由に設定できます。
+                            ドットサイズ、エラーバー、線の太さ、<strong>バー幅</strong>、グループ間距離など。<br>
+                            バー位置はドラッグで調整し、必要ならリセット/Undo/Redoできます。
                         </p>
                     </div>
 
@@ -289,6 +264,50 @@
                         <p class="text-warm-muted">
                             調整した設定はJSONファイルとして保存可能。<br>
                             同じ設定を別のデータにも適用でき、論文内で統一感のあるグラフを作成できます。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Explorer Section -->
+    <section class="py-20 bg-warm-bg" id="explorer">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-6">Explorer の使い方</h2>
+            <p class="text-center text-warm-muted mb-12 max-w-2xl mx-auto">
+                ローカルのCSV/TSV/Excelを読み込み、プレビューからグループへステージできます。
+            </p>
+            <div class="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+                <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border">
+                    <img src="./docs/assets/help_explorer.gif" alt="Explorerでファイルを読み込みプレビューしてステージ" class="w-full h-auto">
+                </div>
+                <div class="space-y-6">
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-warm-accent text-white rounded-full flex items-center justify-center text-sm">1</span>
+                            ファイル/フォルダを読み込み
+                        </h3>
+                        <p class="text-warm-muted">
+                            ドラッグ&ドロップ、または「select from local」から読み込み可能です。
+                        </p>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-warm-accent text-white rounded-full flex items-center justify-center text-sm">2</span>
+                            プレビューと列選択
+                        </h3>
+                        <p class="text-warm-muted">
+                            プレビュー上でドラッグ選択し、列幅や小数表示も調整できます。
+                        </p>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-warm-accent text-white rounded-full flex items-center justify-center text-sm">3</span>
+                            グループへステージ
+                        </h3>
+                        <p class="text-warm-muted">
+                            選択範囲をグループへ送信し、メイン画面へ反映できます。ファイル内容はブラウザ内で処理されます。
                         </p>
                     </div>
                 </div>
@@ -322,7 +341,7 @@
                         <div class="w-12 h-12 bg-warm-accent text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">2</div>
                         <h3 class="font-bold mb-2">見た目を調整</h3>
                         <p class="text-warm-muted text-sm">
-                            ドラッグでラベル位置を調整、カラーやサイズを変更
+                            ドラッグでバー/ラベル位置を調整、縮尺やカラー/サイズを変更
                         </p>
                     </div>
 
@@ -346,7 +365,7 @@
                         <svg class="w-5 h-5 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                         </svg>
-                        <span class="text-warm-text font-medium">すべてローカルで処理。データは外部に送信されません。</span>
+                        <span class="text-warm-text font-medium">入力データはブラウザ内で処理（データ内容は送信しません）。※ページ表示/解析の通信は発生します。</span>
                     </div>
                 </div>
 

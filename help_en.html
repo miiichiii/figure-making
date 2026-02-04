@@ -64,8 +64,8 @@
                         for Research Papers
                     </h1>
                     <p class="text-xl text-warm-muted mb-8 leading-relaxed">
-                        Your data never leaves your computer.<br>
-                        Safe for confidential research data.
+                        Input data is processed in your browser; data content is not sent to servers.<br>
+                        This page may load Tailwind CDN and analytics.
                     </p>
                     <a href="./index.html"
                        class="inline-block bg-warm-accent hover:bg-warm-accent-2 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-lg hover:shadow-xl">
@@ -77,10 +77,10 @@
                     <!-- Share Buttons -->
                     <div class="mt-6 flex items-center gap-3 justify-center lg:justify-start">
                         <span class="text-sm text-warm-muted">Share:</span>
-                        <a href="https://twitter.com/intent/tweet?url=https://miiichiii.github.io/figure-making/help_en.html&text=SVG%20Plotter%20-%20Browser-based%20publication-quality%20graph%20creation%20tool"
+                        <a href="https://x.com/intent/tweet?url=https://miiichiii.github.io/figure-making/help_en.html&text=SVG%20Plotter%20-%20Browser-based%20publication-quality%20graph%20creation%20tool"
                            target="_blank" rel="noopener noreferrer"
                            class="w-10 h-10 bg-warm-card hover:bg-warm-accent text-warm-text hover:text-white rounded-full flex items-center justify-center transition-colors border border-warm-border"
-                           title="Share on X (Twitter)">
+                           title="Share on X">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                         </a>
                         <a href="https://www.facebook.com/sharer/sharer.php?u=https://miiichiii.github.io/figure-making/help_en.html"
@@ -98,7 +98,7 @@
                 </div>
                 <div class="lg:w-1/2">
                     <div class="card-hover rounded-2xl overflow-hidden shadow-2xl border border-warm-border">
-                        <img src="./assets/hero_shot.png" alt="SVG Plotter Main Screen" class="w-full h-auto">
+                        <img src="./docs/assets/help_ui_top.png" alt="Latest SVG Plotter UI" class="w-full h-auto">
                     </div>
                 </div>
             </div>
@@ -121,8 +121,8 @@
                     <h3 class="text-xl font-bold mb-4">Complete Privacy</h3>
                     <p class="text-warm-muted leading-relaxed">
                         All processing happens in your browser.<br>
-                        <strong>No data is ever sent to any server.</strong><br>
-                        Perfect for sensitive experimental data.
+                        <strong>Input data and file content are not sent to any server.</strong><br>
+                        Note: page assets and analytics may make network requests.
                     </p>
                 </div>
 
@@ -161,73 +161,40 @@
         </div>
     </section>
 
-    <!-- Gallery Section -->
-    <section class="py-20 bg-warm-bg">
+    <!-- Overview Section -->
+    <section class="py-20 bg-warm-bg" id="overview">
         <div class="container mx-auto px-6">
             <h2 class="text-3xl font-bold text-center mb-6">Features Overview</h2>
             <p class="text-center text-warm-muted mb-12 max-w-2xl mx-auto">
-                Three modes for diverse research data.<br>
-                Intuitive drag-and-drop layout adjustment.
+                Three modes plus Explorer to handle diverse research data.<br>
+                Drag-and-drop and numeric controls make layout adjustments intuitive.
             </p>
-            <div class="grid md:grid-cols-2 gap-8">
-
-                <!-- Comparison Mode -->
-                <div class="group">
-                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
-                        <img src="./assets/comparison_shot.png" alt="Comparison Mode" class="w-full h-auto">
-                    </div>
-                    <h3 class="text-lg font-bold mb-2">Comparison Mode</h3>
-                    <p class="text-warm-muted">
-                        Supports 2-group to multi-group comparisons. Displays scatter plots with error bars and statistical test results simultaneously.<br>
-                        Auto-selects Welch's t-test / ANOVA / Tukey / Dunnett.
-                    </p>
+            <div class="grid lg:grid-cols-2 gap-10 items-start">
+                <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border">
+                    <img src="./docs/assets/help_ui_top.png" alt="Latest SVG Plotter UI" class="w-full h-auto">
                 </div>
-
-                <!-- Survival Mode -->
-                <div class="group">
-                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
-                        <img src="./assets/survival_shot.png" alt="Survival Curve Mode" class="w-full h-auto">
+                <div class="space-y-6">
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3">Supported Modes</h3>
+                        <ul class="list-disc list-inside text-warm-muted space-y-1">
+                            <li>Comparison: scatter + error bars + statistics</li>
+                            <li>Time Series: line + scatter for trends</li>
+                            <li>Survival: Kaplan-Meier + log-rank</li>
+                        </ul>
                     </div>
-                    <h3 class="text-lg font-bold mb-2">Survival Mode</h3>
-                    <p class="text-warm-muted">
-                        Draws Kaplan-Meier curves with censored data support.<br>
-                        Log-rank test results included.
-                    </p>
-                </div>
-
-                <!-- Dark Mode -->
-                <div class="group">
-                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
-                        <img src="./assets/dark_mode.png" alt="Dark Mode" class="w-full h-auto">
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3">Explorer (Local Import)</h3>
+                        <p class="text-warm-muted">
+                            Drag & drop CSV / TSV / Excel files. Folder tree, preview, column selection, and staging to groups are all GUI-based.<br>
+                            <strong>File content is processed in the browser and not sent externally.</strong>
+                        </p>
                     </div>
-                    <h3 class="text-lg font-bold mb-2">Dark Mode</h3>
-                    <p class="text-warm-muted">
-                        Eye-friendly dark theme included. Reduces strain during long working sessions.
-                    </p>
-                </div>
-
-                <!-- Time Series -->
-                <div class="group">
-                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
-                        <img src="./assets/hero_shot.png" alt="Time Series Mode" class="w-full h-auto">
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3">Interaction Tips</h3>
+                        <p class="text-warm-muted">
+                            Use the “i” icon on the graph to see draggable elements and shortcuts.
+                        </p>
                     </div>
-                    <h3 class="text-lg font-bold mb-2">Time Series Mode</h3>
-                    <p class="text-warm-muted">
-                        Ideal for longitudinal data visualization. Line graphs with scatter plots show trends over time.<br>
-                        Between-group comparisons calculated at each time point.
-                    </p>
-                </div>
-
-                <!-- Explorer Mode -->
-                <div class="group md:col-span-2">
-                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border mb-4">
-                        <img src="./assets/explorer_shot.png" alt="Explorer Mode" class="w-full h-auto">
-                    </div>
-                    <h3 class="text-lg font-bold mb-2">Explorer (File Browser)</h3>
-                    <p class="text-warm-muted">
-                        Drag & drop CSV / TSV / Excel files to load. You can also drop entire folders to browse as a tree.<br>
-                        Preview data, select columns, and configure groups all through the GUI. <strong>Files are loaded locally and never sent to any server.</strong>
-                    </p>
                 </div>
             </div>
         </div>
@@ -242,9 +209,17 @@
             </p>
 
             <div class="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-                <!-- Screenshot -->
-                <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border">
-                    <img src="./assets/controls_shot.png" alt="Visual Controls" class="w-full h-auto">
+                <!-- Demo GIFs -->
+                <div class="space-y-6">
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border">
+                        <img src="./docs/assets/help_zoom.gif" alt="Zoom and scale adjustments" class="w-full h-auto">
+                    </div>
+                    <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border">
+                        <img src="./docs/assets/help_drag.gif" alt="Dragging bars and labels" class="w-full h-auto">
+                    </div>
+                    <p class="text-xs text-warm-muted">
+                        GIFs are captured from real UI interactions using sample data.
+                    </p>
                 </div>
 
                 <!-- Controls Explanation -->
@@ -255,8 +230,8 @@
                             Drag to Reposition
                         </h3>
                         <p class="text-warm-muted">
-                            Labels (axis labels, title, legend) can be freely repositioned by dragging.<br>
-                            Resize the graph itself by dragging the corner handles.
+                            Drag title, axis labels, and legend. You can also drag <strong>bars</strong> and <strong>sample labels</strong>.<br>
+                            Sample labels move vertically; bars move horizontally. Use the “i” icon for targets.
                         </p>
                     </div>
 
@@ -267,7 +242,7 @@
                         </h3>
                         <p class="text-warm-muted">
                             Set Y-axis min/max values and tick intervals numerically.<br>
-                            Adjust decimal places and font sizes with precision.
+                            Adjust scale using W/H inputs or corner handles.
                         </p>
                     </div>
 
@@ -277,8 +252,8 @@
                             Visual Customization
                         </h3>
                         <p class="text-warm-muted">
-                            Control dot size, error bar thickness, line width, and group spacing.<br>
-                            Set custom colors for each group.
+                            Control dot size, error bars, line thickness, <strong>bar width</strong>, and group spacing.<br>
+                            Bar positions are draggable and can be reset / undone / redone.
                         </p>
                     </div>
 
@@ -290,6 +265,50 @@
                         <p class="text-warm-muted">
                             Export your customizations as a JSON file.<br>
                             Apply the same settings to different datasets for consistent figures across your paper.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Explorer Section -->
+    <section class="py-20 bg-warm-bg" id="explorer">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-6">Using Explorer</h2>
+            <p class="text-center text-warm-muted mb-12 max-w-2xl mx-auto">
+                Load local CSV/TSV/Excel files, preview them, and stage selections into groups.
+            </p>
+            <div class="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+                <div class="img-card rounded-xl overflow-hidden shadow-lg border border-warm-border">
+                    <img src="./docs/assets/help_explorer.gif" alt="Load and preview data in Explorer" class="w-full h-auto">
+                </div>
+                <div class="space-y-6">
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-warm-accent text-white rounded-full flex items-center justify-center text-sm">1</span>
+                            Import files or folders
+                        </h3>
+                        <p class="text-warm-muted">
+                            Drag & drop, or use “select from local” to import files and folders.
+                        </p>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-warm-accent text-white rounded-full flex items-center justify-center text-sm">2</span>
+                            Preview and select columns
+                        </h3>
+                        <p class="text-warm-muted">
+                            Drag-select cells in the preview. Adjust column widths and decimal visibility as needed.
+                        </p>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-md border border-warm-border">
+                        <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-warm-accent text-white rounded-full flex items-center justify-center text-sm">3</span>
+                            Stage to groups
+                        </h3>
+                        <p class="text-warm-muted">
+                            Send selected ranges to groups and apply them to the main view. File content is processed in the browser.
                         </p>
                     </div>
                 </div>
@@ -323,7 +342,7 @@
                         <div class="w-12 h-12 bg-warm-accent text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">2</div>
                         <h3 class="font-bold mb-2">Adjust Layout</h3>
                         <p class="text-warm-muted text-sm">
-                            Drag labels to reposition, customize colors and sizes
+                            Drag bars/labels, adjust scale, customize colors and sizes
                         </p>
                     </div>
 
@@ -347,7 +366,7 @@
                         <svg class="w-5 h-5 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                         </svg>
-                        <span class="text-warm-text font-medium">100% Local Processing. Your data never leaves your computer.</span>
+                        <span class="text-warm-text font-medium">Input data is processed locally (data content not sent). Page assets/analytics may make network requests.</span>
                     </div>
                 </div>
 
