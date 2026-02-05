@@ -2459,17 +2459,51 @@ function sendExplorerToGroup(groupNumber) {
     if (!stagedGroupNames[targetGroup]) {
         stagedGroupNames[targetGroup] = `Group ${targetGroup}`;
     }
-    const rows = [];
-    for (let r = explorerSelection.r1; r <= explorerSelection.r2; r++) {
-        for (let c = explorerSelection.c1; c <= explorerSelection.c2; c++) {
-            if (!explorerData[r]) continue;
-            const val = explorerData[r][c];
-            if (val !== undefined && val !== null && val !== '' && !isNaN(parseFloat(val))) {
-                rows.push(parseFloat(val));
+    const mode = document.getElementById('plotMode')?.value || 'comparison';
+    if (mode === 'time') {
+        // Preserve rectangular selection as TSV so the Time Series parser can keep columns.
+        const lines = [];
+        for (let r = explorerSelection.r1; r <= explorerSelection.r2; r++) {
+            const row = [];
+            for (let c = explorerSelection.c1; c <= explorerSelection.c2; c++) {
+                const val = explorerData[r]?.[c];
+                if (val === undefined || val === null) {
+                    row.push('');
+                } else if (typeof val === 'number' && Number.isFinite(val)) {
+                    row.push(String(val));
+                } else {
+                    row.push(String(val).trim());
+                }
+            }
+            lines.push(row.join('\t'));
+        }
+        stagedGroups[targetGroup] = lines.join('\n');
+    } else if (mode === 'survival') {
+        // Survival mode: stage as a simple 1D list (one token per line).
+        const tokens = [];
+        for (let r = explorerSelection.r1; r <= explorerSelection.r2; r++) {
+            for (let c = explorerSelection.c1; c <= explorerSelection.c2; c++) {
+                const val = explorerData[r]?.[c];
+                if (val === undefined || val === null) continue;
+                const t = String(val).trim();
+                if (t) tokens.push(t);
             }
         }
+        stagedGroups[targetGroup] = tokens.join('\n');
+    } else {
+        // Comparison mode: flatten selection into a numeric list.
+        const rows = [];
+        for (let r = explorerSelection.r1; r <= explorerSelection.r2; r++) {
+            for (let c = explorerSelection.c1; c <= explorerSelection.c2; c++) {
+                if (!explorerData[r]) continue;
+                const val = explorerData[r][c];
+                if (val !== undefined && val !== null && val !== '' && !isNaN(parseFloat(val))) {
+                    rows.push(parseFloat(val));
+                }
+            }
+        }
+        stagedGroups[targetGroup] = rows.join('\n');
     }
-    stagedGroups[targetGroup] = rows.join('\n');
     renderStagedGroups();
     renderExplorerTree(explorerFiles);
     hideExplorerMenu();
@@ -2510,7 +2544,10 @@ function sendExplorerToTitle() {
     hideExplorerMenu();
 }
 
-function applyStagedGroups() {
+function applyStagedGroups(opts = {}) {
+    const closeExplorer = opts.closeExplorer !== false;
+    const silentIfEmpty = opts.silentIfEmpty === true;
+
     // 1. Collect staged UI data
     collectStagedGroupsFromUI();
 
@@ -2520,15 +2557,55 @@ function applyStagedGroups() {
         .filter(n => !isNaN(n) && stagedGroups[n] && stagedGroups[n].trim() !== '');
 
     if (indices.length === 0) {
-        showToast("No data staged to send.");
-        return;
+        if (!silentIfEmpty) showToast("No data staged to send.");
+        return false;
     }
 
-    // A. Force comparison mode
-    const plotMode = document.getElementById('plotMode');
-    if (plotMode) {
-        plotMode.value = 'comparison';
-        setPlotMode();
+    const mode = document.getElementById('plotMode')?.value || 'comparison';
+
+    // Survival mode uses a dedicated textarea instead of group cards.
+    if (mode === 'survival') {
+        const survivalEl = document.getElementById('survivalData');
+        if (survivalEl) {
+            const lines = [];
+            indices.sort((a, b) => a - b).forEach((groupNum) => {
+                const groupName = String(stagedGroupNames[groupNum] || `Group ${groupNum}`).trim() || `Group ${groupNum}`;
+                const raw = String(stagedGroups[groupNum] || '');
+                const tokens = [];
+                raw.split(/\r?\n/).forEach((line) => {
+                    const trimmed = String(line || '').trim();
+                    if (!trimmed) return;
+                    if (trimmed.includes('\t') || trimmed.includes(',')) {
+                        trimmed.split(/\t|,/).map(t => t.trim()).filter(Boolean).forEach(t => tokens.push(t));
+                    } else {
+                        // Preserve spaces so date strings like "Jan 5 2024" stay intact.
+                        tokens.push(trimmed);
+                    }
+                });
+                tokens.forEach((token) => {
+                    const isNumber = Number.isFinite(Number(token));
+                    const isDate = Number.isFinite(parseSurvivalDateToken(token));
+                    if (!isNumber && !isDate) return;
+                    // Keep it minimal: Group[TAB]Value (number or date).
+                    lines.push(`${groupName}\t${token}`);
+                });
+            });
+            survivalEl.value = lines.join('\n');
+        }
+        const xMaxEl = document.getElementById('survivalXMax');
+        if (xMaxEl) {
+            xMaxEl.dataset.auto = 'true';
+            xMaxEl.value = '0';
+        }
+        updatePlot();
+        if (closeExplorer) {
+            const explorerPanel = document.getElementById('explorer-panel');
+            if (explorerPanel) {
+                explorerPanel.classList.remove('pinned');
+            }
+        }
+        showToast(`Updated ${indices.length} group(s)!`);
+        return true;
     }
 
     // B. Ensure group IDs are contiguous
@@ -2569,12 +2646,15 @@ function applyStagedGroups() {
     }
     updatePlot();
 
-    const explorerPanel = document.getElementById('explorer-panel');
-    if (explorerPanel) {
-        explorerPanel.classList.remove('pinned');
+    if (closeExplorer) {
+        const explorerPanel = document.getElementById('explorer-panel');
+        if (explorerPanel) {
+            explorerPanel.classList.remove('pinned');
+        }
     }
     
     showToast(`Updated ${indices.length} group(s)!`);
+    return true;
 }
 
 function clearStagedGroups() {
@@ -2662,17 +2742,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const explorerEdgeThreshold = 32;
     if (explorerHandle && explorerPanel) {
         explorerHandle.addEventListener('click', () => {
-            explorerPanel.classList.toggle('pinned');
-            if (explorerPanel.classList.contains('pinned')) {
-                explorerPanel.classList.remove('peek');
-                const explorerMode = document.getElementById('explorerMode');
-                const plotMode = document.getElementById('plotMode');
-                if (explorerMode && plotMode) {
-                    explorerMode.value = plotMode.value;
-                }
-            } else {
+            const wasPinned = explorerPanel.classList.contains('pinned');
+            if (wasPinned) {
+                explorerPanel.classList.remove('pinned');
                 explorerPanel.classList.add('peek');
+                // Leaving Explorer: auto-apply staged data (if any) so the main plot reflects it.
+                requestAnimationFrame(() => applyStagedGroups({ silentIfEmpty: true, closeExplorer: false }));
+                return;
             }
+            explorerPanel.classList.add('pinned');
+            explorerPanel.classList.remove('peek');
         });
     }
     document.addEventListener('mousemove', (e) => {
@@ -2697,6 +2776,8 @@ document.addEventListener('DOMContentLoaded', () => {
         explorerHideBtn.addEventListener('click', () => {
             explorerPanel.classList.remove('pinned');
             explorerPanel.classList.remove('peek');
+            // Hide is an explicit "return to main" action: auto-apply staged data if present.
+            requestAnimationFrame(() => applyStagedGroups({ silentIfEmpty: true, closeExplorer: false }));
         });
     }
     const explorerDirInput = document.getElementById('explorerDirInput');
@@ -3195,11 +3276,24 @@ function handlePaste(id) {
     const lines = text.split('\n');
     const firstLine = lines[0].split('\t');
     const isHeader = firstLine.some(cell => isNaN(parseFloat(cell)) && cell !== "");
-    const hasDayLabel = firstLine.some(cell => /day\s*\d+/i.test(cell));
+    const mode = document.getElementById('plotMode')?.value || 'comparison';
 
-    if (isHeader && hasDayLabel) {
-        document.getElementById('timePointsInput').value = firstLine.join(' ');
-        textarea.value = lines.slice(1).join('\n');
+    // Time Series: allow pasting a header row as time labels (not just "Day1").
+    if (mode === 'time' && isHeader) {
+        const timeInput = document.getElementById('timePointsInput');
+        if (timeInput) {
+            let labels = firstLine.map(cell => String(cell).trim());
+            while (labels.length && labels[0] === '') labels = labels.slice(1);
+            const first = (labels[0] || '').toLowerCase();
+            if (labels.length > 1 && ['time', 'sample', 'id', 'name'].includes(first)) {
+                labels = labels.slice(1);
+            }
+            labels = labels.filter(Boolean).map(l => l.replace(/\s+/g, ''));
+            if (labels.length) {
+                timeInput.value = labels.join(' ');
+                textarea.value = lines.slice(1).join('\n');
+            }
+        }
     }
     renderGroupTable(card);
     updatePlot();
