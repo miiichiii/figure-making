@@ -4976,6 +4976,20 @@ sizeHandles.forEach(handle => {
         startOffsetY = chartOffsetY;
         e.preventDefault();
     });
+
+    // Touch support for resize handles (added for mobile interaction)
+    handle.addEventListener('touchstart', (e) => {
+        if (e.cancelable) e.preventDefault(); // Prevent scroll while dragging
+        resizingChart = true;
+        resizeHandle = handle.dataset.handle;
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        startW = parseInt(document.getElementById('chartWidthVal').value, 10);
+        startH = parseInt(document.getElementById('chartHeightVal').value, 10);
+        startOffsetX = chartOffsetX;
+        startOffsetY = chartOffsetY;
+    }, { passive: false });
 });
 
 window.addEventListener('mousemove', (e) => {
@@ -5012,7 +5026,49 @@ window.addEventListener('mousemove', (e) => {
     scheduleUpdatePlot();
 });
 
+// Parallel touch handler for resizing (duplicates logic safely to avoid modifying mouse logic)
+window.addEventListener('touchmove', (e) => {
+    if (!resizingChart) return;
+    if (e.cancelable) e.preventDefault();
+    const touch = e.touches[0];
+    const scale = getDisplayScale();
+    const dx = (touch.clientX - startX) / scale;
+    const dy = (touch.clientY - startY) / scale;
+    let newW = startW;
+    let newH = startH;
+
+    if (resizeHandle === 'tr' || resizeHandle === 'br') newW = startW + dx;
+    if (resizeHandle === 'tl' || resizeHandle === 'bl') {
+        newW = startW - dx;
+        chartOffsetX = startOffsetX + dx;
+    }
+    if (resizeHandle === 'bl' || resizeHandle === 'br') newH = startH + dy;
+    if (resizeHandle === 'tl' || resizeHandle === 'tr') {
+        newH = startH - dy;
+        chartOffsetY = startOffsetY + dy;
+    }
+
+    newW = Math.max(10, Math.round(newW));
+    newH = Math.max(10, Math.round(newH));
+
+    document.getElementById('chartWidthVal').value = newW;
+    document.getElementById('chartHeightVal').value = newH;
+    if (svgWrapper) {
+        svgWrapper.style.transform = `translate(${chartOffsetX}px, ${chartOffsetY}px)`;
+    }
+    const handlePosLeft = document.getElementById('handlePosLeft');
+    if (handlePosLeft) {
+        handlePosLeft.textContent = `L: ${Math.round(chartOffsetX)}`;
+    }
+    scheduleUpdatePlot();
+}, { passive: false });
+
 window.addEventListener('mouseup', () => {
+    resizingChart = false;
+    resizeHandle = null;
+});
+
+window.addEventListener('touchend', () => {
     resizingChart = false;
     resizeHandle = null;
 });
