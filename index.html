@@ -4596,7 +4596,25 @@ function trackAnalyticsEvent(name, params = {}) {
 }
 
 function downloadSVG() {
-    const svg = document.getElementById('svg-container').innerHTML;
+    let svg = document.getElementById('svg-container').innerHTML;
+
+    // Remove background for download (standardize to transparent/publication ready)
+    const lightSvgBg = '#F6F0E3';
+    const lightSvgInk = '#2B2A27';
+    const theme = document.documentElement.getAttribute('data-theme');
+    
+    if (theme === 'dark') {
+         const darkSvgBg = getCssVar('--svg-bg') || '#1C2226';
+         const darkSvgInk = getCssVar('--svg-ink') || '#E7E7E7';
+         // Normalize colors if in dark mode so we export standard colors
+         svg = svg.split(darkSvgBg).join(lightSvgBg);
+         svg = svg.split(darkSvgInk).join(lightSvgInk);
+    }
+
+    // Robust background removal
+    svg = svg.replace(/background:[^;"]+;?/gi, 'background:transparent;');
+    svg = svg.replace(/<rect class="svg-bg"[^>]*?>/gi, '');
+
     const blob = new Blob([svg], {type: "image/svg+xml"});
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -4765,8 +4783,9 @@ async function copySvgToClipboard(source = 'button') {
         svgData = svgData.split(darkSvgBg).join(lightSvgBg);
         svgData = svgData.split(darkSvgInk).join(lightSvgInk);
     }
-    svgData = svgData.replace(`background:${lightSvgBg};`, 'background:transparent;');
-    svgData = svgData.replace(/<rect class="svg-bg"[^>]*?>/, '');
+    // Robust background removal (handles any color format and multiple occurrences)
+    svgData = svgData.replace(/background:[^;"]+;?/gi, 'background:transparent;');
+    svgData = svgData.replace(/<rect class="svg-bg"[^>]*?>/gi, '');
     const svgBlob = new Blob([svgData], { type: "image/svg+xml" });
 
     try {
