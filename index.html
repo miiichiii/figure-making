@@ -201,13 +201,14 @@
         #svg-wrapper { grid-column: 2; grid-row: 1; background: var(--svg-bg); box-shadow: var(--shadow-strong); position: relative; justify-self: start; }
         html[data-theme="dark"] #svg-container svg { filter: brightness(0.92); }
         .resize-handle {
-            width: 10px;
-            height: 10px;
+            width: 24px;
+            height: 24px;
             background: #ff69b4;
             border: 1px solid #d84c8f;
             border-radius: 50%;
             position: absolute;
-            z-index: 5;
+            z-index: 100;
+            touch-action: none;
         }
         .handle-pos {
             position: absolute;
@@ -217,10 +218,10 @@
             padding: 2px 4px;
             border-radius: 4px;
         }
-        .resize-tl { top: -6px; left: -6px; cursor: nwse-resize; }
-        .resize-tr { top: -6px; right: -6px; cursor: nesw-resize; }
-        .resize-bl { bottom: -6px; left: -6px; cursor: nesw-resize; }
-        .resize-br { bottom: -6px; right: -6px; cursor: nwse-resize; }
+        .resize-tl { top: -12px; left: -12px; cursor: nwse-resize; }
+        .resize-tr { top: -12px; right: -12px; cursor: nesw-resize; }
+        .resize-bl { bottom: -12px; left: -12px; cursor: nesw-resize; }
+        .resize-br { bottom: -12px; right: -12px; cursor: nwse-resize; }
         .ymax-pos {
             font-size: 0.7rem;
             color: var(--muted);
