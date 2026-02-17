@@ -1513,6 +1513,10 @@ let stableZeroSince = null;
 let lastGrowAt = 0;
 const NEVER_SHRINK = true;
 let updateRafScheduled = false;
+let bracketManualOffsets = {}; // Store manual Y-offsets for brackets
+let draggingBracketKey = null;
+let draggingBracketStartY = 0;
+let draggingBracketStartOffset = 0;
 
 function addNewGroup(name = "", color = "", data = "") {
     groupCount++;
@@ -2366,6 +2370,48 @@ function onTimeLabelPointerUp() {
     updatePlot();
 }
 
+function onBracketPointerDown(e) {
+    const group = e.target.closest('g.bracket-draggable');
+    if (!group) return false;
+    const key = group.dataset.bracketKey;
+    if (!key) return false;
+    e.preventDefault();
+    draggingBracketKey = key;
+    draggingBracketStartY = e.clientY;
+    draggingBracketStartOffset = bracketManualOffsets[key] || 0;
+    
+    window.addEventListener('pointermove', onBracketPointerMove);
+    window.addEventListener('pointerup', onBracketPointerUp, { once: true });
+    return true;
+}
+
+function onBracketPointerMove(e) {
+    if (!draggingBracketKey) return;
+    const svgContainer = document.getElementById('svg-container');
+    const svg = svgContainer ? svgContainer.querySelector('svg') : null;
+    if (!svg || !plotMetrics) return;
+    const rect = svg.getBoundingClientRect();
+    if (!rect.height) return;
+    
+    // Dragging down increases Y (SVG coords), but visually "offset" logic depends on implementation.
+    // In drawBracket calls: y = calculatedY + globalOffset + manualY
+    // So increasing manualY moves it DOWN.
+    // SVG screen Y increases downwards.
+    // dyPx positive = mouse moved down.
+    const dyPx = e.clientY - draggingBracketStartY;
+    const scaleY = plotMetrics.height / rect.height;
+    
+    // Update the offset
+    bracketManualOffsets[draggingBracketKey] = draggingBracketStartOffset + (dyPx * scaleY);
+    updatePlot();
+}
+
+function onBracketPointerUp() {
+    draggingBracketKey = null;
+    window.removeEventListener('pointermove', onBracketPointerMove);
+    updatePlot();
+}
+
 function onAxisLabelPointerDown(e) {
     const label = e.target.closest('text.axis-label');
     if (!label) return false;
@@ -2732,6 +2778,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (onAxisLabelPointerDown(e)) return;
             if (onGroupLabelPointerDown(e)) return;
             if (onTimeLabelPointerDown(e)) return;
+            if (onBracketPointerDown(e)) return;
             onBarPointerDown(e);
         });
     }
@@ -3049,6 +3096,7 @@ function collectProfile() {
             autoBrackets: document.getElementById('autoBrackets').checked,
             bracketOffset: document.getElementById('bracketOffset').value
         },
+        bracketManualOffsets: {...bracketManualOffsets},
         groups
     };
 }
@@ -3122,6 +3170,11 @@ function applyProfile(profile) {
         document.getElementById('showPostHoc').checked = !!profile.options.showPostHoc;
         document.getElementById('autoBrackets').checked = !!profile.options.autoBrackets;
         document.getElementById('bracketOffset').value = profile.options.bracketOffset ?? '0';
+    }
+    if (profile.bracketManualOffsets) {
+        bracketManualOffsets = {...profile.bracketManualOffsets};
+    } else {
+        bracketManualOffsets = {};
     }
     if (Array.isArray(profile.groups)) {
         const cards = Array.from(document.querySelectorAll('.group-card'));
@@ -3203,6 +3256,7 @@ function loadProfile(event) {
 
 function resetProfile() {
     activeProfile = null;
+    bracketManualOffsets = {};
     const defaultProfile = {
         timeLabels: 'Day1 Day3 Day7',
         survival: { xMax: '0', yPercent: false, xTickCount: '5', xTickStep: '0' },
@@ -3578,14 +3632,20 @@ function getCssVar(name) {
 }
 
 // ブラケチE描画用の関数
-function drawBracket(x1, x2, y, stars, fontSize) {
+function drawBracket(x1, x2, y, stars, fontSize, key) {
     const tickH = 6; // カギ線E端の長ぁE
     const axisColor = getCssVar('--svg-ink') || 'black';
+    const cursorStyle = key ? 'cursor: ns-resize; pointer-events: all;' : '';
+    const dataAttr = key ? `data-bracket-key="${key}"` : '';
+    const classAttr = key ? 'class="sig-bracket bracket-draggable"' : 'class="sig-bracket"';
+    
     return `
-    <g class="sig-bracket" stroke="${axisColor}" fill="none" stroke-width="1.2">
+    <g ${classAttr} ${dataAttr} stroke="${axisColor}" fill="none" stroke-width="1.2" style="${cursorStyle}">
         <path d="M ${x1} ${y} L ${x1} ${y - tickH} L ${x2} ${y - tickH} L ${x2} ${y}" />
         <text x="${(x1 + x2) / 2}" y="${y - tickH - 2}" fill="${axisColor}" stroke="none"
               text-anchor="middle" font-size="${fontSize * 1.2}" font-family="Arial" font-weight="bold">${stars}</text>
+        <!-- Invisible hit area for easier grabbing -->
+        <rect x="${Math.min(x1, x2) - 5}" y="${y - tickH - 15}" width="${Math.abs(x2 - x1) + 10}" height="${tickH + 20}" stroke="none" fill="transparent" />
     </g>`;
 }
 
@@ -3960,6 +4020,24 @@ function updatePlot(reflowPass = 0) {
             bracketOffsetLabel.textContent = `${bracketOffset > 0 ? '+' : ''}${bracketOffset}px`;
         }
     }
+    
+    // Add reset button for brackets if not exists (simple check)
+    const bracketControlItem = document.getElementById('bracketOffset')?.parentElement;
+    if (bracketControlItem && !document.getElementById('resetBracketOffsetsBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'resetBracketOffsetsBtn';
+        btn.type = 'button';
+        btn.className = 'btn-mini';
+        btn.style.width = 'auto';
+        btn.style.marginTop = '4px';
+        btn.textContent = 'Reset Dragged Brackets';
+        btn.onclick = () => {
+            bracketManualOffsets = {};
+            updatePlot();
+        };
+        bracketControlItem.appendChild(btn);
+    }
+
     const xAxisLabel = document.getElementById('xAxisLabel').value.trim();
     const yAxisLabel = document.getElementById('yAxisLabel').value.trim();
     const titleText = getChartTitle();
@@ -4530,7 +4608,9 @@ function updatePlot(reflowPass = 0) {
                         const targetX = isCompMode
                             ? getCompCenter(1)
                             : getTimeCenter(tIdx, 1, groupSpace);
-                        svgItems.push(drawBracket(ctrlX, targetX, bracketY, getStars(res.p), fsX));
+                        const key = `t${tIdx}_0_1`;
+                        const manualY = bracketManualOffsets[key] || 0;
+                        svgItems.push(drawBracket(ctrlX, targetX, bracketY + manualY, getStars(res.p), fsX, key));
                     }
                 }
             } else {
@@ -4542,7 +4622,9 @@ function updatePlot(reflowPass = 0) {
                             const targetX = isCompMode
                                 ? getCompCenter(i + 1)
                                 : getTimeCenter(tIdx, i + 1, groupSpace);
-                            svgItems.push(drawBracket(ctrlX, targetX, bracketY, getStars(res.p), fsX));
+                            const key = `t${tIdx}_0_${i + 1}`;
+                            const manualY = bracketManualOffsets[key] || 0;
+                            svgItems.push(drawBracket(ctrlX, targetX, bracketY + manualY, getStars(res.p), fsX, key));
                             bracketY -= 22;
                         }
                     });
