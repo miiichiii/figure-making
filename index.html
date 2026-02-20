@@ -4679,31 +4679,42 @@ function trackAnalyticsEvent(name, params = {}) {
 }
 
 function downloadSVG() {
-    let svg = document.getElementById('svg-container').innerHTML;
+    const svgOriginal = document.querySelector('#svg-container svg');
+    if (!svgOriginal) return;
 
-    // Remove background for download (standardize to transparent/publication ready)
-    const lightSvgBg = '#F6F0E3';
-    const lightSvgInk = '#2B2A27';
+    // Clone to manipulate safely
+    const svgClone = svgOriginal.cloneNode(true);
+
+    // Remove background rect (class="svg-bg")
+    const bgRect = svgClone.querySelector('.svg-bg');
+    if (bgRect) {
+        bgRect.remove();
+    }
+
+    // Force transparent background on the root element
+    svgClone.style.background = 'transparent';
+
+    let svgData = new XMLSerializer().serializeToString(svgClone);
+
+    // Dark mode handling: Replace color variables with fixed light-theme colors for export
     const theme = document.documentElement.getAttribute('data-theme');
-    
     if (theme === 'dark') {
+         const lightSvgBg = '#F6F0E3';
+         const lightSvgInk = '#2B2A27';
          const darkSvgBg = getCssVar('--svg-bg') || '#1C2226';
          const darkSvgInk = getCssVar('--svg-ink') || '#E7E7E7';
-         // Normalize colors if in dark mode so we export standard colors
-         svg = svg.split(darkSvgBg).join(lightSvgBg);
-         svg = svg.split(darkSvgInk).join(lightSvgInk);
+         
+         // Simple string replacement for colors (safe enough for hex codes)
+         svgData = svgData.split(darkSvgBg).join(lightSvgBg);
+         svgData = svgData.split(darkSvgInk).join(lightSvgInk);
     }
 
-    // Robust background removal
-    svg = svg.replace(/background:[^;"]+;?/gi, 'background:transparent;');
-    svg = svg.replace(/<rect class="svg-bg"[^>]*?>/gi, '');
-
-    // Add XML header for PowerPoint compatibility
-    if (!svg.startsWith('<?xml')) {
-        svg = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' + svg;
+    // Add XML header if missing (for PowerPoint compatibility)
+    if (!svgData.startsWith('<?xml')) {
+        svgData = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' + svgData;
     }
 
-    const blob = new Blob([svg], {type: "image/svg+xml;charset=utf-8"});
+    const blob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = `MultiGroup_Figure_${new Date().getTime()}.svg`;
