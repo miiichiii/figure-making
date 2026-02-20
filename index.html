@@ -4698,7 +4698,12 @@ function downloadSVG() {
     svg = svg.replace(/background:[^;"]+;?/gi, 'background:transparent;');
     svg = svg.replace(/<rect class="svg-bg"[^>]*?>/gi, '');
 
-    const blob = new Blob([svg], {type: "image/svg+xml"});
+    // Add XML header for PowerPoint compatibility
+    if (!svg.startsWith('<?xml')) {
+        svg = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' + svg;
+    }
+
+    const blob = new Blob([svg], {type: "image/svg+xml;charset=utf-8"});
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = `MultiGroup_Figure_${new Date().getTime()}.svg`;
