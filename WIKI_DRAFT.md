@@ -1,4 +1,62 @@
-# SVG Plotter - ユーザーマニュアル
+# SVG Plotter - User Manual / ユーザーマニュアル
+
+[English follows Japanese / 英語の後に日本語が続きます]
+
+---
+
+## English Version
+
+**Create publication-quality graphs in your browser instantly.**
+Simply copy and paste data from spreadsheets like Excel to generate beautiful vector images (SVG).
+
+🔗 **Launch App**: [Launch SVG Plotter](https://miiichiii.github.io/figure-making/)
+
+---
+
+### ✨ Key Features
+
+1. **Publication Quality**
+   - **Vector Output**: Download in SVG format, which never pixelates. Perfect for further editing in Illustrator or PowerPoint.
+   - **Academic Design**: Standard academic styles (Arial/Helvetica fonts, white background, black axes) are adopted by default.
+
+2. **Diverse Graphs & Statistical Analysis**
+   - **Comparison**: Bar graphs + Dot plots.
+   - **Time Series**: Line graphs for changes over time.
+   - **Survival**: Kaplan-Meier curves.
+
+3. **Privacy & Security (Local Processing)**
+   - All data is processed **within your browser (on your PC)**.
+   - No research data is sent to external servers, making it safe for unpublished data.
+
+---
+
+### 📊 Statistical Methods
+
+The tool automatically performs the following tests based on your data:
+
+1. **Comparison (2 Groups)**: Welch's t-test (default) and Brunner-Munzel Test (robust non-parametric).
+2. **Comparison (3+ Groups)**: One-way ANOVA and Dunnett's Test (Control vs. others).
+3. **Survival Analysis**: Log-Rank Test.
+4. **Reproducibility**: Export R code to verify the analysis in professional statistical software.
+
+---
+
+### 🚀 Quick Start
+
+1. **Prepare Data**: Format your data in Excel.
+2. **Copy & Paste**: Paste data into the "Input Data" area on the left.
+3. **Plot**: The graph will preview automatically. Adjust colors and axes in the control panel.
+4. **Download**: Click "Download SVG" to save your figure.
+
+---
+
+### ⚠️ Disclaimer
+Statistical results (p-values, etc.) are for screening purposes only. For final publications, always verify results using dedicated software (GraphPad Prism, R, etc.).
+
+---
+---
+
+## 日本語版
 
 **論文投稿・学会発表レベルのグラフを、ブラウザ上で一瞬で作成するツールです。**
 Excelなどのスプレッドシートからデータをコピー＆ペーストするだけで、美しいベクター画像（SVG）を生成します。
@@ -7,57 +65,42 @@ Excelなどのスプレッドシートからデータをコピー＆ペースト
 
 ---
 
-## ✨ 主な特徴
+### ✨ 主な特徴
 
-### 1. 論文品質（Publication Quality）
-- **ベクター出力**: 拡大しても劣化しないSVG形式でダウンロード可能。IllustratorやPowerPointでの編集に最適です。
-- **学術的なデザイン**: シンプルで視認性の高い、論文標準のスタイル（Arial/Helveticaフォント、白背景、黒軸）をデフォルト採用しています。
+1. **論文品質（Publication Quality）**
+   - **ベクター出力**: 拡大しても劣化しないSVG形式でダウンロード可能。IllustratorやPowerPointでの編集に最適です。
+   - **学術的なデザイン**: シンプルで視認性の高い、論文標準のスタイル（Arial/Helveticaフォント、白背景、黒軸）をデフォルト採用しています。
 
-### 2. 多彩なグラフと統計解析
-以下のグラフタイプに対応し、自動で基本的な統計検定も行います（詳細は「統計解析の詳細」セクションを参照）。
-- **Comparison (比較)**: 棒グラフ + ドットプロット。
-- **Time Series (時系列)**: 経時変化の折れ線グラフ。
-- **Survival (生存率)**: カプランマイヤー曲線。
+2. **多彩なグラフと統計解析**
+   - **Comparison (比較)**: 棒グラフ + ドットプロット。
+   - **Time Series (時系列)**: 経時変化の折れ線グラフ。
+   - **Survival (生存率)**: カプランマイヤー曲線。
 
-### 3. 完全ローカル処理（セキュリティ）
-- データはすべて**ブラウザ内（あなたのPC）**で処理されます。
-- 外部サーバーに研究データを送信しないため、未発表データでも安心して使用できます。
-
----
-
-## 📊 統計解析の詳細（Statistical Methods）
-
-本ツールでは、入力されたデータ群の数や性質に応じて、以下の統計検定を自動的に実行します。研究のスクリーニングにおいて、データの有意性を迅速に判断するのに役立ちます。
-
-### 1. 2群間の比較（2 Groups）
-- **Welch's t-test**: 等分散を仮定しないt検定。デフォルトの2群比較に使用されます。
-- **Brunner-Munzel Test**: 分布の等性を仮定しない堅牢な非パラメトリック検定。
-
-### 2. 多群間の比較（3+ Groups）
-- **One-way ANOVA**: 1元配置分散分析。3群以上のデータがある場合に、全体の有意差を検定します。
-- **Dunnett's Test (Simple implementation)**: 第1群をコントロールとした、他の各群との多重比較。
-
-### 3. 生存率の比較（Survival Analysis）
-- **Log-Rank Test**: 2群間のカプランマイヤー曲線の差を検定します。
-
-### 4. 解析コードの検証
-- **Rコードの書き出し**: 画面上のボタンから、同じ解析を統計ソフト「R」で再現するためのソースコードをダウンロード可能です。これにより、解析プロセスの透明性と再現性を確保できます。
+3. **完全ローカル処理（セキュリティ）**
+   - データはすべて**ブラウザ内（あなたのPC）**で処理されます。
+   - 外部サーバーに研究データを送信しないため、未発表データでも安心して使用できます。
 
 ---
 
-## 🚀 クイックスタート
+### 📊 統計解析の詳細（Statistical Methods）
 
-1. **データを用意する**
-   - Excelなどでデータを整形します。（例：A列に群名、B列に数値など）
-2. **コピペする**
-   - 画面左側の「Input Data」エリアにデータを貼り付けます。
-3. **描画（Plot）**
-   - 自動的にグラフがプレビューされます。
-   - 右側のコントロールパネルで、色や軸の範囲を微調整します。
-4. **ダウンロード**
-   - 右上の「Download SVG」ボタンを押して保存します。
+本ツールでは、データに応じて以下の統計検定を自動的に実行します。
+
+1. **2群間の比較**: Welch's t-test（デフォルト）、Brunner-Munzel Test（堅牢な非パラメトリック検定）。
+2. **多群間の比較**: One-way ANOVA（分散分析）、Dunnett's Test（コントロール群との多重比較）。
+3. **生存率の比較**: Log-Rank Test。
+4. **再現性の確保**: 解析内容を再現するための「Rコード」を書き出し可能です。
 
 ---
 
-## ⚠️ 免責事項
-本ツールが表示する統計解析結果（p値など）は、あくまでデータの傾向を掴むための目安です。論文投稿などの最終的な解析には、必ず専門の統計ソフト（GraphPad Prism, R, SPSSなど）を使用し、本ツールからエクスポートしたRコード等で結果を再確認してください。
+### 🚀 クイックスタート
+
+1. **データを用意する**: Excelなどでデータを整形します。
+2. **コピペする**: 画面左側の「Input Data」エリアにデータを貼り付けます。
+3. **描画（Plot）**: 自動的にグラフが描画されます。コントロールパネルで色や軸を微調整します。
+4. **ダウンロード**: 「Download SVG」ボタンを押して保存します。
+
+---
+
+### ⚠️ 免責事項
+統計解析結果はあくまで目安です。論文投稿等の最終的な解析には、必ず専門の統計ソフト（GraphPad Prism, R等）を使用してください。
