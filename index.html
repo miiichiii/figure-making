@@ -333,7 +333,6 @@
         .ymax-inline .control-item {
             gap: 2px;
         }
-        .panel-disabled { opacity: 0.5; pointer-events: none; }
 
         .resizer {
             width: 8px;
@@ -1310,10 +1309,12 @@
                             <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="showBars" onchange="handleShowBarsToggle()" checked> Show Bars</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="showViolin" onchange="updatePlot()"> Show Violin</label>
+                            <label id="adjacentAvgLineWrap" style="font-weight: normal; display:none;"><input type="checkbox" id="showAdjacentAvgLine" onchange="updatePlot()"> Adjacent Pair Avg Line</label>
                         </div>
                         <div class="option-list" id="lineOptionsBody">
                             <label style="font-weight: normal;"><input type="checkbox" id="showSampleLines" onchange="updatePlot()"> Sample Lines</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="showMean" onchange="updatePlot()" checked> Mean Line / Dots</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showDotPlot" onchange="updatePlot()" checked> Show Dot Plot</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="showMeanDots" onchange="updatePlot()" checked> Mean Dots (Line Mode)</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="showErrorBars" onchange="updatePlot()" checked> Error Bars</label>
                         </div>
@@ -3090,9 +3091,11 @@ function collectProfile() {
             showBars: document.getElementById('showBars').checked,
             showSampleLines: document.getElementById('showSampleLines').checked,
             showMean: document.getElementById('showMean').checked,
+            showDotPlot: !!document.getElementById('showDotPlot')?.checked,
             showMeanDots: document.getElementById('showMeanDots').checked,
             showViolin: document.getElementById('showViolin').checked,
             showErrorBars: document.getElementById('showErrorBars').checked,
+            showAdjacentAvgLine: !!document.getElementById('showAdjacentAvgLine')?.checked,
             showPostHoc: document.getElementById('showPostHoc').checked,
             autoBrackets: document.getElementById('autoBrackets').checked,
             bracketOffset: document.getElementById('bracketOffset').value
@@ -3165,9 +3168,15 @@ function applyProfile(profile) {
         document.getElementById('showBars').checked = true; // force bars on
         document.getElementById('showSampleLines').checked = !!profile.options.showSampleLines;
         document.getElementById('showMean').checked = !!profile.options.showMean;
+        if (document.getElementById('showDotPlot')) {
+            document.getElementById('showDotPlot').checked = profile.options.showDotPlot !== false;
+        }
         document.getElementById('showMeanDots').checked = !!profile.options.showMeanDots;
         document.getElementById('showViolin').checked = !!profile.options.showViolin;
         document.getElementById('showErrorBars').checked = !!profile.options.showErrorBars;
+        if (document.getElementById('showAdjacentAvgLine')) {
+            document.getElementById('showAdjacentAvgLine').checked = !!profile.options.showAdjacentAvgLine;
+        }
         document.getElementById('showPostHoc').checked = !!profile.options.showPostHoc;
         document.getElementById('autoBrackets').checked = !!profile.options.autoBrackets;
         document.getElementById('bracketOffset').value = profile.options.bracketOffset ?? '0';
@@ -3270,9 +3279,11 @@ function resetProfile() {
             showBars: false,
             showSampleLines: false,
             showMean: true,
+            showDotPlot: true,
             showMeanDots: true,
             showViolin: false,
             showErrorBars: true,
+            showAdjacentAvgLine: false,
             showPostHoc: false,
             autoBrackets: true,
             bracketOffset: '0'
@@ -3667,6 +3678,7 @@ function setPlotMode() {
     const groupSection = document.getElementById('groupDataSection');
     const survivalSection = document.getElementById('survivalSection');
     const timeSeriesSection = document.getElementById('timeSeriesSection');
+    const adjacentAvgLineWrap = document.getElementById('adjacentAvgLineWrap');
     const yMaxInputEl = document.getElementById('yMaxInput');
 
     if (mode === 'survival') {
@@ -3674,6 +3686,7 @@ function setPlotMode() {
         if (groupSection) groupSection.style.display = 'none';
         if (survivalSection) survivalSection.style.display = '';
         if (timeSeriesSection) timeSeriesSection.style.display = 'none';
+        if (adjacentAvgLineWrap) adjacentAvgLineWrap.style.display = 'none';
         const xMaxEl = document.getElementById('survivalXMax');
         if (xMaxEl) xMaxEl.dataset.auto = 'true';
     } else {
@@ -3681,6 +3694,7 @@ function setPlotMode() {
         if (groupSection) groupSection.style.display = '';
         if (survivalSection) survivalSection.style.display = 'none';
         if (timeSeriesSection) timeSeriesSection.style.display = mode === 'time' ? '' : 'none';
+        if (adjacentAvgLineWrap) adjacentAvgLineWrap.style.display = mode === 'time' ? '' : 'none';
     }
     const showLegendEl = document.getElementById('showLegend');
     if (showLegendEl && mode === 'comparison') {
@@ -4004,15 +4018,13 @@ function updatePlot(reflowPass = 0) {
     syncBarControlsUI();
     const showSampleLines = document.getElementById('showSampleLines').checked;
     const showMean = document.getElementById('showMean').checked;
+    const showDotPlot = !!document.getElementById('showDotPlot')?.checked;
     const showMeanDots = document.getElementById('showMeanDots').checked;
     const showViolin = document.getElementById('showViolin').checked;
     const showErrorBars = document.getElementById('showErrorBars').checked;
+    const showAdjacentAvgLine = mode === 'time' && !!document.getElementById('showAdjacentAvgLine')?.checked;
     const errorType = document.getElementById('errorType')?.value || 'se';
     const bracketOffset = parseFloat(document.getElementById('bracketOffset').value);
-    const lineOptionsBody = document.getElementById('lineOptionsBody');
-    if (lineOptionsBody) {
-        lineOptionsBody.classList.toggle('panel-disabled', !showLines);
-    }
     const bracketOffsetLabel = document.getElementById('bracketOffsetVal');
     if (bracketOffsetLabel) {
         if (bracketOffset === 0) {
@@ -4431,7 +4443,7 @@ function updatePlot(reflowPass = 0) {
                 svgItems.push(`<line x1="${x-meanLineHalf}" y1="${yM}" x2="${x+meanLineHalf}" y2="${yM}" stroke="${axisColor}" stroke-width="${meanLineStroke}" />`);
             }
         }
-        if (showMean) {
+        if (showDotPlot) {
             data.forEach(v => {
                 if (v === null || v === undefined || !Number.isFinite(v)) return;
                 const j = (Math.random() - 0.5) * jitter;
@@ -4569,6 +4581,21 @@ function updatePlot(reflowPass = 0) {
                         drawGroupContent(x, data, s, group, barWidth, baselineVal, gIdx);
                     }
                 });
+            });
+        }
+        if (showAdjacentAvgLine && nGroups >= 2) {
+            const groupSpace = (graphW / timeLabels.length) * 0.85;
+            timeLabels.forEach((label, tIdx) => {
+                for (let gIdx = 0; gIdx < nGroups - 1; gIdx++) {
+                    const leftStats = calcStats(groupConfigs[gIdx].data[tIdx] || []);
+                    const rightStats = calcStats(groupConfigs[gIdx + 1].data[tIdx] || []);
+                    if (leftStats.n === 0 || rightStats.n === 0) continue;
+                    const x1 = getTimeCenter(tIdx, gIdx, groupSpace);
+                    const x2 = getTimeCenter(tIdx, gIdx + 1, groupSpace);
+                    const pairAverage = (leftStats.mean + rightStats.mean) / 2;
+                    const y = yScale(pairAverage);
+                    svgItems.push(`<line class="adjacent-avg-line" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${axisColor}" stroke-width="1.2" />`);
+                }
             });
         }
         timeLabels.forEach((label, tIdx) => {
