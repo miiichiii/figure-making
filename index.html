@@ -4912,35 +4912,28 @@ async function copySvgToClipboard(source = 'button') {
     // Robust background removal (handles any color format and multiple occurrences)
     svgData = svgData.replace(/background:[^;"]+;?/gi, 'background:transparent;');
     svgData = svgData.replace(/<rect class="svg-bg"[^>]*?>/gi, '');
-    const svgBlob = new Blob([svgData], { type: "image/svg+xml" });
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const plainTextBlob = new Blob([svgData], { type: 'text/plain;charset=utf-8' });
+    const htmlBlob = new Blob([svgData], { type: 'text/html;charset=utf-8' });
 
     try {
-        const width = parseInt(svgEl.getAttribute('width')) || 800;
-        const height = parseInt(svgEl.getAttribute('height')) || 600;
-        const img = new Image();
-        const url = URL.createObjectURL(svgBlob);
+        if (navigator.clipboard && window.ClipboardItem) {
+            const supportsClipboardType = (type) => {
+                if (typeof ClipboardItem === 'undefined' || typeof ClipboardItem.supports !== 'function') {
+                    return true;
+                }
+                return ClipboardItem.supports(type);
+            };
+            const clipboardPayload = {};
+            if (supportsClipboardType('image/svg+xml')) clipboardPayload['image/svg+xml'] = svgBlob;
+            if (supportsClipboardType('text/html')) clipboardPayload['text/html'] = htmlBlob;
+            if (supportsClipboardType('text/plain')) clipboardPayload['text/plain'] = plainTextBlob;
 
-        await new Promise((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = reject;
-            img.src = url;
-        });
+            if (!Object.keys(clipboardPayload).length) {
+                throw new Error('No supported clipboard MIME types');
+            }
 
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        URL.revokeObjectURL(url);
-
-        const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-
-        if (navigator.clipboard && window.ClipboardItem && pngBlob) {
-            const item = new ClipboardItem({
-                'image/png': pngBlob,
-                'image/svg+xml': svgBlob,
-                'text/plain': new Blob([svgData], { type: 'text/plain' })
-            });
+            const item = new ClipboardItem(clipboardPayload);
             await navigator.clipboard.write([item]);
             showToast('Copied');
             trackAnalyticsEvent('export_copy_svg', { method: source, format: 'svg' });
