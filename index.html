@@ -218,6 +218,18 @@
             padding: 2px 4px;
             border-radius: 4px;
         }
+        .drag-indicator {
+            right: 42px;
+            top: -18px;
+            display: none;
+            min-width: 92px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            z-index: 6;
+        }
+        .drag-indicator.visible {
+            display: block;
+        }
         .resize-tl { top: -12px; left: -12px; cursor: nwse-resize; }
         .resize-tr { top: -12px; right: -12px; cursor: nesw-resize; }
         .resize-bl { bottom: -12px; left: -12px; cursor: nesw-resize; }
@@ -1300,6 +1312,7 @@
                     <div class="resize-handle resize-bl" data-handle="bl"></div>
                     <div class="resize-handle resize-br" data-handle="br"></div>
                     <div class="handle-pos" id="handlePosLeft" style="left: 6px; top: -18px;">L: 0</div>
+                    <div class="handle-pos drag-indicator" id="dragValueBadge">Y: 0</div>
                     <button type="button" class="tip-icon" aria-label="Drag tips">i</button>
                     <div class="tip-bubble">Tip: Drag title, Y-axis label, legend, bars, and sample labels (↑↓) to reposition.</div>
                 </div>
@@ -1317,6 +1330,7 @@
                             <label style="font-weight: normal;"><input type="checkbox" id="showDotPlot" onchange="updatePlot()" checked> Show Dot Plot</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="showMeanDots" onchange="updatePlot()" checked> Mean Dots (Line Mode)</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="showErrorBars" onchange="updatePlot()" checked> Error Bars</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showErrorBarsOnTop" onchange="updatePlot()"> Error Bars Above Dots</label>
                         </div>
                     </div>
                     <div class="panel legend-panel bar-width-card" id="barWidthCard">
@@ -1350,7 +1364,7 @@
                             <div class="control-item">
                                 <label for="dotSize">Dot Size</label>
                                 <div class="compact-row">
-                                    <input type="number" id="dotSize" min="1" max="15" value="3" oninput="updatePlot()">
+                                    <input type="number" id="dotSize" min="1" max="15" step="0.5" value="2.5" oninput="updatePlot()">
                                 </div>
                             </div>
                             <div class="control-item">
@@ -1452,7 +1466,9 @@ const defaultColors = ['#ffffff', '#ffcccc', '#ccffcc', '#ccccff', '#ffffcc', '#
 const DEFAULT_CHART_WIDTH = 156;
 const DEFAULT_CHART_HEIGHT = 220;
 const DEFAULT_BAR_WIDTH = 27;
-const DEFAULT_X_TICK_LABEL_OFFSET_Y = -18;
+const DEFAULT_X_TICK_LABEL_OFFSET_Y = -4;
+const DEFAULT_GROUP_LABEL_OFFSET_Y = -4;
+const DEFAULT_TIME_LABEL_OFFSET_Y = -4;
 let plotMetrics = null;
 let chartOffsetX = 0;
 let chartOffsetY = 0;
@@ -1489,8 +1505,8 @@ let stagedGroupNames = {};
 let explorerTreeState = {};
 let barWidthState = DEFAULT_BAR_WIDTH;
 let groupOffsetX = [];
-let groupLabelOffsetY = 0;
-let timeLabelOffsetY = 0;
+let groupLabelOffsetY = DEFAULT_GROUP_LABEL_OFFSET_Y;
+let timeLabelOffsetY = DEFAULT_TIME_LABEL_OFFSET_Y;
 let titleOffsetX = 0;
 let titleOffsetY = 0;
 let xAxisLabelOffsetX = 0;
@@ -1523,6 +1539,24 @@ let bracketManualOffsets = {}; // Store manual Y-offsets for brackets
 let draggingBracketKey = null;
 let draggingBracketStartY = 0;
 let draggingBracketStartOffset = 0;
+
+function formatSignedNumber(value) {
+    const rounded = Math.round(value || 0);
+    return `${rounded > 0 ? '+' : ''}${rounded}`;
+}
+
+function showDragValueBadge(text) {
+    const badge = document.getElementById('dragValueBadge');
+    if (!badge) return;
+    badge.textContent = text;
+    badge.classList.add('visible');
+}
+
+function hideDragValueBadge() {
+    const badge = document.getElementById('dragValueBadge');
+    if (!badge) return;
+    badge.classList.remove('visible');
+}
 
 function addNewGroup(name = "", color = "", data = "") {
     groupCount++;
@@ -2321,6 +2355,7 @@ function onGroupLabelPointerDown(e) {
     draggingGroupLabelIndex = 0; // Use as flag
     draggingGroupLabelStartY = e.clientY;
     draggingGroupLabelStartOffset = groupLabelOffsetY || 0;
+    showDragValueBadge(`Group Y: ${formatSignedNumber(groupLabelOffsetY)}`);
     window.addEventListener('pointermove', onGroupLabelPointerMove);
     window.addEventListener('pointerup', onGroupLabelPointerUp, { once: true });
     return true;
@@ -2336,12 +2371,14 @@ function onGroupLabelPointerMove(e) {
     const dyPx = e.clientY - draggingGroupLabelStartY;
     const scaleY = plotMetrics.height / rect.height;
     groupLabelOffsetY = draggingGroupLabelStartOffset + (dyPx * scaleY);
+    showDragValueBadge(`Group Y: ${formatSignedNumber(groupLabelOffsetY)}`);
     updatePlot();
 }
 
 function onGroupLabelPointerUp() {
     draggingGroupLabelIndex = null;
     window.removeEventListener('pointermove', onGroupLabelPointerMove);
+    hideDragValueBadge();
     updatePlot();
 }
 
@@ -2352,6 +2389,7 @@ function onTimeLabelPointerDown(e) {
     draggingTimeLabelIndex = 0; // Use as flag
     draggingTimeLabelStartY = e.clientY;
     draggingTimeLabelStartOffset = timeLabelOffsetY || 0;
+    showDragValueBadge(`Time Y: ${formatSignedNumber(timeLabelOffsetY)}`);
     window.addEventListener('pointermove', onTimeLabelPointerMove);
     window.addEventListener('pointerup', onTimeLabelPointerUp, { once: true });
     return true;
@@ -2367,12 +2405,14 @@ function onTimeLabelPointerMove(e) {
     const dyPx = e.clientY - draggingTimeLabelStartY;
     const scaleY = plotMetrics.height / rect.height;
     timeLabelOffsetY = draggingTimeLabelStartOffset + (dyPx * scaleY);
+    showDragValueBadge(`Time Y: ${formatSignedNumber(timeLabelOffsetY)}`);
     updatePlot();
 }
 
 function onTimeLabelPointerUp() {
     draggingTimeLabelIndex = null;
     window.removeEventListener('pointermove', onTimeLabelPointerMove);
+    hideDragValueBadge();
     updatePlot();
 }
 
@@ -2437,6 +2477,9 @@ function onAxisLabelPointerDown(e) {
         draggingAxisLabelStartOffsetX = yAxisLabelOffsetX;
         draggingAxisLabelStartOffsetY = yAxisLabelOffsetY;
     }
+    const currentX = type === 'title' ? titleOffsetX : type === 'x' ? xAxisLabelOffsetX : yAxisLabelOffsetX;
+    const currentY = type === 'title' ? titleOffsetY : type === 'x' ? xAxisLabelOffsetY : yAxisLabelOffsetY;
+    showDragValueBadge(`${type.toUpperCase()} X:${formatSignedNumber(currentX)} Y:${formatSignedNumber(currentY)}`);
     window.addEventListener('pointermove', onAxisLabelPointerMove);
     window.addEventListener('pointerup', onAxisLabelPointerUp, { once: true });
     return true;
@@ -2457,12 +2500,16 @@ function onAxisLabelPointerMove(e) {
         yAxisLabelOffsetX = draggingAxisLabelStartOffsetX + dx;
         yAxisLabelOffsetY = draggingAxisLabelStartOffsetY + dy;
     }
+    const currentX = draggingAxisLabel === 'title' ? titleOffsetX : draggingAxisLabel === 'x' ? xAxisLabelOffsetX : yAxisLabelOffsetX;
+    const currentY = draggingAxisLabel === 'title' ? titleOffsetY : draggingAxisLabel === 'x' ? xAxisLabelOffsetY : yAxisLabelOffsetY;
+    showDragValueBadge(`${draggingAxisLabel.toUpperCase()} X:${formatSignedNumber(currentX)} Y:${formatSignedNumber(currentY)}`);
     updatePlot();
 }
 
 function onAxisLabelPointerUp() {
     draggingAxisLabel = null;
     window.removeEventListener('pointermove', onAxisLabelPointerMove);
+    hideDragValueBadge();
     updatePlot();
 }
 
@@ -2916,8 +2963,8 @@ function resetGroups() {
     container.innerHTML = '';
     groupCount = 0;
     groupOffsetX = [];
-    groupLabelOffsetY = 0;
-    timeLabelOffsetY = 0;
+    groupLabelOffsetY = DEFAULT_GROUP_LABEL_OFFSET_Y;
+    timeLabelOffsetY = DEFAULT_TIME_LABEL_OFFSET_Y;
 }
 
 function loadSampleTimeline() {
@@ -2951,11 +2998,11 @@ function ensureGroupOffsets(len) {
 }
 
 function ensureGroupLabelOffsets() {
-    if (groupLabelOffsetY === undefined || isNaN(groupLabelOffsetY)) groupLabelOffsetY = 0;
+    if (groupLabelOffsetY === undefined || isNaN(groupLabelOffsetY)) groupLabelOffsetY = DEFAULT_GROUP_LABEL_OFFSET_Y;
 }
 
 function ensureTimeLabelOffsets() {
-    if (timeLabelOffsetY === undefined || isNaN(timeLabelOffsetY)) timeLabelOffsetY = 0;
+    if (timeLabelOffsetY === undefined || isNaN(timeLabelOffsetY)) timeLabelOffsetY = DEFAULT_TIME_LABEL_OFFSET_Y;
 }
 
 function snapshotBarState() {
@@ -3099,6 +3146,7 @@ function collectProfile() {
             showMeanDots: document.getElementById('showMeanDots').checked,
             showViolin: document.getElementById('showViolin').checked,
             showErrorBars: document.getElementById('showErrorBars').checked,
+            showErrorBarsOnTop: !!document.getElementById('showErrorBarsOnTop')?.checked,
             showAdjacentAvgLine: !!document.getElementById('showAdjacentAvgLine')?.checked,
             showPostHoc: document.getElementById('showPostHoc').checked,
             autoBrackets: document.getElementById('autoBrackets').checked,
@@ -3161,7 +3209,7 @@ function applyProfile(profile) {
     if (profile.style) {
         document.getElementById('fontSizeX').value = profile.style.fontX || '10';
         document.getElementById('fontSizeY').value = profile.style.fontY || '10';
-        document.getElementById('dotSize').value = profile.style.dotSize || '3';
+        document.getElementById('dotSize').value = profile.style.dotSize || '2.5';
         document.getElementById('jitter').value = profile.style.jitter || '8';
         if (profile.style.barWidth !== undefined) {
             barWidthState = parseFloat(profile.style.barWidth) || DEFAULT_BAR_WIDTH;
@@ -3178,6 +3226,9 @@ function applyProfile(profile) {
         document.getElementById('showMeanDots').checked = !!profile.options.showMeanDots;
         document.getElementById('showViolin').checked = !!profile.options.showViolin;
         document.getElementById('showErrorBars').checked = !!profile.options.showErrorBars;
+        if (document.getElementById('showErrorBarsOnTop')) {
+            document.getElementById('showErrorBarsOnTop').checked = !!profile.options.showErrorBarsOnTop;
+        }
         if (document.getElementById('showAdjacentAvgLine')) {
             document.getElementById('showAdjacentAvgLine').checked = !!profile.options.showAdjacentAvgLine;
         }
@@ -3277,7 +3328,7 @@ function resetProfile() {
         chartSize: { width: String(DEFAULT_CHART_WIDTH), height: String(DEFAULT_CHART_HEIGHT) },
         yAxis: { min: '0', max: '0', ticks: '5', errorType: 'se' },
         labels: { x: '', y: '', titleItalic: false, titleSize: '10', xOffset: '25', yOffset: '25', xFont: '10', yFont: '10' },
-        style: { fontX: '10', fontY: '10', dotSize: '3', jitter: '8', barWidth: String(DEFAULT_BAR_WIDTH) },
+        style: { fontX: '10', fontY: '10', dotSize: '2.5', jitter: '8', barWidth: String(DEFAULT_BAR_WIDTH) },
         options: {
             showLines: false,
             showBars: false,
@@ -3287,6 +3338,7 @@ function resetProfile() {
             showMeanDots: true,
             showViolin: false,
             showErrorBars: true,
+            showErrorBarsOnTop: false,
             showAdjacentAvgLine: false,
             showPostHoc: false,
             autoBrackets: true,
@@ -4026,6 +4078,7 @@ function updatePlot(reflowPass = 0) {
     const showMeanDots = document.getElementById('showMeanDots').checked;
     const showViolin = document.getElementById('showViolin').checked;
     const showErrorBars = document.getElementById('showErrorBars').checked;
+    const showErrorBarsOnTop = !!document.getElementById('showErrorBarsOnTop')?.checked;
     const showAdjacentAvgLine = mode === 'time' && !!document.getElementById('showAdjacentAvgLine')?.checked;
     const errorType = document.getElementById('errorType')?.value || 'se';
     const bracketOffset = parseFloat(document.getElementById('bracketOffset').value);
@@ -4081,7 +4134,7 @@ function updatePlot(reflowPass = 0) {
         for (const ang of angles) {
             labels.forEach((el, i) => {
                 const { x, y } = basePos[i];
-                const yAdj = ang === 0 ? 0 : 4;
+                const yAdj = ang === 0 ? 0 : -6;
                 el.setAttribute('x', x);
                 el.setAttribute('y', y + yAdj);
                 el.setAttribute('text-anchor', ang === 0 ? 'middle' : 'end');
@@ -4423,6 +4476,18 @@ function updatePlot(reflowPass = 0) {
         return `M ${left[0]} L ${left.slice(1).join(' ')} L ${right.join(' ')} Z`;
     }
 
+    function drawErrorBar(x, yT, yB, capHalf, color, strokeWidth, meanLineHalf = 0, meanLineStroke = 0, meanY = null) {
+        svgItems.push(`
+    <g stroke="${color}" stroke-width="${strokeWidth}">
+        <line x1="${x}" y1="${yB}" x2="${x}" y2="${yT}" />
+        <line x1="${x-capHalf}" y1="${yT}" x2="${x+capHalf}" y2="${yT}" />
+        <line x1="${x-capHalf}" y1="${yB}" x2="${x+capHalf}" y2="${yB}" />
+    </g>`);
+        if (meanY !== null && meanLineHalf > 0 && meanLineStroke > 0) {
+            svgItems.push(`<line x1="${x-meanLineHalf}" y1="${meanY}" x2="${x+meanLineHalf}" y2="${meanY}" stroke="${color}" stroke-width="${meanLineStroke}" />`);
+        }
+    }
+
     function drawGroupContent(x, data, s, group, barWidth, baselineVal, gIdx) {
         const errVal = errorType === 'sd' ? s.sd : s.se;
         const yM = yScale(s.mean), yT = yScale(s.mean + errVal), yB = yScale(s.mean - errVal);
@@ -4443,19 +4508,11 @@ function updatePlot(reflowPass = 0) {
             const dragClass = (draggingBarIndex === gIdx) ? ' dragging' : '';
             svgItems.push(`<rect class="bar-draggable${dragClass}" data-group-index="${gIdx}" x="${x - barWidth / 2}" y="${barY}" width="${barWidth}" height="${barH}" fill="${group.color}" fill-opacity="0.35" stroke="${axisColor}" stroke-width="0.8"/>`);
         }
-        if (showErrorBars) {
-            const capHalf = Math.min(5, barWidth * 0.25);
-            svgItems.push(`
-    <g stroke="${axisColor}" stroke-width="1.2">
-        <line x1="${x}" y1="${yB}" x2="${x}" y2="${yT}" />
-        <line x1="${x-capHalf}" y1="${yT}" x2="${x+capHalf}" y2="${yT}" />
-        <line x1="${x-capHalf}" y1="${yB}" x2="${x+capHalf}" y2="${yB}" />
-    </g>`);
-            if (!showBars) {
-                const meanLineHalf = barWidth / 2;
-                const meanLineStroke = Math.max(0.8, Math.min(2, barWidth * 0.06));
-                svgItems.push(`<line x1="${x-meanLineHalf}" y1="${yM}" x2="${x+meanLineHalf}" y2="${yM}" stroke="${axisColor}" stroke-width="${meanLineStroke}" />`);
-            }
+        const capHalf = Math.min(5, barWidth * 0.25);
+        const meanLineHalf = !showBars ? barWidth / 2 : 0;
+        const meanLineStroke = !showBars ? Math.max(0.8, Math.min(2, barWidth * 0.06)) : 0;
+        if (showErrorBars && !showErrorBarsOnTop) {
+            drawErrorBar(x, yT, yB, capHalf, axisColor, 1.2, meanLineHalf, meanLineStroke, !showBars ? yM : null);
         }
         if (showDotPlot) {
             data.forEach(v => {
@@ -4463,6 +4520,9 @@ function updatePlot(reflowPass = 0) {
                 const j = (Math.random() - 0.5) * jitter;
                 svgItems.push(`<circle cx="${x + j}" cy="${yScale(v)}" r="${dotR}" fill="${group.color}" stroke="${axisColor}" stroke-width="0.8" />`);
             });
+        }
+        if (showErrorBars && showErrorBarsOnTop) {
+            drawErrorBar(x, yT, yB, capHalf, axisColor, 1.2, meanLineHalf, meanLineStroke, !showBars ? yM : null);
         }
     }
 
@@ -4553,18 +4613,17 @@ function updatePlot(reflowPass = 0) {
                         const errVal = errorType === 'sd' ? s.sd : s.se;
                         const yT = yScale(s.mean + errVal);
                         const yB = yScale(s.mean - errVal);
+                        const meanDotRadius = Math.max(2, dotR * 0.7);
 
                         points.push(`${xCenter},${y}`);
-                        if (showErrorBars) {
-                            svgItems.push(`
-                <g stroke="${lineColor}" stroke-width="1.4">
-                    <line x1="${xCenter}" y1="${yB}" x2="${xCenter}" y2="${yT}" />
-                    <line x1="${xCenter-5}" y1="${yT}" x2="${xCenter+5}" y2="${yT}" />
-                    <line x1="${xCenter-5}" y1="${yB}" x2="${xCenter+5}" y2="${yB}" />
-                </g>`);
+                        if (showErrorBars && !showErrorBarsOnTop) {
+                            drawErrorBar(xCenter, yT, yB, 5, lineColor, 1.4);
                         }
                         if (showMeanDots) {
-                            svgItems.push(`<circle cx="${xCenter}" cy="${y}" r="${Math.max(2, dotR * 0.7)}" fill="${lineColor}" stroke="${lineColor}" stroke-width="0.8" />`);
+                            svgItems.push(`<circle cx="${xCenter}" cy="${y}" r="${meanDotRadius}" fill="${lineColor}" stroke="${lineColor}" stroke-width="0.8" />`);
+                        }
+                        if (showErrorBars && showErrorBarsOnTop) {
+                            drawErrorBar(xCenter, yT, yB, 5, lineColor, 1.4);
                         }
                     }
                 });
