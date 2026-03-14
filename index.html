@@ -1290,7 +1290,7 @@
                 <div style="grid-column: 1; grid-row: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
                     <label style="font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 6px;">
                         H:
-                        <input type="number" id="chartHeightVal" value="200" min="200" max="800" oninput="syncChartSize('height')" style="width: 60px; padding: 2px 4px;">
+                        <input type="number" id="chartHeightVal" value="220" min="200" max="800" oninput="syncChartSize('height')" style="width: 60px; padding: 2px 4px;">
                     </label>
                 </div>
                 <div id="svg-wrapper">
@@ -1322,8 +1322,8 @@
                     <div class="panel legend-panel bar-width-card" id="barWidthCard">
                         <div class="control-item">
                             <label for="barWidthSlider">Bar Width</label>
-                            <input type="range" id="barWidthSlider" min="6" max="80" value="28" oninput="syncBarWidthFromSlider()">
-                            <div style="font-size:0.8rem; color: var(--muted);">Current: <span id="barWidthValue">28</span> px</div>
+                            <input type="range" id="barWidthSlider" min="6" max="80" value="27" oninput="syncBarWidthFromSlider()">
+                            <div style="font-size:0.8rem; color: var(--muted);">Current: <span id="barWidthValue">27</span> px</div>
                         </div>
                         <div style="display:flex; gap:8px; flex-wrap:wrap;">
                             <button type="button" class="btn-mini" style="width:auto;" onclick="resetBarPositions()">Reset Bar Positions</button>
@@ -1405,7 +1405,7 @@
                 <div style="grid-column: 2; grid-row: 3; display: flex; align-items: center; gap: 10px; justify-self: start;">
                     <label style="font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 6px;">
                         W:
-                        <input type="number" id="chartWidthVal" value="300" min="10" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
+                        <input type="number" id="chartWidthVal" value="156" min="10" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
                     </label>
                 </div>
                 <div style="grid-column: 2; grid-row: 5; width: 100%; justify-self: start;">
@@ -1449,6 +1449,10 @@
 <script>
 let groupCount = 0;
 const defaultColors = ['#ffffff', '#ffcccc', '#ccffcc', '#ccccff', '#ffffcc', '#ffccff'];
+const DEFAULT_CHART_WIDTH = 156;
+const DEFAULT_CHART_HEIGHT = 220;
+const DEFAULT_BAR_WIDTH = 27;
+const DEFAULT_X_TICK_LABEL_OFFSET_Y = -18;
 let plotMetrics = null;
 let chartOffsetX = 0;
 let chartOffsetY = 0;
@@ -1483,7 +1487,7 @@ let explorerLastPointer = { x: 0, y: 0 };
 let explorerDocMouseUpHandlerAdded = false;
 let stagedGroupNames = {};
 let explorerTreeState = {};
-let barWidthState = 28;
+let barWidthState = DEFAULT_BAR_WIDTH;
 let groupOffsetX = [];
 let groupLabelOffsetY = 0;
 let timeLabelOffsetY = 0;
@@ -3123,8 +3127,8 @@ function applyProfile(profile) {
         document.getElementById('survivalXTickStep').value = profile.survival.xTickStep || '0';
     }
     if (profile.chartSize) {
-        document.getElementById('chartWidthVal').value = profile.chartSize.width || 300;
-        document.getElementById('chartHeightVal').value = profile.chartSize.height || 200;
+        document.getElementById('chartWidthVal').value = profile.chartSize.width || DEFAULT_CHART_WIDTH;
+        document.getElementById('chartHeightVal').value = profile.chartSize.height || DEFAULT_CHART_HEIGHT;
     }
     if (profile.yAxis) {
         document.getElementById('yMinInput').value = profile.yAxis.min ?? '0';
@@ -3160,7 +3164,7 @@ function applyProfile(profile) {
         document.getElementById('dotSize').value = profile.style.dotSize || '3';
         document.getElementById('jitter').value = profile.style.jitter || '8';
         if (profile.style.barWidth !== undefined) {
-            barWidthState = parseFloat(profile.style.barWidth) || barWidthState;
+            barWidthState = parseFloat(profile.style.barWidth) || DEFAULT_BAR_WIDTH;
         }
     }
     if (profile.options) {
@@ -3270,10 +3274,10 @@ function resetProfile() {
     const defaultProfile = {
         timeLabels: 'Day1 Day3 Day7',
         survival: { xMax: '0', yPercent: false, xTickCount: '5', xTickStep: '0' },
-        chartSize: { width: '300', height: '200' },
+        chartSize: { width: String(DEFAULT_CHART_WIDTH), height: String(DEFAULT_CHART_HEIGHT) },
         yAxis: { min: '0', max: '0', ticks: '5', errorType: 'se' },
         labels: { x: '', y: '', titleItalic: false, titleSize: '10', xOffset: '25', yOffset: '25', xFont: '10', yFont: '10' },
-        style: { fontX: '10', fontY: '10', dotSize: '3', jitter: '8' },
+        style: { fontX: '10', fontY: '10', dotSize: '3', jitter: '8', barWidth: String(DEFAULT_BAR_WIDTH) },
         options: {
             showLines: false,
             showBars: false,
@@ -3982,8 +3986,8 @@ function updatePlot(reflowPass = 0) {
     const heightVal = document.getElementById('chartHeightVal');
     const widthRaw = parseInt(widthVal?.value, 10);
     const heightRaw = parseInt(heightVal?.value, 10);
-    const width = Number.isFinite(widthRaw) && widthRaw > 0 ? widthRaw : 300;
-    const height = Number.isFinite(heightRaw) && heightRaw > 0 ? heightRaw : 200;
+    const width = Number.isFinite(widthRaw) && widthRaw > 0 ? widthRaw : DEFAULT_CHART_WIDTH;
+    const height = Number.isFinite(heightRaw) && heightRaw > 0 ? heightRaw : DEFAULT_CHART_HEIGHT;
     if (widthVal) widthVal.value = width;
     if (heightVal) heightVal.value = height;
     if (widthVal) widthVal.value = width;
@@ -4215,7 +4219,8 @@ function updatePlot(reflowPass = 0) {
             if (Number.isFinite(val) && Number.isInteger(val)) labelText = val;
             if (dateMode) labelText = formatSurvivalDateLabel(val, dateOriginMs);
             svgItems.push(`<line x1="${x}" y1="${height-pB}" x2="${x}" y2="${height-pB+5}" stroke="${axisColor}" stroke-width="1.2"/>`);
-            svgItems.push(`<text class="x-axis-label" x="${x}" y="${height-pB+fsX+10}" text-anchor="middle" font-size="${fsX}" font-family="Arial" fill="${axisColor}">${labelText}</text>`);
+            const tickLabelY = height - pB + fsX + 10 + DEFAULT_X_TICK_LABEL_OFFSET_Y;
+            svgItems.push(`<text class="x-axis-label" x="${x}" y="${tickLabelY}" text-anchor="middle" font-size="${fsX}" font-family="Arial" fill="${axisColor}">${labelText}</text>`);
         }
 
         if (xAxisLabel) {
@@ -4320,7 +4325,16 @@ function updatePlot(reflowPass = 0) {
     ensureGroupOffsets(nGroups);
     ensureGroupLabelOffsets();
     ensureTimeLabelOffsets();
-    const getCompCenter = (gIdx) => pL + (gIdx + 0.5) * (graphW / nGroups) + (groupOffsetX[gIdx] || 0);
+    const getCompSpread = () => {
+        if (nGroups <= 1) return graphW;
+        const spreadRatio = Math.min(0.9, 0.55 + ((nGroups - 1) * 0.12));
+        return graphW * spreadRatio;
+    };
+    const getCompCenter = (gIdx) => {
+        const compSpread = getCompSpread();
+        const inset = (graphW - compSpread) / 2;
+        return pL + inset + (gIdx + 0.5) * (compSpread / nGroups) + (groupOffsetX[gIdx] || 0);
+    };
     const getTimeCenter = (tIdx, gIdx, groupSpace) => {
         const base = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
         const offset = (gIdx - (nGroups - 1) / 2) * (groupSpace / nGroups);
@@ -4481,7 +4495,9 @@ function updatePlot(reflowPass = 0) {
 
     // 吁EイムポイントE描画
     if (isCompMode) {
-        const barWidth = Math.max(2, Math.min(barWidthState, graphW / Math.max(1, nGroups)));
+        const compSpread = getCompSpread();
+        const slotWidth = compSpread / Math.max(1, nGroups);
+        const barWidth = Math.max(2, Math.min(barWidthState, slotWidth * 0.72));
         groupConfigs.forEach((group, gIdx) => {
             const x = getCompCenter(gIdx);
             const data = group.data[0] || [];
@@ -4491,7 +4507,7 @@ function updatePlot(reflowPass = 0) {
             if (s.n > 0) {
                 drawGroupContent(x, data, s, group, barWidth, baselineVal, gIdx);
             }
-            const labelY = height - pB + fsX + 10 + (groupLabelOffsetY || 0);
+            const labelY = height - pB + fsX + 10 + DEFAULT_X_TICK_LABEL_OFFSET_Y + (groupLabelOffsetY || 0);
             svgItems.push(`<text class="x-axis-label group-label" data-group-index="${gIdx}" x="${x}" y="${labelY}" text-anchor="middle" font-size="${fsX}" font-family="Arial" fill="${axisColor}">${group.name}</text>`);
         });
     } else {
@@ -4600,7 +4616,7 @@ function updatePlot(reflowPass = 0) {
         }
         timeLabels.forEach((label, tIdx) => {
             const xCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
-            const labelY = height - pB + fsX + 10 + (timeLabelOffsetY || 0);
+            const labelY = height - pB + fsX + 10 + DEFAULT_X_TICK_LABEL_OFFSET_Y + (timeLabelOffsetY || 0);
             svgItems.push(`<text class="x-axis-label time-label" data-time-index="${tIdx}" x="${xCenter}" y="${labelY}" text-anchor="middle" font-size="${fsX}" font-family="Arial" fill="${axisColor}">${label}</text>`);
         });
     }
