@@ -1347,8 +1347,15 @@
                     </div>
                     <div class="panel legend-panel">
                         <div class="option-list">
-                            <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc (Dunnett)</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
+                        </div>
+                        <div class="control-item">
+                            <label for="postHocMethod">Post-hoc Method</label>
+                            <select id="postHocMethod" class="text-input" onchange="updatePlot()">
+                                <option value="dunnett" selected>Dunnett</option>
+                                <option value="tukey">Tukey</option>
+                            </select>
                         </div>
                         <div class="control-item">
                             <label>Bracket Offset <span id="bracketOffsetVal" style="font-weight: normal; color: var(--muted);">center</span></label>
@@ -3149,6 +3156,7 @@ function collectProfile() {
             showErrorBarsOnTop: !!document.getElementById('showErrorBarsOnTop')?.checked,
             showAdjacentAvgLine: !!document.getElementById('showAdjacentAvgLine')?.checked,
             showPostHoc: document.getElementById('showPostHoc').checked,
+            postHocMethod: getPostHocMethod(),
             autoBrackets: document.getElementById('autoBrackets').checked,
             bracketOffset: document.getElementById('bracketOffset').value
         },
@@ -3233,6 +3241,9 @@ function applyProfile(profile) {
             document.getElementById('showAdjacentAvgLine').checked = !!profile.options.showAdjacentAvgLine;
         }
         document.getElementById('showPostHoc').checked = !!profile.options.showPostHoc;
+        if (document.getElementById('postHocMethod')) {
+            document.getElementById('postHocMethod').value = profile.options.postHocMethod || 'dunnett';
+        }
         document.getElementById('autoBrackets').checked = !!profile.options.autoBrackets;
         document.getElementById('bracketOffset').value = profile.options.bracketOffset ?? '0';
     }
@@ -3341,6 +3352,7 @@ function resetProfile() {
             showErrorBarsOnTop: false,
             showAdjacentAvgLine: false,
             showPostHoc: false,
+            postHocMethod: 'dunnett',
             autoBrackets: true,
             bracketOffset: '0'
         },
@@ -3652,12 +3664,29 @@ function fDistributionP(F, df1, df2) {
     return ibeta(x, a, b);
 }
 
+function getPostHocMethod() {
+    return document.getElementById('postHocMethod')?.value || 'dunnett';
+}
+
+function getPostHocMethodLabel(method = getPostHocMethod()) {
+    return method === 'tukey' ? 'Tukey' : 'Dunnett';
+}
+
+function calcAdjustedPairwiseP(tValue, dfWithin, comparisonCount) {
+    if (!Number.isFinite(tValue) || !Number.isFinite(dfWithin) || dfWithin <= 0) return 1.0;
+    const rawP = 2 * (1 - studentTCDF(Math.abs(tValue), dfWithin));
+    if (!Number.isFinite(rawP)) return 1.0;
+    return Math.min(1.0, rawP * Math.max(1, comparisonCount));
+}
+
 // --- Dunnett's Test 簡易実裁E(Control vs Others) ---
 function runDunnett(groupsData, msWithin, dfWithin) {
+    if (!Array.isArray(groupsData) || groupsData.length < 3 || !Number.isFinite(msWithin) || msWithin < 0) return [];
     const control = groupsData[0];
     const results = [];
     const n1 = control.length;
     const mean1 = control.reduce((a, b) => a + b, 0) / n1;
+    const comparisonCount = groupsData.length - 1;
 
     for (let i = 1; i < groupsData.length; i++) {
         const treat = groupsData[i];
@@ -3669,17 +3698,51 @@ function runDunnett(groupsData, msWithin, dfWithin) {
         const tVal = Math.abs(mean1 - mean2) / se;
 
         // P値の近似 (Bonferroni調整を加えたt刁EE似)
-        const k = groupsData.length - 1;
-        const rawP = 2 * (1 - studentTCDF(tVal, dfWithin));
-        const adjustedP = Math.min(1.0, rawP * k);
+        const adjustedP = calcAdjustedPairwiseP(tVal, dfWithin, comparisonCount);
 
         results.push({
+            groupAIndex: 0,
+            groupBIndex: i,
             targetName: `Group ${i + 1}`,
             p: adjustedP,
             isSig: adjustedP < 0.05
         });
     }
     return results;
+}
+
+// --- Tukey-Kramer 簡易実装 (all pairs) ---
+function runTukey(groupsData, msWithin, dfWithin) {
+    if (!Array.isArray(groupsData) || groupsData.length < 3 || !Number.isFinite(msWithin) || msWithin < 0) return [];
+    const results = [];
+    const comparisonCount = (groupsData.length * (groupsData.length - 1)) / 2;
+
+    for (let i = 0; i < groupsData.length - 1; i++) {
+        const groupA = groupsData[i];
+        const meanA = groupA.reduce((a, b) => a + b, 0) / groupA.length;
+        for (let j = i + 1; j < groupsData.length; j++) {
+            const groupB = groupsData[j];
+            const meanB = groupB.reduce((a, b) => a + b, 0) / groupB.length;
+            const se = Math.sqrt((msWithin / 2) * (1 / groupA.length + 1 / groupB.length));
+            const qVal = Math.abs(meanA - meanB) / se;
+            const tVal = qVal / Math.sqrt(2);
+            const adjustedP = calcAdjustedPairwiseP(tVal, dfWithin, comparisonCount);
+            results.push({
+                groupAIndex: i,
+                groupBIndex: j,
+                p: adjustedP,
+                isSig: adjustedP < 0.05
+            });
+        }
+    }
+    return results;
+}
+
+function runPostHocTest(groupsData, msWithin, dfWithin, method = getPostHocMethod()) {
+    if (method === 'tukey') {
+        return runTukey(groupsData, msWithin, dfWithin);
+    }
+    return runDunnett(groupsData, msWithin, dfWithin);
 }
 
 // 自由度dfのt刁EE積E币E数 (簡易近似)
@@ -3896,6 +3959,8 @@ function logRankTestTwoGroups(timesA, timesB) {
 function displayStats(timeLabels, groupConfigs) {
     const nGroups = groupConfigs.length;
     const mainHeader = nGroups === 2 ? "Welch's t (p)" : "ANOVA (p)";
+    const postHocMethod = getPostHocMethod();
+    const postHocHeader = `${getPostHocMethodLabel(postHocMethod)} (Post-hoc)`;
     const formatP = (p) => {
         if (p === null || p === undefined || Number.isNaN(p)) return "-";
         if (p < 0.0001) return "<0.0001";
@@ -3920,7 +3985,7 @@ function displayStats(timeLabels, groupConfigs) {
             <tr style="background:#f1f3f5; border-bottom:2px solid #dee2e6;">
                 <th style="padding:10px;">Time Point</th>
                 <th style="padding:10px;">${mainHeader}</th>
-                <th style="padding:10px;">${nGroups === 2 ? 'Brunner-Munzel (p)' : 'Dunnett (Post-hoc)'}</th>
+                <th style="padding:10px;">${nGroups === 2 ? 'Brunner-Munzel (p)' : postHocHeader}</th>
                 <th style="padding:10px;">Significance</th>
             </tr>
         </thead>
@@ -3954,14 +4019,14 @@ function displayStats(timeLabels, groupConfigs) {
             const aRes = oneWayANOVA(groupsData);
             if (aRes) {
                 pMain = fDistributionP(aRes.f, aRes.df1, aRes.df2);
-                const dunnettRes = runDunnett(groupsData, aRes.msWithin, aRes.df2);
-                postHocHtml = dunnettRes.map((r, idx) =>
-                    `<div style="color:${r.isSig ? 'var(--danger)' : 'var(--muted)'}">${filteredGroups[idx + 1].name}: p=${formatP(r.p)}</div>`
+                const postHocResults = runPostHocTest(groupsData, aRes.msWithin, aRes.df2, postHocMethod);
+                postHocHtml = postHocResults.map((r) =>
+                    `<div style="color:${r.isSig ? 'var(--danger)' : 'var(--muted)'}">${filteredGroups[r.groupAIndex].name} vs ${filteredGroups[r.groupBIndex].name}: p=${formatP(r.p)}</div>`
                 ).join("");
                 status = pMain < 0.05 ? "Significant" : "NS";
                 detailParts.push(`ANOVA F=${aRes.f.toFixed(3)}, df1=${aRes.df1}, df2=${aRes.df2}, p=${formatPPreciseWithDecimal(pMain)}`);
-                dunnettRes.forEach((r, idx) => {
-                    detailParts.push(`Dunnett vs Ctrl -> ${filteredGroups[idx + 1].name}: p=${formatPPreciseWithDecimal(r.p)}`);
+                postHocResults.forEach((r) => {
+                    detailParts.push(`${getPostHocMethodLabel(postHocMethod)} -> ${filteredGroups[r.groupAIndex].name} vs ${filteredGroups[r.groupBIndex].name}: p=${formatPPreciseWithDecimal(r.p)}`);
                 });
             }
         }
@@ -4069,6 +4134,7 @@ function updatePlot(reflowPass = 0) {
     const isAutoY = isAutoFlag && (!yMaxManual || yMaxManual <= 0 || yMaxInputEl.dataset.auto === 'true');
     const jitterAmount = parseFloat(document.getElementById('jitter').value);
     const autoBrackets = document.getElementById('autoBrackets').checked;
+    const showPostHoc = document.getElementById('showPostHoc').checked;
     const showLines = document.getElementById('showLines').checked;
     const showBars = document.getElementById('showBars').checked;
     syncBarControlsUI();
@@ -4396,19 +4462,21 @@ function updatePlot(reflowPass = 0) {
 
     // 1. まず統計計算を行い、ブラケチEが忁Eな「階層数」を把握する
     let maxBracketLayers = 0;
-    timeLabels.forEach((_, tIdx) => {
-        const d = groupConfigs.map(g => (g.data[tIdx] || []).filter(v => v !== null && Number.isFinite(v))).filter(x => x.length > 1);
-        if (d.length === 2) {
-            const res = welchTTest(d[0], d[1]);
-            if (res && res.p < 0.05) maxBracketLayers = Math.max(maxBracketLayers, 1);
-        } else if (d.length >= 3) {
-            const a = oneWayANOVA(d);
-            if (a && fDistributionP(a.f, a.df1, a.df2) < 0.05) {
-                const sigCount = runDunnett(d, a.msWithin, a.df2).filter(r => r.isSig).length;
-                maxBracketLayers = Math.max(maxBracketLayers, sigCount);
+    if (showPostHoc && autoBrackets) {
+        timeLabels.forEach((_, tIdx) => {
+            const d = groupConfigs.map(g => (g.data[tIdx] || []).filter(v => v !== null && Number.isFinite(v))).filter(x => x.length > 1);
+            if (d.length === 2) {
+                const res = welchTTest(d[0], d[1]);
+                if (res && res.p < 0.05) maxBracketLayers = Math.max(maxBracketLayers, 1);
+            } else if (d.length >= 3) {
+                const a = oneWayANOVA(d);
+                if (a && fDistributionP(a.f, a.df1, a.df2) < 0.05) {
+                    const sigCount = runPostHocTest(d, a.msWithin, a.df2).filter(r => r.isSig).length;
+                    maxBracketLayers = Math.max(maxBracketLayers, sigCount);
+                }
             }
-        }
-    });
+        });
+    }
 
     // 2. Y軸の最大値を決宁E(ブラケチEがある場合E20-30%の余白を追加)
     const allValues = groupConfigs.flatMap(g => g.data.flat()).filter(v => v !== null && Number.isFinite(v));
@@ -4681,16 +4749,23 @@ function updatePlot(reflowPass = 0) {
     }
 
     // --- 有意差ブラケチEの描画 ---
-    if (autoBrackets) {
+    if (showPostHoc && autoBrackets) {
         timeLabels.forEach((label, tIdx) => {
-            const groupsData = groupConfigs.map(g => (g.data[tIdx] || []).filter(v => v !== null && Number.isFinite(v))).filter(d => d.length > 1);
+            const validGroups = groupConfigs
+                .map((g, groupIndex) => ({
+                    groupIndex,
+                    data: (g.data[tIdx] || []).filter(v => v !== null && Number.isFinite(v))
+                }))
+                .filter(entry => entry.data.length > 1);
+            const groupsData = validGroups.map(entry => entry.data);
             if (groupsData.length < 2) return;
 
             const baseCenter = pL + (tIdx + 0.5) * (graphW / timeLabels.length);
             const groupSpace = (graphW / timeLabels.length) * 0.85;
+            const controlGroupIndex = validGroups[0]?.groupIndex ?? 0;
             const ctrlX = isCompMode
-                ? getCompCenter(0)
-                : getTimeCenter(tIdx, 0, groupSpace);
+                ? getCompCenter(controlGroupIndex)
+                : getTimeCenter(tIdx, controlGroupIndex, groupSpace);
 
             const statsAtTime = groupsData.map(calcStats);
             const errorMaxY = Math.min(...statsAtTime.map(s => yScale(s.mean + (errorType === 'sd' ? s.sd : s.se))));
@@ -4719,15 +4794,20 @@ function updatePlot(reflowPass = 0) {
             } else {
                 const a = oneWayANOVA(groupsData);
                 if (a && fDistributionP(a.f, a.df1, a.df2) < 0.05) {
-                    const dunnettRes = runDunnett(groupsData, a.msWithin, a.df2);
-                    dunnettRes.forEach((res, i) => {
+                    const postHocResults = runPostHocTest(groupsData, a.msWithin, a.df2);
+                    postHocResults.forEach((res) => {
                         if (res.isSig) {
+                            const fromGroupIndex = validGroups[res.groupAIndex]?.groupIndex ?? res.groupAIndex;
+                            const toGroupIndex = validGroups[res.groupBIndex]?.groupIndex ?? res.groupBIndex;
+                            const fromX = isCompMode
+                                ? getCompCenter(fromGroupIndex)
+                                : getTimeCenter(tIdx, fromGroupIndex, groupSpace);
                             const targetX = isCompMode
-                                ? getCompCenter(i + 1)
-                                : getTimeCenter(tIdx, i + 1, groupSpace);
-                            const key = `t${tIdx}_0_${i + 1}`;
+                                ? getCompCenter(toGroupIndex)
+                                : getTimeCenter(tIdx, toGroupIndex, groupSpace);
+                            const key = `t${tIdx}_${fromGroupIndex}_${toGroupIndex}`;
                             const manualY = bracketManualOffsets[key] || 0;
-                            svgItems.push(drawBracket(ctrlX, targetX, bracketY + manualY, getStars(res.p), fsX, key));
+                            svgItems.push(drawBracket(fromX, targetX, bracketY + manualY, getStars(res.p), fsX, key));
                             bracketY -= 22;
                         }
                     });
