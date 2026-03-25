@@ -4487,7 +4487,7 @@ function updatePlot(reflowPass = 0) {
     const rawMin = minCandidates.length ? Math.min(...minCandidates) : 0;
 
     const baseYMax = niceCeil(rawMax);
-    let yMax = yMaxManual > 0 ? yMaxManual : baseYMax;
+    let yMax = isAutoY ? baseYMax : (yMaxManual > 0 ? yMaxManual : baseYMax);
     const yMinIsManual = yMinInputEl.dataset.auto === 'false' && Number.isFinite(yMinManual);
     let yMin = yMinIsManual ? yMinManual : Math.min(0, rawMin);
 
