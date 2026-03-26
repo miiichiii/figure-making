@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SVG Plotter v10.1 - Multi-Group Support</title>
+    <title>SVG Plotter v11 - Multi-Group Support</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;600;700&display=swap" rel="stylesheet">
@@ -151,6 +151,11 @@
             align-items: center;
             justify-items: center;
             position: relative;
+        }
+        .preview-wrapper.has-bayes-preview {
+            grid-template-columns: 50px auto minmax(250px, 290px);
+            align-items: start;
+            justify-items: start;
         }
         .tip-icon {
             position: absolute;
@@ -1148,6 +1153,130 @@
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 10px;
         }
+        .bayes-preview-panel {
+            grid-column: 3;
+            grid-row: 1;
+            align-self: stretch;
+            justify-self: start;
+            width: min(290px, 100%);
+            min-height: 100%;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow-soft);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .bayes-preview-panel[hidden] {
+            display: none !important;
+        }
+        .bayes-preview-kicker {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            font-weight: 700;
+        }
+        .bayes-preview-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .bayes-preview-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .bayes-preview-actions select,
+        .bayes-preview-actions button {
+            font-size: 0.76rem;
+        }
+        .bayes-preview-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.35;
+        }
+        .bayes-preview-selectors {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            gap: 8px;
+            align-items: center;
+        }
+        .bayes-preview-selectors select {
+            min-width: 0;
+            width: 100%;
+            font-size: 0.82rem;
+            padding: 6px 8px;
+        }
+        .bayes-preview-selectors span {
+            font-size: 0.8rem;
+            color: var(--muted);
+            font-weight: 700;
+        }
+        .bayes-preview-decision {
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            align-self: flex-start;
+            border: 1px solid var(--border);
+            background: color-mix(in srgb, var(--card) 86%, white);
+            color: var(--text);
+        }
+        .bayes-preview-decision.supported {
+            color: #9c5e00;
+            background: color-mix(in srgb, #f2d4a2 44%, var(--panel));
+            border-color: color-mix(in srgb, #c88e33 50%, var(--border));
+        }
+        .bayes-preview-chart {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: color-mix(in srgb, var(--card) 88%, white);
+            padding: 6px;
+        }
+        .bayes-preview-chart svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .bayes-preview-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .bayes-metric {
+            background: color-mix(in srgb, var(--card) 88%, white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px;
+        }
+        .bayes-metric-label {
+            font-size: 0.68rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 3px;
+        }
+        .bayes-metric-value {
+            font-size: 0.86rem;
+            color: var(--text);
+            font-weight: 700;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .bayes-preview-note {
+            font-size: 0.76rem;
+            line-height: 1.45;
+            color: var(--muted);
+            border-top: 1px solid var(--border);
+            padding-top: 8px;
+        }
         .graph-controls-row .legend-panel { margin: 0; width: 100%; box-shadow: none; }
         .axis-label { cursor: move; user-select: none; }
         .theme-toggle {
@@ -1201,7 +1330,14 @@
             .group-data-dock { width: 100%; }
             .preview-row { flex-direction: column; }
             .preview-wrapper { padding: 20px; }
+            .preview-wrapper.has-bayes-preview { grid-template-columns: 50px 1fr; }
             #svg-wrapper { max-width: 100%; overflow: auto; }
+            .bayes-preview-panel {
+                grid-column: 2;
+                grid-row: 4;
+                width: 100%;
+                max-width: none;
+            }
             .graph-controls-row { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
         }
         @media (max-width: 900px) {
@@ -1444,6 +1580,29 @@
                     <button type="button" class="tip-icon" aria-label="Drag tips">i</button>
                     <div class="tip-bubble">Tip: Drag title, Y-axis label, legend, bars, and sample labels (↑↓) to reposition.</div>
                 </div>
+                <div class="bayes-preview-panel" id="bayesPreviewPanel" hidden>
+                    <div class="bayes-preview-head">
+                        <div class="bayes-preview-kicker">Bayesian Assist</div>
+                        <div class="bayes-preview-actions">
+                            <select id="bayesChartMode" class="text-input" onchange="updatePlot()" aria-label="Bayesian chart mode">
+                                <option value="histogram" selected>Histogram</option>
+                                <option value="density">Density</option>
+                            </select>
+                            <button type="button" class="btn-mini" style="width:auto;" onclick="copyBayesPreviewSvgToClipboard()">Copy</button>
+                        </div>
+                    </div>
+                    <div class="bayes-preview-title">Δ posterior</div>
+                    <div class="bayes-preview-selectors">
+                        <select id="bayesGroupBSelect" class="text-input" onchange="updatePlot()" aria-label="Bayesian minuend group"></select>
+                        <span>-</span>
+                        <select id="bayesGroupASelect" class="text-input" onchange="updatePlot()" aria-label="Bayesian reference group"></select>
+                    </div>
+                    <div class="bayes-preview-title" id="bayesPreviewTitle">Δ = Group B - Group A</div>
+                    <div class="bayes-preview-decision" id="bayesPreviewDecision">89% CI rule</div>
+                    <div class="bayes-preview-chart" id="bayesPreviewChart"></div>
+                    <div class="bayes-preview-metrics" id="bayesPreviewMetrics"></div>
+                    <div class="bayes-preview-note" id="bayesPreviewNote"></div>
+                </div>
                 <div class="graph-controls-row">
                     <div class="panel legend-panel" id="lineOptionsCard">
                         <div class="option-list">
@@ -1477,6 +1636,7 @@
                         <div class="option-list">
                             <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc</label>
                             <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
+                            <label id="showBayesAssistWrap" style="font-weight: normal;"><input type="checkbox" id="showBayesAssist" onchange="updatePlot()" checked> Bayesian Assist (89% CI)</label>
                         </div>
                         <div class="control-item">
                             <label for="postHocMethod">Post-hoc Method</label>
@@ -1621,6 +1781,8 @@ const DEFAULT_X_TICK_LABEL_OFFSET_Y = -4;
 const DEFAULT_GROUP_LABEL_OFFSET_Y = -4;
 const DEFAULT_TIME_LABEL_OFFSET_Y = -4;
 const GROUP_DOCK_CARD_MIN_WIDTH = 146;
+const BAYES_ASSIST_CI_LEVEL = 0.89;
+const BAYES_ASSIST_SAMPLE_COUNT = 3000;
 let plotMetrics = null;
 let chartOffsetX = 0;
 let chartOffsetY = 0;
@@ -1647,6 +1809,8 @@ const explorerMinCeil = 380;
 const explorerMinFloorFirst = 10;
 const explorerHardMinWidth = 10;
 let groupDataResizeObserver = null;
+let bayesAssistCache = { key: '', result: null };
+let lastBayesPreviewSvgString = '';
 const explorerHardMinWidthFirst = 10;
 const explorerMinSampleRows = 30;
 let explorerOpenedOnce = false;
@@ -3345,6 +3509,10 @@ function collectProfile() {
             showErrorBarsOnTop: !!document.getElementById('showErrorBarsOnTop')?.checked,
             showAdjacentAvgLine: !!document.getElementById('showAdjacentAvgLine')?.checked,
             showPostHoc: document.getElementById('showPostHoc').checked,
+            showBayesAssist: !!document.getElementById('showBayesAssist')?.checked,
+            bayesGroupA: parseInt(document.getElementById('bayesGroupASelect')?.value, 10) || 0,
+            bayesGroupB: parseInt(document.getElementById('bayesGroupBSelect')?.value, 10) || 1,
+            bayesChartMode: document.getElementById('bayesChartMode')?.value || 'histogram',
             postHocMethod: getPostHocMethod(),
             autoBrackets: document.getElementById('autoBrackets').checked,
             bracketOffset: document.getElementById('bracketOffset').value
@@ -3436,6 +3604,19 @@ function applyProfile(profile) {
             document.getElementById('showAdjacentAvgLine').checked = !!profile.options.showAdjacentAvgLine;
         }
         document.getElementById('showPostHoc').checked = !!profile.options.showPostHoc;
+        if (document.getElementById('showBayesAssist')) {
+            document.getElementById('showBayesAssist').checked = profile.options.showBayesAssist !== false;
+        }
+        if (document.getElementById('bayesChartMode')) {
+            document.getElementById('bayesChartMode').value = profile.options.bayesChartMode || 'histogram';
+        }
+        syncBayesGroupSelectors(Array.from(document.querySelectorAll('.group-card')).map(card => ({
+            name: card.querySelector('.group-name-input')?.value || '',
+            data: []
+        })), {
+            a: parseInt(profile.options.bayesGroupA, 10),
+            b: parseInt(profile.options.bayesGroupB, 10)
+        });
         if (document.getElementById('postHocMethod')) {
             document.getElementById('postHocMethod').value = profile.options.postHocMethod || 'dunnett';
         }
@@ -3461,6 +3642,13 @@ function applyProfile(profile) {
             }
         });
     }
+    syncBayesGroupSelectors(Array.from(document.querySelectorAll('.group-card')).map(card => ({
+        name: card.querySelector('.group-name-input')?.value || '',
+        data: []
+    })), {
+        a: parseInt(profile.options?.bayesGroupA, 10),
+        b: parseInt(profile.options?.bayesGroupB, 10)
+    });
     if (Array.isArray(profile.barOffsets)) {
         groupOffsetX = profile.barOffsets.map(v => parseFloat(v) || 0);
     }
@@ -3547,6 +3735,10 @@ function resetProfile() {
             showErrorBarsOnTop: false,
             showAdjacentAvgLine: false,
             showPostHoc: false,
+            showBayesAssist: true,
+            bayesGroupA: 0,
+            bayesGroupB: 1,
+            bayesChartMode: 'histogram',
             postHocMethod: 'dunnett',
             autoBrackets: true,
             bracketOffset: '0'
@@ -3795,6 +3987,71 @@ function brunnerMunzel(x, y) {
     return { p, w, df };
 }
 
+function quantileSorted(sorted, q) {
+    if (!Array.isArray(sorted) || sorted.length === 0) return NaN;
+    if (q <= 0) return sorted[0];
+    if (q >= 1) return sorted[sorted.length - 1];
+    const pos = (sorted.length - 1) * q;
+    const base = Math.floor(pos);
+    const rest = pos - base;
+    const next = sorted[base + 1] ?? sorted[base];
+    return sorted[base] + (next - sorted[base]) * rest;
+}
+
+function sampleBayesianBootstrapMean(values) {
+    const filtered = values.filter(v => Number.isFinite(v));
+    if (!filtered.length) return NaN;
+    let weightSum = 0;
+    let weightedTotal = 0;
+    filtered.forEach((value) => {
+        const u = Math.max(1e-12, Math.random());
+        const weight = -Math.log(u);
+        weightSum += weight;
+        weightedTotal += weight * value;
+    });
+    return weightedTotal / weightSum;
+}
+
+function bayesianBootstrapDifference(a, b, sampleCount = BAYES_ASSIST_SAMPLE_COUNT, ciLevel = BAYES_ASSIST_CI_LEVEL) {
+    const groupA = a.filter(v => Number.isFinite(v));
+    const groupB = b.filter(v => Number.isFinite(v));
+    if (groupA.length < 2 || groupB.length < 2) return null;
+
+    const cacheKey = `${ciLevel}|${sampleCount}|${groupA.join(',')}|${groupB.join(',')}`;
+    if (bayesAssistCache.key === cacheKey && bayesAssistCache.result) {
+        return bayesAssistCache.result;
+    }
+
+    const deltas = [];
+    for (let i = 0; i < sampleCount; i += 1) {
+        const meanA = sampleBayesianBootstrapMean(groupA);
+        const meanB = sampleBayesianBootstrapMean(groupB);
+        deltas.push(meanB - meanA);
+    }
+    deltas.sort((x, y) => x - y);
+    const alpha = (1 - ciLevel) / 2;
+    const ciLow = quantileSorted(deltas, alpha);
+    const ciHigh = quantileSorted(deltas, 1 - alpha);
+    const median = quantileSorted(deltas, 0.5);
+    const mean = deltas.reduce((sum, value) => sum + value, 0) / deltas.length;
+    const probGreaterZero = deltas.filter(v => v > 0).length / deltas.length;
+    const probLessZero = deltas.filter(v => v < 0).length / deltas.length;
+    const result = {
+        sampleCount,
+        ciLevel,
+        ciLow,
+        ciHigh,
+        median,
+        mean,
+        probGreaterZero,
+        probLessZero,
+        crossesZero: ciLow <= 0 && ciHigh >= 0,
+        deltas
+    };
+    bayesAssistCache = { key: cacheKey, result };
+    return result;
+}
+
 // 標準正規E币EE累積E币E数 (p値算E用)
 function normalCDF(x) {
     const t = 1 / (1 + 0.2316419 * Math.abs(x));
@@ -3869,6 +4126,15 @@ function formatPlainAxisLabel(value, maxAbs) {
     if (absMax >= 1) return trimNumericLabel(value.toFixed(1));
     if (absMax >= 0.01) return trimNumericLabel(value.toFixed(3));
     return trimNumericLabel(value.toPrecision(3));
+}
+
+function formatCompactMetric(value, fallbackMaxAbs = 1) {
+    if (!Number.isFinite(value)) return '-';
+    const absVal = Math.abs(value);
+    if (absVal > 0 && (absVal >= 1e5 || absVal < 1e-3)) {
+        return formatScientificAxisLabel(value);
+    }
+    return formatPlainAxisLabel(value, fallbackMaxAbs);
 }
 
 function formatYAxisTickLabel(value, formatMode, scaleMode, maxAbs) {
@@ -4084,11 +4350,251 @@ function updateCodeDisplay() {
     const code = `// --- Analysis Logic Used ---
 // 1. Welch's T-Test: assumes unequal variance.
 // 2. Brunner-Munzel: robust non-parametric test.
+// 3. Bayesian bootstrap difference preview (2-group comparison helper).
 
 ${brunnerMunzel.toString()}
 
-${welchTTest.toString()}`;
+${welchTTest.toString()}
+
+${bayesianBootstrapDifference.toString()}`;
     document.getElementById('codeDisplay').textContent = code;
+}
+
+function setBayesPreviewVisibility(visible) {
+    const previewWrapper = document.querySelector('.preview-wrapper');
+    const panel = document.getElementById('bayesPreviewPanel');
+    if (!previewWrapper || !panel) return;
+    if (!visible) lastBayesPreviewSvgString = '';
+    panel.hidden = !visible;
+    previewWrapper.classList.toggle('has-bayes-preview', !!visible);
+}
+
+function syncBayesGroupSelectors(groupConfigs, profilePrefs = null) {
+    const selectA = document.getElementById('bayesGroupASelect');
+    const selectB = document.getElementById('bayesGroupBSelect');
+    if (!selectA || !selectB) return null;
+    if (!Array.isArray(groupConfigs) || groupConfigs.length < 2) {
+        selectA.innerHTML = '';
+        selectB.innerHTML = '';
+        return null;
+    }
+
+    const preferredA = profilePrefs?.a ?? parseInt(selectA.value, 10);
+    const preferredB = profilePrefs?.b ?? parseInt(selectB.value, 10);
+    const fallbackA = Number.isInteger(preferredA) && preferredA >= 0 && preferredA < groupConfigs.length ? preferredA : 0;
+    let fallbackB = Number.isInteger(preferredB) && preferredB >= 0 && preferredB < groupConfigs.length ? preferredB : 1;
+    if (fallbackA === fallbackB) {
+        fallbackB = fallbackA === 0 ? 1 : 0;
+    }
+
+    const optionMarkup = groupConfigs.map((group, idx) =>
+        `<option value="${idx}">${escapeHtml(group.name || `Group ${idx + 1}`)}</option>`
+    ).join('');
+    selectA.innerHTML = optionMarkup;
+    selectB.innerHTML = optionMarkup;
+    selectA.value = String(fallbackA);
+    selectB.value = String(fallbackB);
+
+    if (selectA.value === selectB.value) {
+        const altIdx = groupConfigs.findIndex((_, idx) => idx !== fallbackA);
+        if (altIdx >= 0) selectB.value = String(altIdx);
+    }
+
+    return {
+        a: parseInt(selectA.value, 10),
+        b: parseInt(selectB.value, 10)
+    };
+}
+
+function buildBayesDensityCurve(values, pointCount = 140) {
+    const sorted = values.filter(v => Number.isFinite(v)).slice().sort((a, b) => a - b);
+    if (sorted.length < 2) return [];
+    const stats = calcStats(sorted);
+    const spread = Math.max(sorted[sorted.length - 1] - sorted[0], stats.sd, 1e-6);
+    const bandwidth = Math.max(1.06 * (stats.sd || spread) * Math.pow(sorted.length, -0.2), spread / 80, 1e-6);
+    const minX = sorted[0] - bandwidth * 3;
+    const maxX = sorted[sorted.length - 1] + bandwidth * 3;
+    const gaussianNorm = 1 / Math.sqrt(2 * Math.PI);
+    const points = [];
+    for (let i = 0; i < pointCount; i += 1) {
+        const x = minX + ((maxX - minX) * i) / (pointCount - 1);
+        let density = 0;
+        sorted.forEach((value) => {
+            const z = (x - value) / bandwidth;
+            density += gaussianNorm * Math.exp(-0.5 * z * z);
+        });
+        density /= sorted.length * bandwidth;
+        points.push({ x, y: density });
+    }
+    return points;
+}
+
+function buildBayesPosteriorPlotData(result, chartMode) {
+    const densityCurve = buildBayesDensityCurve(result.deltas);
+    const densityValues = densityCurve.map(point => point.y).filter(v => Number.isFinite(v));
+    const baseMin = Math.min(result.ciLow, 0, result.deltas[0]);
+    const baseMax = Math.max(result.ciHigh, 0, result.deltas[result.deltas.length - 1]);
+    const baseSpan = baseMax - baseMin || 1;
+    const histBinCount = Math.min(28, Math.max(16, Math.round(Math.sqrt(result.deltas.length) / 2)));
+    const histBinWidth = baseSpan / histBinCount;
+    const bins = Array.from({ length: histBinCount }, (_, idx) => ({
+        x0: baseMin + idx * histBinWidth,
+        x1: baseMin + (idx + 1) * histBinWidth,
+        count: 0,
+        density: 0
+    }));
+    result.deltas.forEach((value) => {
+        let idx = Math.floor((value - baseMin) / histBinWidth);
+        if (idx < 0) idx = 0;
+        if (idx >= histBinCount) idx = histBinCount - 1;
+        bins[idx].count += 1;
+    });
+    bins.forEach((bin) => {
+        bin.density = bin.count / (result.deltas.length * histBinWidth);
+    });
+
+    const xMinCurve = densityCurve.length ? Math.min(...densityCurve.map(point => point.x)) : baseMin;
+    const xMaxCurve = densityCurve.length ? Math.max(...densityCurve.map(point => point.x)) : baseMax;
+    const xMin = Math.min(baseMin, xMinCurve);
+    const xMax = Math.max(baseMax, xMaxCurve);
+    const xSpan = xMax - xMin || 1;
+    const paddedXMin = xMin - xSpan * 0.04;
+    const paddedXMax = xMax + xSpan * 0.04;
+    const maxHistDensity = Math.max(...bins.map(bin => bin.density), 0);
+    const maxCurveDensity = densityValues.length ? Math.max(...densityValues) : 0;
+    const maxY = Math.max(maxHistDensity, maxCurveDensity, 1e-6) * 1.12;
+
+    return {
+        bins,
+        densityCurve,
+        xMin: paddedXMin,
+        xMax: paddedXMax,
+        yMax: maxY,
+        chartMode
+    };
+}
+
+function renderBayesPosteriorSvg(result, chartMode = 'histogram', title = 'Posterior difference') {
+    const width = 320;
+    const height = 235;
+    const padL = 54;
+    const padR = 16;
+    const padT = 36;
+    const padB = 44;
+    const plotW = width - padL - padR;
+    const plotH = height - padT - padB;
+    const axisColor = getCssVar('--svg-ink') || '#2B2A27';
+    const accentColor = getCssVar('--accent') || '#8a6f32';
+    const mutedColor = getCssVar('--muted') || '#7b7467';
+    const panelBg = getCssVar('--svg-bg') || '#F6F0E3';
+    const dangerColor = '#c75a5a';
+    const ciFill = '#d8b36f';
+    const { bins, densityCurve, xMin, xMax, yMax } = buildBayesPosteriorPlotData(result, chartMode);
+    const xScale = (value) => padL + ((value - xMin) / (xMax - xMin)) * plotW;
+    const yScale = (value) => padT + plotH - (value / yMax) * plotH;
+    const zeroX = xScale(0);
+    const ciLeft = xScale(result.ciLow);
+    const ciRight = xScale(result.ciHigh);
+    const xTicks = buildLinearTicks(xMin, xMax, 3);
+    const yTicks = buildLinearTicks(0, yMax, 3);
+    const maxAbsX = Math.max(Math.abs(xMin), Math.abs(xMax), 1);
+    const curvePath = densityCurve.length ? densityCurve.map((point, idx) => `${idx === 0 ? 'M' : 'L'} ${xScale(point.x)} ${yScale(point.y)}`).join(' ') : '';
+    const curveFillPath = densityCurve.length
+        ? `M ${xScale(densityCurve[0].x)} ${yScale(0)} ${densityCurve.map(point => `L ${xScale(point.x)} ${yScale(point.y)}`).join(' ')} L ${xScale(densityCurve[densityCurve.length - 1].x)} ${yScale(0)} Z`
+        : '';
+    const histogramBars = bins.map((bin) => {
+        const left = xScale(bin.x0);
+        const right = xScale(bin.x1);
+        const top = yScale(bin.density);
+        return `<rect x="${left + 0.8}" y="${top}" width="${Math.max(1, right - left - 1.6)}" height="${Math.max(0, yScale(0) - top)}" rx="1.4" fill="${accentColor}" opacity="0.55" />`;
+    }).join('');
+
+    return `
+<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" aria-label="Bayesian posterior difference chart">
+    <rect x="0" y="0" width="${width}" height="${height}" fill="${panelBg}" />
+    <text x="${padL}" y="17" font-size="12" font-family="Arial" font-weight="700" fill="${axisColor}">${escapeHtml(title)}</text>
+    <text x="${padL}" y="30" font-size="10" font-family="Arial" fill="${mutedColor}">89% CI [${escapeHtml(formatCompactMetric(result.ciLow, maxAbsX))}, ${escapeHtml(formatCompactMetric(result.ciHigh, maxAbsX))}]</text>
+    <rect x="${ciLeft}" y="${padT}" width="${Math.max(0, ciRight - ciLeft)}" height="${plotH}" fill="${ciFill}" opacity="0.18" />
+    ${chartMode === 'histogram' ? histogramBars : ''}
+    ${chartMode === 'density' && curveFillPath ? `<path d="${curveFillPath}" fill="${accentColor}" opacity="0.16" />` : ''}
+    ${curvePath ? `<path d="${curvePath}" fill="none" stroke="${accentColor}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" />` : ''}
+    <line x1="${zeroX}" y1="${padT}" x2="${zeroX}" y2="${padT + plotH}" stroke="${dangerColor}" stroke-width="1.2" stroke-dasharray="4 3" />
+    <line x1="${padL}" y1="${yScale(0)}" x2="${padL + plotW}" y2="${yScale(0)}" stroke="${axisColor}" stroke-width="1.2" />
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="${axisColor}" stroke-width="1.2" />
+    ${xTicks.map((tick) => `
+        <line x1="${xScale(tick)}" y1="${yScale(0)}" x2="${xScale(tick)}" y2="${yScale(0) + 4}" stroke="${axisColor}" stroke-width="1" />
+        <text x="${xScale(tick)}" y="${height - 16}" text-anchor="middle" font-size="9.5" font-family="Arial" fill="${mutedColor}">${escapeHtml(formatCompactMetric(tick, maxAbsX))}</text>
+    `).join('')}
+    ${yTicks.map((tick) => `
+        <line x1="${padL}" y1="${yScale(tick)}" x2="${padL - 4}" y2="${yScale(tick)}" stroke="${axisColor}" stroke-width="1" />
+        <text x="${padL - 7}" y="${yScale(tick)}" text-anchor="end" dominant-baseline="central" font-size="9.5" font-family="Arial" fill="${mutedColor}">${escapeHtml(trimNumericLabel(tick.toFixed(2)))}</text>
+    `).join('')}
+    <text x="${zeroX}" y="${padT + 11}" text-anchor="middle" font-size="9.5" font-family="Arial" fill="${dangerColor}">0</text>
+    <text x="${padL + (plotW / 2)}" y="${height - 2}" text-anchor="middle" font-size="10" font-family="Arial" fill="${axisColor}">Difference in mean</text>
+    <text x="15" y="${padT + (plotH / 2)}" text-anchor="middle" font-size="10" font-family="Arial" fill="${axisColor}" transform="rotate(-90 15 ${padT + (plotH / 2)})">Posterior density</text>
+</svg>`;
+}
+
+function renderBayesHistogramSvg(result) {
+    return renderBayesPosteriorSvg(result, 'histogram', 'Posterior difference');
+}
+
+function renderBayesAssistPreview(mode, groupConfigs) {
+    const panel = document.getElementById('bayesPreviewPanel');
+    const titleEl = document.getElementById('bayesPreviewTitle');
+    const decisionEl = document.getElementById('bayesPreviewDecision');
+    const chartEl = document.getElementById('bayesPreviewChart');
+    const metricsEl = document.getElementById('bayesPreviewMetrics');
+    const noteEl = document.getElementById('bayesPreviewNote');
+    const enabled = !!document.getElementById('showBayesAssist')?.checked;
+    const chartMode = document.getElementById('bayesChartMode')?.value || 'histogram';
+
+    if (!panel || !titleEl || !decisionEl || !chartEl || !metricsEl || !noteEl) return;
+    if (!enabled || mode !== 'comparison' || groupConfigs.length < 2) {
+        lastBayesPreviewSvgString = '';
+        setBayesPreviewVisibility(false);
+        return;
+    }
+
+    const selected = syncBayesGroupSelectors(groupConfigs);
+    if (!selected || selected.a === selected.b) {
+        setBayesPreviewVisibility(false);
+        return;
+    }
+
+    const groupAConfig = groupConfigs[selected.a];
+    const groupBConfig = groupConfigs[selected.b];
+    const groupA = (groupAConfig?.data[0] || []).filter(v => Number.isFinite(v));
+    const groupB = (groupBConfig?.data[0] || []).filter(v => Number.isFinite(v));
+    const result = bayesianBootstrapDifference(groupA, groupB);
+    if (!result) {
+        lastBayesPreviewSvgString = '';
+        setBayesPreviewVisibility(false);
+        return;
+    }
+
+    const deltaLabel = `Δ = ${groupBConfig.name} - ${groupAConfig.name}`;
+    const supportLabel = result.crossesZero ? '89% CI crosses 0' : '89% CI excludes 0';
+    const maxAbs = Math.max(Math.abs(result.ciLow), Math.abs(result.ciHigh), Math.abs(result.median), 1);
+    const svgMarkup = renderBayesPosteriorSvg(result, chartMode, deltaLabel);
+    titleEl.textContent = deltaLabel;
+    decisionEl.textContent = supportLabel;
+    decisionEl.classList.toggle('supported', !result.crossesZero);
+    chartEl.innerHTML = svgMarkup;
+    lastBayesPreviewSvgString = svgMarkup;
+    metricsEl.innerHTML = [
+        ['P(Δ > 0)', `${(result.probGreaterZero * 100).toFixed(1)}%`],
+        ['P(Δ < 0)', `${(result.probLessZero * 100).toFixed(1)}%`],
+        ['Median Δ', formatCompactMetric(result.median, maxAbs)],
+        ['89% CI', `[${formatCompactMetric(result.ciLow, maxAbs)}, ${formatCompactMetric(result.ciHigh, maxAbs)}]`]
+    ].map(([label, value]) => `
+        <div class="bayes-metric">
+            <div class="bayes-metric-label">${escapeHtml(label)}</div>
+            <div class="bayes-metric-value">${escapeHtml(value)}</div>
+        </div>
+    `).join('');
+    noteEl.textContent = `${chartMode === 'density' ? 'Density curve' : 'Histogram'} of the posterior difference in means. X-axis: Group B - Group A. Y-axis: posterior density. Bayesian bootstrap preview using ${result.sampleCount} posterior draws; a difference is treated as present when the 89% credible interval does not cross 0.`;
+    setBayesPreviewVisibility(true);
 }
 
 function setPlotMode() {
@@ -4098,6 +4604,7 @@ function setPlotMode() {
     const survivalSection = document.getElementById('survivalSection');
     const timeSeriesSection = document.getElementById('timeSeriesSection');
     const adjacentAvgLineWrap = document.getElementById('adjacentAvgLineWrap');
+    const bayesAssistWrap = document.getElementById('showBayesAssistWrap');
     const yMaxInputEl = document.getElementById('yMaxInput');
 
     if (mode === 'survival') {
@@ -4115,6 +4622,7 @@ function setPlotMode() {
         if (timeSeriesSection) timeSeriesSection.style.display = mode === 'time' ? '' : 'none';
         if (adjacentAvgLineWrap) adjacentAvgLineWrap.style.display = mode === 'time' ? '' : 'none';
     }
+    if (bayesAssistWrap) bayesAssistWrap.style.display = mode === 'comparison' ? '' : 'none';
     const showLegendEl = document.getElementById('showLegend');
     if (showLegendEl && mode === 'comparison') {
         showLegendEl.checked = false;
@@ -4384,6 +4892,7 @@ function updatePlot(reflowPass = 0) {
     const mode = document.getElementById('plotMode').value;
     const survivalMode = mode === 'survival';
     const isCompMode = mode === 'comparison';
+    setBayesPreviewVisibility(false);
     const yScaleNoteEl = document.getElementById('yScaleNote');
     const requestedYScaleMode = getYAxisScaleMode();
     const yLabelFormat = getYAxisLabelFormat();
@@ -5205,6 +5714,7 @@ function updatePlot(reflowPass = 0) {
     applyAutoRotateXLabels();
     schedulePadCheck();
     displayStats(timeLabels, groupConfigs);
+    renderBayesAssistPreview(mode, groupConfigs);
 }
 
 let toastTimer;
@@ -5414,10 +5924,8 @@ if (length(levels(df$Group)) == 2) {
     link.click();
 }
 
-async function copySvgToClipboard(source = 'button') {
-    const svgEl = document.querySelector('#svg-container svg');
-    if (!svgEl) return;
-    let svgData = new XMLSerializer().serializeToString(svgEl);
+async function copySvgMarkupToClipboard(svgData, source = 'button') {
+    if (!svgData) return;
     const theme = document.documentElement.getAttribute('data-theme');
     const lightSvgBg = '#F6F0E3';
     const lightSvgInk = '#2B2A27';
@@ -5467,6 +5975,18 @@ async function copySvgToClipboard(source = 'button') {
             trackAnalyticsEvent('export_copy_svg', { method: source, format: 'svg' });
         }
     }
+}
+
+async function copySvgToClipboard(source = 'button') {
+    const svgEl = document.querySelector('#svg-container svg');
+    if (!svgEl) return;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    await copySvgMarkupToClipboard(svgData, source);
+}
+
+async function copyBayesPreviewSvgToClipboard() {
+    if (!lastBayesPreviewSvgString) return;
+    await copySvgMarkupToClipboard(lastBayesPreviewSvgString, 'bayes_panel');
 }
 
 
