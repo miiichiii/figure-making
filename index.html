@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SVG Plotter v10 - Multi-Group Support</title>
+    <title>SVG Plotter v10.1 - Multi-Group Support</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;600;700&display=swap" rel="stylesheet">
@@ -360,6 +360,116 @@
         /* グループカード関連 */
         .group-card { border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin-bottom: 15px; position: relative; background: var(--card); }
         .group-header { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; padding-right: 30px; }
+        .group-data-dock {
+            align-self: flex-start;
+            width: min(100%, 860px);
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: var(--shadow-soft);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .group-dock-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .group-dock-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--muted);
+            margin-right: auto;
+            white-space: nowrap;
+        }
+        .group-dock-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .group-dock-toolbar label {
+            margin: 0;
+            white-space: nowrap;
+        }
+        .group-dock-title-input {
+            width: 120px !important;
+        }
+        .group-dock-size-input {
+            width: 54px !important;
+        }
+        .group-dock-add {
+            width: auto;
+            margin: 0;
+            padding: 8px 12px;
+            min-width: 146px;
+        }
+        #groupsContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: stretch;
+        }
+        .group-data-dock .group-card {
+            width: 146px;
+            padding: 8px;
+            margin-bottom: 0;
+            border-radius: 7px;
+        }
+        .group-data-dock .group-header {
+            gap: 6px;
+            margin-bottom: 6px;
+            padding-right: 18px;
+        }
+        .group-data-dock .group-name-input {
+            width: 82px !important;
+            padding: 3px 4px;
+            font-size: 11px;
+        }
+        .group-data-dock .group-color-input {
+            width: 30px;
+            min-width: 30px;
+            height: 20px;
+            padding: 1px;
+        }
+        .group-data-dock .btn-remove {
+            top: 6px;
+            right: 6px;
+            width: 18px;
+            height: 18px;
+        }
+        .group-data-dock .btn-remove svg {
+            width: 12px;
+            height: 12px;
+        }
+        .group-data-dock .group-data-input {
+            height: 68px;
+            font-size: 10px;
+        }
+        .group-data-dock .paste-target.paste-textarea {
+            padding-top: 16px !important;
+            padding-right: 8px !important;
+        }
+        .group-data-dock .paste-watermark {
+            top: 3px;
+            right: 8px;
+            width: calc(100% - 16px);
+            font-size: 10px;
+        }
+        .group-data-dock .paste-preview {
+            margin-top: 4px;
+            max-height: 96px;
+        }
+        .group-data-dock .paste-preview table {
+            font-size: 0.62rem;
+        }
+        .group-data-dock .paste-preview th,
+        .group-data-dock .paste-preview td {
+            padding: 1px 3px;
+        }
         .btn-remove {
             position: absolute; top: 10px; right: 10px;
             background: linear-gradient(180deg, #c75a5a 0%, #a33a3a 100%);
@@ -1077,6 +1187,7 @@
             .input-area { position: static; top: auto; max-height: none; width: 100%; }
             .resizer { display: none; }
             .main-content { height: auto; padding: 0 4px 20px; }
+            .group-data-dock { width: 100%; }
             .preview-row { flex-direction: column; }
             .preview-wrapper { padding: 20px; }
             #svg-wrapper { max-width: 100%; overflow: auto; }
@@ -1088,6 +1199,11 @@
             .visual-controls { grid-template-columns: 1fr; }
         }
         @media (max-width: 720px) {
+            .group-dock-head { align-items: stretch; }
+            .group-dock-title { width: 100%; margin-right: 0; }
+            .group-dock-add { width: 100%; }
+            #groupsContainer { flex-direction: column; }
+            .group-data-dock .group-card { width: 100%; }
             .preview-wrapper {
                 grid-template-columns: 1fr;
                 grid-template-rows: auto;
@@ -1212,20 +1328,6 @@
             </div>
         </div>
 
-        <div id="groupDataSection">
-            <h3 class="section-title">2. Group Data</h3>
-            <div style="display:flex; align-items:center; gap:8px; margin: 6px 0 12px;">
-                <label style="margin:0;">Graph Title</label>
-                <input type="text" id="chartTitleInput" class="text-input" placeholder="Title" oninput="syncChartTitle()" style="width:100px;">
-                <input type="number" id="titleFontSize" value="10" oninput="updatePlot()" style="width:50px;" aria-label="Title font size">
-                <label style="font-weight: normal; font-size: 0.75rem; color: var(--muted); display:flex; align-items:center; gap:4px; margin:0;">
-                    <input type="checkbox" id="titleItalic" onchange="updatePlot()">
-                    Italic
-                </label>
-            </div>
-            <div id="groupsContainer"></div>
-            <button class="btn-add" onclick="addNewGroup()">+ Add New Group</button>
-        </div>
         <div class="master-label-card" style="margin-top: 15px;">
             <label style="margin-bottom:6px;">Axis Labels</label>
             <div style="display:grid; gap:6px;">
@@ -1297,6 +1399,22 @@
     <div class="resizer" id="resizerHandle"></div>
 
     <div class="main-content">
+        <div id="groupDataSection" class="group-data-dock">
+            <div class="group-dock-head">
+                <div class="group-dock-title">2. Group Data</div>
+                <div class="group-dock-toolbar">
+                    <label for="chartTitleInput">Graph Title</label>
+                    <input type="text" id="chartTitleInput" class="text-input group-dock-title-input" placeholder="Title" oninput="syncChartTitle()">
+                    <input type="number" id="titleFontSize" class="group-dock-size-input" value="10" oninput="updatePlot()" aria-label="Title font size">
+                    <label style="font-weight: normal; font-size: 0.75rem; color: var(--muted); display:flex; align-items:center; gap:4px; margin:0;">
+                        <input type="checkbox" id="titleItalic" onchange="updatePlot()">
+                        Italic
+                    </label>
+                </div>
+                <button class="btn-add group-dock-add" onclick="addNewGroup()">+ Add New Group</button>
+            </div>
+            <div id="groupsContainer"></div>
+        </div>
         <div class="preview-row">
             <div class="preview-wrapper">
                 <div style="grid-column: 1; grid-row: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
