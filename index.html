@@ -415,6 +415,8 @@
         }
         .group-data-dock .group-card {
             width: 146px;
+            min-width: 146px;
+            flex: 0 0 auto;
             padding: 8px;
             margin-bottom: 0;
             border-radius: 7px;
@@ -500,8 +502,11 @@
             white-space: pre;
             overflow-x: auto;
             overflow-y: auto;
-            resize: vertical;
+            max-width: none;
             tab-size: 4;
+        }
+        .group-data-dock .group-data-input {
+            resize: both !important;
         }
         .paste-preview { margin-top: 6px; max-height: 140px; overflow: auto; border: 1px solid var(--border); border-radius: 4px; background: var(--card); }
         .paste-preview table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
@@ -516,6 +521,12 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.06);
             transition: border-color 0.12s ease, box-shadow 0.12s ease;
             padding-right: 140px !important;
+        }
+        .paste-target.compact-paste-input {
+            padding-right: 12px !important;
+        }
+        .paste-target.compact-paste-input::placeholder {
+            color: color-mix(in srgb, var(--muted) 55%, transparent);
         }
         .paste-target:focus,
         .paste-target:focus-visible {
@@ -1323,8 +1334,7 @@
         <div class="master-label-card" id="timeSeriesSection">
             <label>Shared X-Labels (Space separated)</label>
             <div class="paste-field">
-                <input type="text" id="timePointsInput" class="text-input paste-target" value="Day1 Day3 Day7" placeholder="" oninput="updatePlot()">
-                <span class="paste-watermark compact">Paste or type labels here</span>
+                <input type="text" id="timePointsInput" class="text-input paste-target compact-paste-input" value="Day1 Day3 Day7" placeholder="Paste or type labels here" oninput="updatePlot()">
             </div>
         </div>
 
@@ -1610,6 +1620,7 @@ const DEFAULT_BAR_WIDTH = 27;
 const DEFAULT_X_TICK_LABEL_OFFSET_Y = -4;
 const DEFAULT_GROUP_LABEL_OFFSET_Y = -4;
 const DEFAULT_TIME_LABEL_OFFSET_Y = -4;
+const GROUP_DOCK_CARD_MIN_WIDTH = 146;
 let plotMetrics = null;
 let chartOffsetX = 0;
 let chartOffsetY = 0;
@@ -1635,6 +1646,7 @@ const explorerMinFloor = 10;
 const explorerMinCeil = 380;
 const explorerMinFloorFirst = 10;
 const explorerHardMinWidth = 10;
+let groupDataResizeObserver = null;
 const explorerHardMinWidthFirst = 10;
 const explorerMinSampleRows = 30;
 let explorerOpenedOnce = false;
@@ -1722,7 +1734,47 @@ function addNewGroup(name = "", color = "", data = "") {
         <div class="paste-preview"></div>
     `;
     container.appendChild(card);
+    attachGroupCardResizeSync(card);
     updatePlot();
+}
+
+function ensureGroupDataResizeObserver() {
+    if (!window.ResizeObserver) return null;
+    if (groupDataResizeObserver) return groupDataResizeObserver;
+    groupDataResizeObserver = new ResizeObserver((entries) => {
+        const cards = new Set();
+        entries.forEach((entry) => {
+            const card = entry.target.closest('.group-card');
+            if (card) cards.add(card);
+        });
+        cards.forEach((card) => syncGroupCardWidth(card));
+    });
+    return groupDataResizeObserver;
+}
+
+function syncGroupCardWidth(card) {
+    if (!card) return;
+    const textarea = card.querySelector('.group-data-input');
+    if (!textarea) return;
+    if (window.matchMedia('(max-width: 720px)').matches) {
+        card.style.width = '100%';
+        return;
+    }
+    const width = Math.max(GROUP_DOCK_CARD_MIN_WIDTH, Math.ceil(textarea.offsetWidth || 0));
+    card.style.width = `${width}px`;
+}
+
+function syncAllGroupCardWidths() {
+    document.querySelectorAll('#groupsContainer .group-card').forEach((card) => syncGroupCardWidth(card));
+}
+
+function attachGroupCardResizeSync(card) {
+    if (!card) return;
+    const textarea = card.querySelector('.group-data-input');
+    if (!textarea) return;
+    const observer = ensureGroupDataResizeObserver();
+    if (observer) observer.observe(textarea);
+    requestAnimationFrame(() => syncGroupCardWidth(card));
 }
 
 function parseDelimitedText(text) {
@@ -2939,6 +2991,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const current = localStorage.getItem('plotTheme') || 'system';
         if (current === 'system') applyTheme('system');
     });
+    window.addEventListener('resize', syncAllGroupCardWidths);
     const svgContainer = document.getElementById('svg-container');
     let draggingLegend = false;
 
@@ -3524,7 +3577,13 @@ function resetProfile() {
 
 function removeGroup(id) {
     const el = document.getElementById(id);
-    if (el) el.remove();
+    if (el) {
+        const textarea = el.querySelector('.group-data-input');
+        if (textarea && groupDataResizeObserver) {
+            groupDataResizeObserver.unobserve(textarea);
+        }
+        el.remove();
+    }
     renumberGroups();
     updatePlot();
 }
