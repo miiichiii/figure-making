@@ -3705,6 +3705,17 @@ function formatYAxisTickLabel(value, formatMode, scaleMode, maxAbs) {
     return useScientific ? formatScientificAxisLabel(value) : formatPlainAxisLabel(value, absMax);
 }
 
+function renderAxisTickLabelMarkup(label) {
+    const text = String(label ?? '');
+    const sciMatch = text.match(/^(-?)(?:(.+)x)?10\^(-?\d+)$/);
+    if (!sciMatch) return escapeHtml(text);
+    const sign = sciMatch[1] || '';
+    const mantissa = sciMatch[2] || '';
+    const exponent = sciMatch[3];
+    const prefix = `${sign}${mantissa ? `${mantissa}x` : ''}10`;
+    return `${escapeHtml(prefix)}<tspan baseline-shift="super" font-size="70%">${escapeHtml(exponent)}</tspan>`;
+}
+
 function buildLinearTicks(yMin, yMax, numTicks) {
     if (!Number.isFinite(yMin) || !Number.isFinite(yMax) || numTicks < 1) return [];
     if (yMax === yMin) return [yMin];
@@ -4781,8 +4792,9 @@ function updatePlot(reflowPass = 0) {
         if (!Number.isFinite(val)) continue;
         const y = yScale(val);
         const label = formatYAxisTickLabel(val, yLabelFormat, resolvedYScaleMode, yAxisMaxAbs);
+        const labelMarkup = renderAxisTickLabelMarkup(label);
         svgItems.push(`<line x1="${pL}" y1="${y}" x2="${pL-5}" y2="${y}" stroke="${axisColor}" stroke-width="${strokeW}"/>`);
-        svgItems.push(`<text x="${pL-8}" y="${y}" text-anchor="end" dominant-baseline="central" font-size="${fsY}" font-family="Arial" fill="${axisColor}">${label}</text>`);
+        svgItems.push(`<text x="${pL-8}" y="${y}" text-anchor="end" dominant-baseline="central" font-size="${fsY}" font-family="Arial" fill="${axisColor}">${labelMarkup}</text>`);
     }
     if (xAxisLabel) {
         const xLabelY = height - pB + xAxisFontSize + xLabelOffset + xAxisLabelOffsetY;
