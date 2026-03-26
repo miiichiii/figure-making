@@ -1391,7 +1391,7 @@
                         <div class="ymax-inline" style="align-items:flex-end;">
                             <div class="control-item" style="min-width:70px;">
                                 <label for="yMinInput">Y-Min</label>
-                                <input type="number" id="yMinInput" value="0" data-auto="true" oninput="updatePlot()" aria-label="Y minimum">
+                                <input type="number" id="yMinInput" value="0" data-auto="true" oninput="this.dataset.auto='false'; updatePlot();" aria-label="Y minimum">
                             </div>
                             <div class="control-item" style="min-width:70px;">
                                 <label for="yMaxInput">Y-Max</label>
@@ -1404,6 +1404,21 @@
                             <input type="number" id="numTicks" value="5" min="2" max="12" oninput="updatePlot()">
                         </div>
                         <div class="control-item">
+                            <label for="yScaleMode">Scale</label>
+                            <select id="yScaleMode" class="text-input" onchange="updatePlot()">
+                                <option value="linear" selected>Linear</option>
+                                <option value="log10">Log10</option>
+                            </select>
+                        </div>
+                        <div class="control-item">
+                            <label for="yLabelFormat">Label Format</label>
+                            <select id="yLabelFormat" class="text-input" onchange="updatePlot()">
+                                <option value="auto" selected>Auto</option>
+                                <option value="plain">Plain</option>
+                                <option value="scientific">Scientific</option>
+                            </select>
+                        </div>
+                        <div class="control-item">
                             <label style="margin-bottom:2px;">Error Bar</label>
                             <input type="hidden" id="errorType" value="se">
                             <div class="error-toggle">
@@ -1411,6 +1426,7 @@
                                 <button type="button" id="err-sd" class="btn-mini" style="width:auto;" onclick="setErrorType('sd')">SD</button>
                             </div>
                         </div>
+                        <div id="yScaleNote" style="font-size:0.75rem; color: var(--muted); min-height:1.2em;"></div>
                     </div>
                     <div class="panel legend-panel">
                         <div class="control-item">
@@ -3123,7 +3139,9 @@ function collectProfile() {
             min: document.getElementById('yMinInput').value,
             max: document.getElementById('yMaxInput').value,
             ticks: document.getElementById('numTicks').value,
-            errorType: document.getElementById('errorType').value
+            errorType: document.getElementById('errorType').value,
+            scaleMode: document.getElementById('yScaleMode')?.value || 'linear',
+            labelFormat: document.getElementById('yLabelFormat')?.value || 'auto'
         },
         labels: {
             title: document.getElementById('chartTitleInput')?.value || '',
@@ -3190,6 +3208,12 @@ function applyProfile(profile) {
         document.getElementById('yMinInput').value = profile.yAxis.min ?? '0';
         document.getElementById('yMaxInput').value = profile.yAxis.max ?? '0';
         document.getElementById('numTicks').value = profile.yAxis.ticks ?? '5';
+        if (document.getElementById('yScaleMode')) {
+            document.getElementById('yScaleMode').value = profile.yAxis.scaleMode || 'linear';
+        }
+        if (document.getElementById('yLabelFormat')) {
+            document.getElementById('yLabelFormat').value = profile.yAxis.labelFormat || 'auto';
+        }
         document.getElementById('errorType').value = profile.yAxis.errorType || 'se';
         setErrorType(profile.yAxis.errorType || 'se');
     }
@@ -3337,7 +3361,7 @@ function resetProfile() {
         timeLabels: 'Day1 Day3 Day7',
         survival: { xMax: '0', yPercent: false, xTickCount: '5', xTickStep: '0' },
         chartSize: { width: String(DEFAULT_CHART_WIDTH), height: String(DEFAULT_CHART_HEIGHT) },
-        yAxis: { min: '0', max: '0', ticks: '5', errorType: 'se' },
+        yAxis: { min: '0', max: '0', ticks: '5', errorType: 'se', scaleMode: 'linear', labelFormat: 'auto' },
         labels: { x: '', y: '', titleItalic: false, titleSize: '10', xOffset: '25', yOffset: '25', xFont: '10', yFont: '10' },
         style: { fontX: '10', fontY: '10', dotSize: '2.5', jitter: '8', barWidth: String(DEFAULT_BAR_WIDTH) },
         options: {
@@ -3618,6 +3642,94 @@ function niceCeil(val) {
     const second = Math.floor((val / exp - first) * 10);
     if (second > 0) first += 1;
     return first * exp;
+}
+
+function niceFloor(val) {
+    if (val <= 0) return 0.1;
+    return Math.pow(10, Math.floor(Math.log10(val)));
+}
+
+function getYAxisScaleMode() {
+    return document.getElementById('yScaleMode')?.value || 'linear';
+}
+
+function getYAxisLabelFormat() {
+    return document.getElementById('yLabelFormat')?.value || 'auto';
+}
+
+function log10Safe(val) {
+    return Math.log(val) / Math.LN10;
+}
+
+function trimNumericLabel(text) {
+    return String(text).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '').replace(/^-0$/, '0');
+}
+
+function formatScientificAxisLabel(value) {
+    if (!Number.isFinite(value)) return '';
+    if (value === 0) return '0';
+    const sign = value < 0 ? '-' : '';
+    const absVal = Math.abs(value);
+    let exponent = Math.floor(log10Safe(absVal) + 1e-12);
+    let power = Math.pow(10, exponent);
+    let mantissa = absVal / power;
+    if (mantissa >= 9.999999999) {
+        exponent += 1;
+        power = Math.pow(10, exponent);
+        mantissa = absVal / power;
+    }
+    const roundedMantissa = Number(mantissa.toPrecision(2));
+    if (Math.abs(roundedMantissa - 1) < 1e-9) {
+        return `${sign}10^${exponent}`;
+    }
+    return `${sign}${trimNumericLabel(roundedMantissa)}x10^${exponent}`;
+}
+
+function formatPlainAxisLabel(value, maxAbs) {
+    if (!Number.isFinite(value)) return '';
+    const absMax = Math.abs(maxAbs || 0);
+    if (absMax >= 100) return trimNumericLabel(value.toFixed(0));
+    if (absMax >= 1) return trimNumericLabel(value.toFixed(1));
+    if (absMax >= 0.01) return trimNumericLabel(value.toFixed(3));
+    return trimNumericLabel(value.toPrecision(3));
+}
+
+function formatYAxisTickLabel(value, formatMode, scaleMode, maxAbs) {
+    if (!Number.isFinite(value)) return '';
+    if (scaleMode === 'log10') {
+        return formatScientificAxisLabel(value);
+    }
+    const absMax = Math.abs(maxAbs || 0);
+    const useScientific = formatMode === 'scientific'
+        || (formatMode === 'auto' && absMax > 0 && (absMax >= 1e5 || absMax < 1e-3));
+    return useScientific ? formatScientificAxisLabel(value) : formatPlainAxisLabel(value, absMax);
+}
+
+function buildLinearTicks(yMin, yMax, numTicks) {
+    if (!Number.isFinite(yMin) || !Number.isFinite(yMax) || numTicks < 1) return [];
+    if (yMax === yMin) return [yMin];
+    return Array.from({ length: numTicks + 1 }, (_, i) => yMin + ((yMax - yMin) * i) / numTicks);
+}
+
+function buildLogTicks(yMin, yMax, numTicks) {
+    if (!Number.isFinite(yMin) || !Number.isFinite(yMax) || yMin <= 0 || yMax <= 0 || yMin >= yMax) return [];
+    const minExp = Math.floor(log10Safe(yMin));
+    const maxExp = Math.ceil(log10Safe(yMax));
+    const rawExponents = [];
+    for (let exp = minExp; exp <= maxExp; exp++) {
+        rawExponents.push(exp);
+    }
+    if (!rawExponents.length) return [];
+    const step = Math.max(1, Math.ceil(rawExponents.length / Math.max(2, numTicks + 1)));
+    const ticks = rawExponents
+        .filter((_, idx) => idx % step === 0)
+        .map(exp => Math.pow(10, exp))
+        .filter(val => val >= yMin * 0.999999 && val <= yMax * 1.000001);
+    if (!ticks.length) {
+        const mid = Math.sqrt(yMin * yMax);
+        return Array.from(new Set([yMin, mid, yMax])).sort((a, b) => a - b);
+    }
+    return Array.from(new Set(ticks)).sort((a, b) => a - b);
 }
 
 // 正剁E完EベEタ関数の近似ロジチEE統計関数で共通利用EE
@@ -4084,6 +4196,9 @@ function updatePlot(reflowPass = 0) {
     const mode = document.getElementById('plotMode').value;
     const survivalMode = mode === 'survival';
     const isCompMode = mode === 'comparison';
+    const yScaleNoteEl = document.getElementById('yScaleNote');
+    const requestedYScaleMode = getYAxisScaleMode();
+    const yLabelFormat = getYAxisLabelFormat();
     let timeLabels = isCompMode ? ["Data"] : document.getElementById('timePointsInput').value.trim().split(/[\t\s]+/).filter(s => s !== "");
     if (!survivalMode && timeLabels.length === 0) {
         const fallbackCols = Array.from(document.querySelectorAll('.group-data-input'))
@@ -4273,6 +4388,7 @@ function updatePlot(reflowPass = 0) {
         });
     }
     if (survivalMode) {
+        if (yScaleNoteEl) yScaleNoteEl.textContent = '';
         const { groupConfigs, maxTime, dateMode, dateOriginMs } = parseSurvivalData(document.getElementById('survivalData').value);
         const xMaxEl = document.getElementById('survivalXMax');
         const xMaxInput = parseFloat(xMaxEl.value);
@@ -4485,27 +4601,79 @@ function updatePlot(reflowPass = 0) {
     const minCandidates = [...allValues, ...statsAll.map(s => s.mean - (errorType === 'sd' ? s.sd : s.se))];
     const rawMax = maxCandidates.length ? Math.max(...maxCandidates) : 1;
     const rawMin = minCandidates.length ? Math.min(...minCandidates) : 0;
-
-    const baseYMax = niceCeil(rawMax);
-    let yMax = isAutoY ? baseYMax : (yMaxManual > 0 ? yMaxManual : baseYMax);
     const yMinIsManual = yMinInputEl.dataset.auto === 'false' && Number.isFinite(yMinManual);
+    const baseYMax = niceCeil(rawMax);
     let yMin = yMinIsManual ? yMinManual : Math.min(0, rawMin);
+    let yMax = isAutoY ? baseYMax : (yMaxManual > 0 ? yMaxManual : baseYMax);
+    let resolvedYScaleMode = requestedYScaleMode;
+    let yScaleNote = '';
+    let usedAutoYMin = !yMinIsManual;
+    let usedAutoYMax = isAutoY;
+    const axisCandidates = [...maxCandidates, ...minCandidates].filter(v => Number.isFinite(v));
+
+    if (requestedYScaleMode === 'log10') {
+        if (!axisCandidates.length || axisCandidates.some(v => v <= 0)) {
+            resolvedYScaleMode = 'linear';
+            yScaleNote = 'Log10 requires all plotted Y values to be > 0. Using linear scale.';
+        } else {
+            const positiveCandidates = axisCandidates;
+            const rawPositiveMin = Math.min(...positiveCandidates);
+            const rawPositiveMax = Math.max(...positiveCandidates);
+            const autoLogMin = niceFloor(rawPositiveMin);
+            const autoLogMax = Math.pow(10, Math.ceil(log10Safe(rawPositiveMax)));
+            const hasInvalidManualLogBounds = (yMinIsManual && (!Number.isFinite(yMinManual) || yMinManual <= 0))
+                || (!isAutoY && (!Number.isFinite(yMaxManual) || yMaxManual <= 0));
+            const hasValidManualLogYMin = yMinIsManual && Number.isFinite(yMinManual) && yMinManual > 0;
+            const hasValidManualLogYMax = !isAutoY && Number.isFinite(yMaxManual) && yMaxManual > 0;
+            yMin = hasValidManualLogYMin ? yMinManual : autoLogMin;
+            yMax = hasValidManualLogYMax ? yMaxManual : autoLogMax;
+            usedAutoYMin = !hasValidManualLogYMin;
+            usedAutoYMax = !hasValidManualLogYMax;
+            if (hasInvalidManualLogBounds) {
+                yScaleNote = 'Log10 requires Y-Min/Y-Max > 0. Auto range was used.';
+            }
+            if (!Number.isFinite(yMin) || !Number.isFinite(yMax) || yMin <= 0 || yMax <= yMin) {
+                resolvedYScaleMode = 'linear';
+                yMin = yMinIsManual ? yMinManual : Math.min(0, rawMin);
+                yMax = isAutoY ? baseYMax : (yMaxManual > 0 ? yMaxManual : baseYMax);
+                usedAutoYMin = !yMinIsManual;
+                usedAutoYMax = isAutoY;
+                yScaleNote = 'Log10 range is invalid for the current data. Using linear scale.';
+            }
+        }
+    }
 
     // 有意差マEクがある場合、強制皁E上限を押し上げめE
     if (autoBrackets && maxBracketLayers > 0 && isAutoY) {
         const extraFactor = Math.min(0.1, 0.05 * maxBracketLayers);
-        const expandedYMax = niceCeil(rawMax * (1 + extraFactor));
+        const expandedYMax = resolvedYScaleMode === 'log10'
+            ? Math.pow(10, Math.ceil(log10Safe(Math.max(yMax, rawMax) * (1 + extraFactor))))
+            : niceCeil(rawMax * (1 + extraFactor));
         yMax = Math.max(baseYMax, expandedYMax);
     }
-    if (isAutoY) {
+    if (usedAutoYMax) {
         yMaxInputEl.dataset.auto = 'true';
         yMaxInputEl.value = yMax;
-        if (yMinInputEl) yMinInputEl.value = yMin;
     }
+    if (yMinInputEl && usedAutoYMin) {
+        yMinInputEl.dataset.auto = 'true';
+        yMinInputEl.value = yMin;
+    }
+    if (yScaleNoteEl) yScaleNoteEl.textContent = yScaleNote;
 
     const pL = fsY * 4.6, pB = fsX * 3 + 6 + autoBottomPad, pT = 30 + titlePad, pR = 30;
     const graphW = width - pL - pR, graphH = height - pB - pT;
-    const yScale = (v) => height - pB - ((v - yMin) / (yMax - yMin) * graphH);
+    const logRange = resolvedYScaleMode === 'log10' ? (log10Safe(yMax) - log10Safe(yMin)) : 0;
+    const yScale = resolvedYScaleMode === 'log10'
+        ? (v) => {
+            const safeVal = Math.max(v, yMin);
+            return height - pB - ((log10Safe(safeVal) - log10Safe(yMin)) / logRange * graphH);
+        }
+        : (v) => height - pB - ((v - yMin) / (yMax - yMin) * graphH);
+    const yTickValues = resolvedYScaleMode === 'log10'
+        ? buildLogTicks(yMin, yMax, numTicks)
+        : buildLinearTicks(yMin, yMax, numTicks);
+    const yAxisMaxAbs = Math.max(Math.abs(yMin), Math.abs(yMax));
     plotMetrics = { pL, pT, graphW, graphH, width, height };
 
     let svgItems = [];
@@ -4558,7 +4726,11 @@ function updatePlot(reflowPass = 0) {
 
     function drawGroupContent(x, data, s, group, barWidth, baselineVal, gIdx) {
         const errVal = errorType === 'sd' ? s.sd : s.se;
-        const yM = yScale(s.mean), yT = yScale(s.mean + errVal), yB = yScale(s.mean - errVal);
+        const canDrawErrorBar = resolvedYScaleMode !== 'log10'
+            || (s.mean > 0 && (s.mean + errVal) > 0 && (s.mean - errVal) > 0);
+        const yM = yScale(s.mean);
+        const yT = canDrawErrorBar ? yScale(s.mean + errVal) : yM;
+        const yB = canDrawErrorBar ? yScale(s.mean - errVal) : yM;
         const dotR = parseFloat(document.getElementById('dotSize').value);
         const jitter = parseFloat(document.getElementById('jitter').value);
 
@@ -4579,17 +4751,18 @@ function updatePlot(reflowPass = 0) {
         const capHalf = Math.min(5, barWidth * 0.25);
         const meanLineHalf = !showBars ? barWidth / 2 : 0;
         const meanLineStroke = !showBars ? Math.max(0.8, Math.min(2, barWidth * 0.06)) : 0;
-        if (showErrorBars && !showErrorBarsOnTop) {
+        if (showErrorBars && !showErrorBarsOnTop && canDrawErrorBar) {
             drawErrorBar(x, yT, yB, capHalf, axisColor, 1.2, meanLineHalf, meanLineStroke, !showBars ? yM : null);
         }
         if (showDotPlot) {
             data.forEach(v => {
                 if (v === null || v === undefined || !Number.isFinite(v)) return;
+                if (resolvedYScaleMode === 'log10' && v <= 0) return;
                 const j = (Math.random() - 0.5) * jitter;
                 svgItems.push(`<circle cx="${x + j}" cy="${yScale(v)}" r="${dotR}" fill="${group.color}" stroke="${axisColor}" stroke-width="0.8" />`);
             });
         }
-        if (showErrorBars && showErrorBarsOnTop) {
+        if (showErrorBars && showErrorBarsOnTop && canDrawErrorBar) {
             drawErrorBar(x, yT, yB, capHalf, axisColor, 1.2, meanLineHalf, meanLineStroke, !showBars ? yM : null);
         }
     }
@@ -4604,11 +4777,12 @@ function updatePlot(reflowPass = 0) {
     svgItems.push(`<line x1="${pL}" y1="${height-pB}" x2="${width-pR}" y2="${height-pB}" stroke="${axisColor}" stroke-width="${strokeW}"/>`);
 
     // Y軸目盛り
-    for(let i=0; i<=numTicks; i++){
-        const val = Number((yMin + (yMax - yMin) / numTicks * i).toFixed(1));
+    for (const val of yTickValues) {
+        if (!Number.isFinite(val)) continue;
         const y = yScale(val);
+        const label = formatYAxisTickLabel(val, yLabelFormat, resolvedYScaleMode, yAxisMaxAbs);
         svgItems.push(`<line x1="${pL}" y1="${y}" x2="${pL-5}" y2="${y}" stroke="${axisColor}" stroke-width="${strokeW}"/>`);
-        svgItems.push(`<text x="${pL-8}" y="${y}" text-anchor="end" dominant-baseline="central" font-size="${fsY}" font-family="Arial" fill="${axisColor}">${val}</text>`);
+        svgItems.push(`<text x="${pL-8}" y="${y}" text-anchor="end" dominant-baseline="central" font-size="${fsY}" font-family="Arial" fill="${axisColor}">${label}</text>`);
     }
     if (xAxisLabel) {
         const xLabelY = height - pB + xAxisFontSize + xLabelOffset + xAxisLabelOffsetY;
