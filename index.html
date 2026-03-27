@@ -267,8 +267,8 @@
         #svg-wrapper { background: var(--svg-bg); box-shadow: var(--shadow-strong); position: relative; align-self: flex-start; }
         html[data-theme="dark"] #svg-container svg { filter: brightness(0.92); }
         .resize-handle {
-            width: 12px;
-            height: 12px;
+            width: 16px;
+            height: 16px;
             background: #ff69b4;
             border: 1px solid #d84c8f;
             border-radius: 50%;
@@ -296,10 +296,10 @@
         .drag-indicator.visible {
             display: block;
         }
-        .resize-tl { top: -6px; left: -6px; cursor: nwse-resize; }
-        .resize-tr { top: -6px; right: -6px; cursor: nesw-resize; }
-        .resize-bl { bottom: -6px; left: -6px; cursor: nesw-resize; }
-        .resize-br { bottom: -6px; right: -6px; cursor: nwse-resize; }
+        .resize-tl { top: -8px; left: -8px; cursor: nwse-resize; }
+        .resize-tr { top: -8px; right: -8px; cursor: nesw-resize; }
+        .resize-bl { bottom: -8px; left: -8px; cursor: nesw-resize; }
+        .resize-br { bottom: -8px; right: -8px; cursor: nwse-resize; }
         .ymax-pos {
             font-size: 0.7rem;
             color: var(--muted);
@@ -3508,8 +3508,43 @@ function resetBarPositions() {
 function syncBarControlsUI() {
     const slider = document.getElementById('barWidthSlider');
     const val = document.getElementById('barWidthValue');
-    if (slider) slider.value = barWidthState;
+    if (slider) {
+        const sliderMin = parseFloat(slider.min) || 2;
+        const sliderMax = parseFloat(slider.max) || barWidthState;
+        const clamped = Math.max(sliderMin, Math.min(barWidthState, sliderMax));
+        slider.value = clamped;
+    }
     if (val) val.textContent = Math.round(barWidthState);
+}
+
+function getComparisonSpreadRatio(nGroups) {
+    if (nGroups <= 1) return 1;
+    return Math.min(0.9, 0.55 + ((nGroups - 1) * 0.12));
+}
+
+function getMaxBarWidthForLayout(graphW, nGroups, timePointCount, isCompMode) {
+    const safeGraphW = Number.isFinite(graphW) ? graphW : 0;
+    const safeGroups = Math.max(1, nGroups || 1);
+    if (safeGraphW <= 0) return DEFAULT_BAR_WIDTH;
+    if (isCompMode) {
+        const compSpread = safeGraphW * getComparisonSpreadRatio(safeGroups);
+        return Math.max(2, Math.floor(compSpread / safeGroups));
+    }
+    const safeTimePoints = Math.max(1, timePointCount || 1);
+    const groupSpace = (safeGraphW / safeTimePoints) * 0.85;
+    return Math.max(2, Math.floor(groupSpace / safeGroups));
+}
+
+function updateBarWidthSliderLimit(maxBarWidth) {
+    const slider = document.getElementById('barWidthSlider');
+    if (!slider) return;
+    const sliderMin = parseFloat(slider.min) || 2;
+    const resolvedMax = Math.max(sliderMin, Math.round(maxBarWidth || DEFAULT_BAR_WIDTH));
+    slider.max = resolvedMax;
+    if (barWidthState > resolvedMax) {
+        barWidthState = resolvedMax;
+    }
+    syncBarControlsUI();
 }
 
 function handleShowBarsToggle() {
@@ -5359,8 +5394,7 @@ function updatePlot(reflowPass = 0) {
     ensureTimeLabelOffsets();
     const getCompSpread = () => {
         if (nGroups <= 1) return graphW;
-        const spreadRatio = Math.min(0.9, 0.55 + ((nGroups - 1) * 0.12));
-        return graphW * spreadRatio;
+        return graphW * getComparisonSpreadRatio(nGroups);
     };
     const getCompCenter = (gIdx) => {
         const compSpread = getCompSpread();
@@ -5372,7 +5406,6 @@ function updatePlot(reflowPass = 0) {
         const offset = (gIdx - (nGroups - 1) / 2) * (groupSpace / nGroups);
         return base + offset + (groupOffsetX[gIdx] || 0);
     };
-
     // 1. まず統計計算を行い、ブラケチEが忁Eな「階層数」を把握する
     let maxBracketLayers = 0;
     if (showPostHoc && autoBrackets) {
@@ -5472,6 +5505,7 @@ function updatePlot(reflowPass = 0) {
         : buildLinearTicks(yMin, yMax, numTicks);
     const yAxisMaxAbs = Math.max(Math.abs(yMin), Math.abs(yMax));
     plotMetrics = { pL, pT, graphW, graphH, width, height };
+    updateBarWidthSliderLimit(getMaxBarWidthForLayout(graphW, nGroups, timeLabels.length, isCompMode));
 
     let svgItems = [];
     svgItems.push(`<rect class="svg-bg" x="0" y="0" width="${width}" height="${height}" fill="${svgBg}" />`);
@@ -5597,7 +5631,7 @@ function updatePlot(reflowPass = 0) {
     if (isCompMode) {
         const compSpread = getCompSpread();
         const slotWidth = compSpread / Math.max(1, nGroups);
-        const barWidth = Math.max(2, Math.min(barWidthState, slotWidth * 0.72));
+        const barWidth = Math.max(2, Math.min(barWidthState, slotWidth));
         groupConfigs.forEach((group, gIdx) => {
             const x = getCompCenter(gIdx);
             const data = group.data[0] || [];
