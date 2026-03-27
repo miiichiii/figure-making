@@ -655,13 +655,13 @@
         .toast.show { opacity: 1; }
 
         .top-actions {
-            position: fixed;
-            top: 12px;
-            right: 60px;
-            z-index: 9998;
+            grid-column: 2;
+            grid-row: 2;
             display: flex;
             gap: 8px;
             align-items: center;
+            justify-self: start;
+            flex-wrap: wrap;
         }
         .action-btn {
             width: auto;
@@ -1143,7 +1143,7 @@
         .group-label, .time-label { cursor: ns-resize; user-select: none; }
         .graph-controls-row {
             grid-column: 2;
-            grid-row: 2;
+            grid-row: 3;
             width: 100%;
             background: var(--panel);
             border: 1px solid var(--border);
@@ -1341,7 +1341,7 @@
             .graph-controls-row { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
         }
         @media (max-width: 900px) {
-            .top-actions { right: 12px; left: 12px; justify-content: flex-end; flex-wrap: wrap; }
+            .top-actions { grid-column: 1; grid-row: auto; justify-self: stretch; }
             .action-btn { flex: 0 0 auto; }
             .visual-controls { grid-template-columns: 1fr; }
         }
@@ -1362,12 +1362,6 @@
     </style>
 </head>
 <body>
-
-<!-- Top Right Buttons -->
-<div id="top-right-buttons" class="top-actions">
-    <button class="action-btn action-download" onclick="downloadSVG()">Download for PPT</button>
-    <button class="action-btn action-copy" onclick="copySvgToClipboard()">Copy SVG</button>
-</div>
 
 <!-- Help Button -->
 <a href="./help.html" target="_blank" title="ヘルプ / Help" class="help-fab">?</a>
@@ -1580,6 +1574,10 @@
                     <button type="button" class="tip-icon" aria-label="Drag tips">i</button>
                     <div class="tip-bubble">Tip: Drag title, Y-axis label, legend, bars, and sample labels (↑↓) to reposition.</div>
                 </div>
+                <div id="top-right-buttons" class="top-actions">
+                    <button class="action-btn action-download" onclick="downloadSVG()">Download for PPT</button>
+                    <button class="action-btn action-copy" onclick="copySvgToClipboard()">Copy SVG</button>
+                </div>
                 <div class="bayes-preview-panel" id="bayesPreviewPanel" hidden>
                     <div class="bayes-preview-head">
                         <div class="bayes-preview-kicker">Bayesian Assist</div>
@@ -1727,13 +1725,13 @@
                         </div>
                     </div>
                 </div>
-                <div style="grid-column: 2; grid-row: 3; display: flex; align-items: center; gap: 10px; justify-self: start;">
+                <div style="grid-column: 2; grid-row: 4; display: flex; align-items: center; gap: 10px; justify-self: start;">
                     <label style="font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 6px;">
                         W:
                         <input type="number" id="chartWidthVal" value="156" min="10" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
                     </label>
                 </div>
-                <div style="grid-column: 2; grid-row: 5; width: 100%; justify-self: start;">
+                <div style="grid-column: 2; grid-row: 6; width: 100%; justify-self: start;">
                     <div class="config-profile">
                         <div class="config-title">Configuration Profile</div>
                         <div class="config-actions">
