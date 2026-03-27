@@ -141,21 +141,82 @@
 
         .preview-wrapper {
             display: grid;
-            grid-template-columns: 50px 1fr;
-            grid-template-rows: 1fr auto auto auto auto auto;
-            gap: 10px;
+            grid-template-columns: minmax(220px, 240px) max-content minmax(150px, 190px);
+            gap: 16px 18px;
             background: var(--preview-bg);
             padding: 30px;
             border: 2px dashed var(--preview-border);
             border-radius: 12px;
-            align-items: center;
-            justify-items: center;
+            align-items: start;
+            justify-content: start;
             position: relative;
+            overflow-x: auto;
         }
         .preview-wrapper.has-bayes-preview {
-            grid-template-columns: 50px auto minmax(250px, 290px);
-            align-items: start;
-            justify-items: start;
+            grid-template-columns: minmax(220px, 240px) max-content minmax(150px, 190px) minmax(250px, 290px);
+        }
+        .preview-column {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .preview-left-column {
+            grid-column: 1;
+            grid-row: 1;
+        }
+        .preview-chart-column {
+            grid-column: 2;
+            grid-row: 1;
+            width: max-content;
+        }
+        .preview-side-column {
+            grid-column: 3;
+            grid-row: 1;
+        }
+        .preview-bayes-column {
+            grid-column: 4;
+            grid-row: 1;
+        }
+        .preview-column .panel,
+        .preview-column .legend-panel {
+            width: 100%;
+            margin: 0;
+        }
+        .preview-chart-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: max-content;
+            min-width: 0;
+        }
+        .chart-size-panel {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            width: fit-content;
+            max-width: 100%;
+            padding: 10px 12px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: var(--shadow-soft);
+        }
+        .chart-size-field {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .chart-size-field input {
+            width: 64px !important;
+            padding: 3px 5px !important;
+        }
+        .preview-meta-panel {
+            padding: 12px;
         }
         .tip-icon {
             position: absolute;
@@ -203,11 +264,11 @@
         }
         .slider-v { grid-column: 1; grid-row: 1; width: 12px; height: 400px; writing-mode: vertical-lr; direction: rtl; }
         .slider-h { grid-column: 2; grid-row: 2; width: 100%; height: 12px; }
-        #svg-wrapper { grid-column: 2; grid-row: 1; background: var(--svg-bg); box-shadow: var(--shadow-strong); position: relative; justify-self: start; }
+        #svg-wrapper { background: var(--svg-bg); box-shadow: var(--shadow-strong); position: relative; align-self: flex-start; }
         html[data-theme="dark"] #svg-container svg { filter: brightness(0.92); }
         .resize-handle {
-            width: 24px;
-            height: 24px;
+            width: 12px;
+            height: 12px;
             background: #ff69b4;
             border: 1px solid #d84c8f;
             border-radius: 50%;
@@ -235,10 +296,10 @@
         .drag-indicator.visible {
             display: block;
         }
-        .resize-tl { top: -12px; left: -12px; cursor: nwse-resize; }
-        .resize-tr { top: -12px; right: -12px; cursor: nesw-resize; }
-        .resize-bl { bottom: -12px; left: -12px; cursor: nesw-resize; }
-        .resize-br { bottom: -12px; right: -12px; cursor: nwse-resize; }
+        .resize-tl { top: -6px; left: -6px; cursor: nwse-resize; }
+        .resize-tr { top: -6px; right: -6px; cursor: nesw-resize; }
+        .resize-bl { bottom: -6px; left: -6px; cursor: nesw-resize; }
+        .resize-br { bottom: -6px; right: -6px; cursor: nwse-resize; }
         .ymax-pos {
             font-size: 0.7rem;
             color: var(--muted);
@@ -655,12 +716,9 @@
         .toast.show { opacity: 1; }
 
         .top-actions {
-            grid-column: 2;
-            grid-row: 2;
             display: flex;
             gap: 8px;
             align-items: center;
-            justify-self: start;
             flex-wrap: wrap;
         }
         .action-btn {
@@ -1142,22 +1200,12 @@
         .bar-draggable.dragging { cursor: grabbing; opacity: 0.8; stroke: #ff69b4; stroke-width: 2; }
         .group-label, .time-label { cursor: ns-resize; user-select: none; }
         .graph-controls-row {
-            grid-column: 2;
-            grid-row: 3;
             width: 100%;
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(2, minmax(220px, 1fr));
+            gap: 12px;
         }
         .bayes-preview-panel {
-            grid-column: 3;
-            grid-row: 1;
-            align-self: stretch;
-            justify-self: start;
             width: min(290px, 100%);
             min-height: 100%;
             background: var(--panel);
@@ -1321,6 +1369,53 @@
         @media (prefers-reduced-motion: reduce) {
             * { animation: none !important; transition: none !important; }
         }
+        @media (max-width: 1500px) {
+            .preview-wrapper.has-bayes-preview {
+                grid-template-columns: minmax(220px, 240px) max-content minmax(150px, 190px);
+            }
+            .preview-bayes-column {
+                grid-column: 1 / -1;
+                grid-row: 2;
+            }
+            .bayes-preview-panel {
+                width: 100%;
+                max-width: none;
+            }
+        }
+        @media (max-width: 1500px) {
+            .preview-wrapper,
+            .preview-wrapper.has-bayes-preview {
+                grid-template-columns: minmax(220px, 240px) minmax(0, 1fr);
+                padding: 20px;
+            }
+            .preview-left-column {
+                grid-column: 1;
+                grid-row: 1 / span 2;
+            }
+            .preview-chart-column {
+                grid-column: 2;
+                grid-row: 1;
+                width: 100%;
+            }
+            .preview-chart-stack {
+                width: 100%;
+            }
+            .preview-side-column {
+                grid-column: 2;
+                grid-row: 2;
+                width: 100%;
+            }
+            .preview-bayes-column {
+                grid-column: 1 / -1;
+                grid-row: 3;
+                width: 100%;
+            }
+            #svg-wrapper { max-width: 100%; overflow: auto; }
+            .bayes-preview-panel {
+                width: 100%;
+                max-width: none;
+            }
+        }
         @media (max-width: 1200px) {
             body { margin: 12px; }
             .container { flex-direction: column; height: auto; }
@@ -1329,19 +1424,26 @@
             .main-content { height: auto; padding: 0 4px 20px; }
             .group-data-dock { width: 100%; }
             .preview-row { flex-direction: column; }
-            .preview-wrapper { padding: 20px; }
-            .preview-wrapper.has-bayes-preview { grid-template-columns: 50px 1fr; }
-            #svg-wrapper { max-width: 100%; overflow: auto; }
-            .bayes-preview-panel {
-                grid-column: 2;
-                grid-row: 4;
-                width: 100%;
-                max-width: none;
-            }
             .graph-controls-row { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
         }
         @media (max-width: 900px) {
-            .top-actions { grid-column: 1; grid-row: auto; justify-self: stretch; }
+            .preview-wrapper,
+            .preview-wrapper.has-bayes-preview {
+                grid-template-columns: 1fr;
+            }
+            .preview-left-column,
+            .preview-chart-column,
+            .preview-side-column,
+            .preview-bayes-column {
+                grid-column: 1;
+                grid-row: auto;
+                width: 100%;
+            }
+            .preview-chart-stack,
+            .chart-size-panel {
+                width: 100%;
+            }
+            .top-actions { justify-content: flex-start; }
             .action-btn { flex: 0 0 auto; }
             .visual-controls { grid-template-columns: 1fr; }
         }
@@ -1351,11 +1453,7 @@
             .group-dock-add { width: 100%; }
             #groupsContainer { flex-direction: column; }
             .group-data-dock .group-card { width: 100%; }
-            .preview-wrapper {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto;
-                gap: 12px;
-            }
+            .preview-wrapper { gap: 12px; }
             .slider-v, .slider-h { display: none; }
             .graph-controls-row { grid-template-columns: 1fr; }
         }
@@ -1557,122 +1655,8 @@
         </div>
         <div class="preview-row">
             <div class="preview-wrapper">
-                <div style="grid-column: 1; grid-row: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
-                    <label style="font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 6px;">
-                        H:
-                        <input type="number" id="chartHeightVal" value="220" min="200" max="800" oninput="syncChartSize('height')" style="width: 60px; padding: 2px 4px;">
-                    </label>
-                </div>
-                <div id="svg-wrapper">
-                    <div id="svg-container"></div>
-                    <div class="resize-handle resize-tl" data-handle="tl"></div>
-                    <div class="resize-handle resize-tr" data-handle="tr"></div>
-                    <div class="resize-handle resize-bl" data-handle="bl"></div>
-                    <div class="resize-handle resize-br" data-handle="br"></div>
-                    <div class="handle-pos" id="handlePosLeft" style="left: 6px; top: -18px;">L: 0</div>
-                    <div class="handle-pos drag-indicator" id="dragValueBadge">Y: 0</div>
-                    <button type="button" class="tip-icon" aria-label="Drag tips">i</button>
-                    <div class="tip-bubble">Tip: Drag title, Y-axis label, legend, bars, and sample labels (↑↓) to reposition.</div>
-                </div>
-                <div id="top-right-buttons" class="top-actions">
-                    <button class="action-btn action-download" onclick="downloadSVG()">Download for PPT</button>
-                    <button class="action-btn action-copy" onclick="copySvgToClipboard()">Copy SVG</button>
-                </div>
-                <div class="bayes-preview-panel" id="bayesPreviewPanel" hidden>
-                    <div class="bayes-preview-head">
-                        <div class="bayes-preview-kicker">Bayesian Assist</div>
-                        <div class="bayes-preview-actions">
-                            <select id="bayesChartMode" class="text-input" onchange="updatePlot()" aria-label="Bayesian chart mode">
-                                <option value="histogram" selected>Histogram</option>
-                                <option value="density">Density</option>
-                            </select>
-                            <button type="button" class="btn-mini" style="width:auto;" onclick="copyBayesPreviewSvgToClipboard()">Copy</button>
-                        </div>
-                    </div>
-                    <div class="bayes-preview-title">Δ posterior</div>
-                    <div class="bayes-preview-selectors">
-                        <select id="bayesGroupBSelect" class="text-input" onchange="updatePlot()" aria-label="Bayesian minuend group"></select>
-                        <span>-</span>
-                        <select id="bayesGroupASelect" class="text-input" onchange="updatePlot()" aria-label="Bayesian reference group"></select>
-                    </div>
-                    <div class="bayes-preview-title" id="bayesPreviewTitle">Δ = Group B - Group A</div>
-                    <div class="bayes-preview-decision" id="bayesPreviewDecision">89% CI rule</div>
-                    <div class="bayes-preview-chart" id="bayesPreviewChart"></div>
-                    <div class="bayes-preview-metrics" id="bayesPreviewMetrics"></div>
-                    <div class="bayes-preview-note" id="bayesPreviewNote"></div>
-                </div>
-                <div class="graph-controls-row">
-                    <div class="panel legend-panel" id="lineOptionsCard">
-                        <div class="option-list">
-                            <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showBars" onchange="handleShowBarsToggle()" checked> Show Bars</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showViolin" onchange="updatePlot()"> Show Violin</label>
-                            <label id="adjacentAvgLineWrap" style="font-weight: normal; display:none;"><input type="checkbox" id="showAdjacentAvgLine" onchange="updatePlot()"> Adjacent Pair Avg Line</label>
-                        </div>
-                        <div class="option-list" id="lineOptionsBody">
-                            <label style="font-weight: normal;"><input type="checkbox" id="showSampleLines" onchange="updatePlot()"> Sample Lines</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showMean" onchange="updatePlot()" checked> Mean Line / Dots</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showDotPlot" onchange="updatePlot()" checked> Show Dot Plot</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showMeanDots" onchange="updatePlot()" checked> Mean Dots (Line Mode)</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showErrorBars" onchange="updatePlot()" checked> Error Bars</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="showErrorBarsOnTop" onchange="updatePlot()"> Error Bars Above Dots</label>
-                        </div>
-                    </div>
-                    <div class="panel legend-panel bar-width-card" id="barWidthCard">
-                        <div class="control-item">
-                            <label for="barWidthSlider">Bar Width</label>
-                            <input type="range" id="barWidthSlider" min="6" max="80" value="27" oninput="syncBarWidthFromSlider()">
-                            <div style="font-size:0.8rem; color: var(--muted);">Current: <span id="barWidthValue">27</span> px</div>
-                        </div>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <button type="button" class="btn-mini" style="width:auto;" onclick="resetBarPositions()">Reset Bar Positions</button>
-                            <button type="button" class="btn-mini" style="width:auto;" onclick="undoBarChanges()">Undo</button>
-                            <button type="button" class="btn-mini" style="width:auto;" onclick="redoBarChanges()">Redo</button>
-                        </div>
-                    </div>
-                    <div class="panel legend-panel">
-                        <div class="option-list">
-                            <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc</label>
-                            <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
-                            <label id="showBayesAssistWrap" style="font-weight: normal;"><input type="checkbox" id="showBayesAssist" onchange="updatePlot()" checked> Bayesian Assist (89% CI)</label>
-                        </div>
-                        <div class="control-item">
-                            <label for="postHocMethod">Post-hoc Method</label>
-                            <select id="postHocMethod" class="text-input" onchange="updatePlot()">
-                                <option value="dunnett" selected>Dunnett</option>
-                                <option value="tukey">Tukey</option>
-                            </select>
-                        </div>
-                        <div class="control-item">
-                            <label>Bracket Offset <span id="bracketOffsetVal" style="font-weight: normal; color: var(--muted);">center</span></label>
-                            <input type="range" id="bracketOffset" min="-60" max="120" value="0" oninput="updatePlot()">
-                        </div>
-                    </div>
-                    <div class="panel legend-panel">
-                        <div class="card-grid-2">
-                            <div class="control-item">
-                                <label for="fontSizeX">Font (X)</label>
-                                <input type="number" id="fontSizeX" value="10" oninput="updatePlot()">
-                            </div>
-                            <div class="control-item">
-                                <label for="dotSize">Dot Size</label>
-                                <div class="compact-row">
-                                    <input type="number" id="dotSize" min="1" max="15" step="0.5" value="2.5" oninput="updatePlot()">
-                                </div>
-                            </div>
-                            <div class="control-item">
-                                <label for="fontSizeY">Font (Y)</label>
-                                <input type="number" id="fontSizeY" value="10" oninput="updatePlot()">
-                            </div>
-                            <div class="control-item">
-                                <label for="jitter">Dot Jitter</label>
-                                <div class="compact-row">
-                                    <input type="number" id="jitter" min="0" max="40" value="8" oninput="updatePlot()">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="panel legend-panel panel-tight">
+                <div class="preview-column preview-left-column">
+                    <div class="panel legend-panel panel-tight" id="yAxisCard">
                         <h4 style="margin:0 0 6px 0; font-size:0.9rem; color: var(--muted);">Y-Axis</h4>
                         <div class="ymax-inline" style="align-items:flex-end;">
                             <div class="control-item" style="min-width:70px;">
@@ -1714,7 +1698,95 @@
                         </div>
                         <div id="yScaleNote" style="font-size:0.75rem; color: var(--muted); min-height:1.2em;"></div>
                     </div>
-                    <div class="panel legend-panel">
+                    <div class="panel legend-panel preview-meta-panel" id="configProfileCard">
+                        <div class="config-profile">
+                            <div class="config-title">Configuration Profile</div>
+                            <div class="config-actions">
+                                <button type="button" class="btn-profile" onclick="downloadProfile()">Download (JSON)</button>
+                                <button type="button" class="btn-profile" onclick="document.getElementById('profileInput').click()">Load</button>
+                                <button type="button" class="btn-profile" onclick="resetProfile()">Reset</button>
+                                <input type="file" id="profileInput" accept="application/json" style="display:none;" onchange="loadProfile(event)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel legend-panel" id="lineOptionsCard">
+                        <div class="option-list">
+                            <label style="font-weight: normal;"><input type="checkbox" id="showLines" onchange="updatePlot()"> Show Lines</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showBars" onchange="handleShowBarsToggle()" checked> Show Bars</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showViolin" onchange="updatePlot()"> Show Violin</label>
+                            <label id="adjacentAvgLineWrap" style="font-weight: normal; display:none;"><input type="checkbox" id="showAdjacentAvgLine" onchange="updatePlot()"> Adjacent Pair Avg Line</label>
+                        </div>
+                        <div class="option-list" id="lineOptionsBody">
+                            <label style="font-weight: normal;"><input type="checkbox" id="showSampleLines" onchange="updatePlot()"> Sample Lines</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showMean" onchange="updatePlot()" checked> Mean Line / Dots</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showDotPlot" onchange="updatePlot()" checked> Show Dot Plot</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showMeanDots" onchange="updatePlot()" checked> Mean Dots (Line Mode)</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showErrorBars" onchange="updatePlot()" checked> Error Bars</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="showErrorBarsOnTop" onchange="updatePlot()"> Error Bars Above Dots</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="preview-column preview-chart-column">
+                    <div class="preview-chart-stack">
+                        <div class="chart-size-panel">
+                            <label class="chart-size-field">
+                                H:
+                                <input type="number" id="chartHeightVal" value="220" min="200" max="800" oninput="syncChartSize('height')">
+                            </label>
+                            <label class="chart-size-field">
+                                W:
+                                <input type="number" id="chartWidthVal" value="156" min="10" max="1000" oninput="syncChartSize('width')">
+                            </label>
+                        </div>
+                        <div id="svg-wrapper">
+                            <div id="svg-container"></div>
+                            <div class="resize-handle resize-tl" data-handle="tl"></div>
+                            <div class="resize-handle resize-tr" data-handle="tr"></div>
+                            <div class="resize-handle resize-bl" data-handle="bl"></div>
+                            <div class="resize-handle resize-br" data-handle="br"></div>
+                            <div class="handle-pos" id="handlePosLeft" style="left: 6px; top: -18px;">L: 0</div>
+                            <div class="handle-pos drag-indicator" id="dragValueBadge">Y: 0</div>
+                            <button type="button" class="tip-icon" aria-label="Drag tips">i</button>
+                            <div class="tip-bubble">Tip: Drag title, Y-axis label, legend, bars, and sample labels (↑↓) to reposition.</div>
+                        </div>
+                        <div id="top-right-buttons" class="top-actions">
+                            <button class="action-btn action-download" onclick="downloadSVG()">Download for PPT</button>
+                            <button class="action-btn action-copy" onclick="copySvgToClipboard()">Copy SVG</button>
+                        </div>
+                    </div>
+                    <div class="panel legend-panel bar-width-card" id="barWidthCard">
+                        <div class="control-item">
+                            <label for="barWidthSlider">Bar Width</label>
+                            <input type="range" id="barWidthSlider" min="6" max="80" value="27" oninput="syncBarWidthFromSlider()">
+                            <div style="font-size:0.8rem; color: var(--muted);">Current: <span id="barWidthValue">27</span> px</div>
+                        </div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn-mini" style="width:auto;" onclick="resetBarPositions()">Reset Bar Positions</button>
+                            <button type="button" class="btn-mini" style="width:auto;" onclick="undoBarChanges()">Undo</button>
+                            <button type="button" class="btn-mini" style="width:auto;" onclick="redoBarChanges()">Redo</button>
+                        </div>
+                    </div>
+                    <div class="panel legend-panel" id="postHocCard">
+                        <div class="option-list">
+                            <label style="font-weight: normal;"><input type="checkbox" id="showPostHoc" onchange="updatePlot()"> Show Post-hoc</label>
+                            <label style="font-weight: normal;"><input type="checkbox" id="autoBrackets" onchange="updatePlot()" checked> Auto Brackets (*)</label>
+                            <label id="showBayesAssistWrap" style="font-weight: normal;"><input type="checkbox" id="showBayesAssist" onchange="updatePlot()" checked> Bayesian Assist (89% CI)</label>
+                        </div>
+                        <div class="control-item">
+                            <label for="postHocMethod">Post-hoc Method</label>
+                            <select id="postHocMethod" class="text-input" onchange="updatePlot()">
+                                <option value="dunnett" selected>Dunnett</option>
+                                <option value="tukey">Tukey</option>
+                            </select>
+                        </div>
+                        <div class="control-item">
+                            <label>Bracket Offset <span id="bracketOffsetVal" style="font-weight: normal; color: var(--muted);">center</span></label>
+                            <input type="range" id="bracketOffset" min="-60" max="120" value="0" oninput="updatePlot()">
+                        </div>
+                    </div>
+                </div>
+                <div class="preview-column preview-side-column">
+                    <div class="panel legend-panel" id="legendCard">
                         <div class="control-item">
                             <label style="font-weight: normal; margin: 0;"><input type="checkbox" id="showLegend" checked onchange="updatePlot()"> Show Legend</label>
                         </div>
@@ -1724,23 +1796,53 @@
                             <input type="number" id="legendFontSize" value="10" oninput="updatePlot()" class="legend-input">
                         </div>
                     </div>
-                </div>
-                <div style="grid-column: 2; grid-row: 4; display: flex; align-items: center; gap: 10px; justify-self: start;">
-                    <label style="font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 6px;">
-                        W:
-                        <input type="number" id="chartWidthVal" value="156" min="10" max="1000" oninput="syncChartSize('width')" style="width: 60px; padding: 2px 4px;">
-                    </label>
-                </div>
-                <div style="grid-column: 2; grid-row: 6; width: 100%; justify-self: start;">
-                    <div class="config-profile">
-                        <div class="config-title">Configuration Profile</div>
-                        <div class="config-actions">
-                            <button type="button" class="btn-profile" onclick="downloadProfile()">Download (JSON)</button>
-                            <button type="button" class="btn-profile" onclick="document.getElementById('profileInput').click()">Load</button>
-                            <button type="button" class="btn-profile" onclick="resetProfile()">Reset</button>
-                            <input type="file" id="profileInput" accept="application/json" style="display:none;" onchange="loadProfile(event)">
+                    <div class="panel legend-panel" id="fontControlsCard">
+                        <div class="card-grid-2">
+                            <div class="control-item">
+                                <label for="fontSizeX">Font (X)</label>
+                                <input type="number" id="fontSizeX" value="10" oninput="updatePlot()">
+                            </div>
+                            <div class="control-item">
+                                <label for="dotSize">Dot Size</label>
+                                <div class="compact-row">
+                                    <input type="number" id="dotSize" min="1" max="15" step="0.5" value="2.5" oninput="updatePlot()">
+                                </div>
+                            </div>
+                            <div class="control-item">
+                                <label for="fontSizeY">Font (Y)</label>
+                                <input type="number" id="fontSizeY" value="10" oninput="updatePlot()">
+                            </div>
+                            <div class="control-item">
+                                <label for="jitter">Dot Jitter</label>
+                                <div class="compact-row">
+                                    <input type="number" id="jitter" min="0" max="40" value="8" oninput="updatePlot()">
+                                </div>
+                            </div>
                         </div>
                     </div>
+                </div>
+                <div class="bayes-preview-panel preview-bayes-column" id="bayesPreviewPanel" hidden>
+                    <div class="bayes-preview-head">
+                        <div class="bayes-preview-kicker">Bayesian Assist</div>
+                        <div class="bayes-preview-actions">
+                            <select id="bayesChartMode" class="text-input" onchange="updatePlot()" aria-label="Bayesian chart mode">
+                                <option value="histogram" selected>Histogram</option>
+                                <option value="density">Density</option>
+                            </select>
+                            <button type="button" class="btn-mini" style="width:auto;" onclick="copyBayesPreviewSvgToClipboard()">Copy</button>
+                        </div>
+                    </div>
+                    <div class="bayes-preview-title">Δ posterior</div>
+                    <div class="bayes-preview-selectors">
+                        <select id="bayesGroupBSelect" class="text-input" onchange="updatePlot()" aria-label="Bayesian minuend group"></select>
+                        <span>-</span>
+                        <select id="bayesGroupASelect" class="text-input" onchange="updatePlot()" aria-label="Bayesian reference group"></select>
+                    </div>
+                    <div class="bayes-preview-title" id="bayesPreviewTitle">Δ = Group B - Group A</div>
+                    <div class="bayes-preview-decision" id="bayesPreviewDecision">89% CI rule</div>
+                    <div class="bayes-preview-chart" id="bayesPreviewChart"></div>
+                    <div class="bayes-preview-metrics" id="bayesPreviewMetrics"></div>
+                    <div class="bayes-preview-note" id="bayesPreviewNote"></div>
                 </div>
             </div>
         </div>
